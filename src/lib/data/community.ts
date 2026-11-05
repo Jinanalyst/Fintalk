@@ -57,7 +57,7 @@ export type PostList = { posts: Post[]; live: boolean };
 export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: number; authorId?: string; q?: string; ticker?: string } = {}): Promise<PostList> {
   const { cat = "all", sort = "hot", limit = 50, authorId, q, ticker } = opts;
   if (!isSupabaseConfigured) {
-    let list = POSTS.filter((p) => cat === "all" || p.category === cat);
+    let list = POSTS.filter((p) => (cat === "all" || p.category === cat) && (!ticker || p.tickers.includes(ticker.toUpperCase())));
     if (q) list = list.filter((p) => (p.title + p.body.join(" ") + p.tickers.join(" ")).toLowerCase().includes(q.toLowerCase()));
     return { posts: sortPosts(list, sort).slice(0, limit), live: false };
   }
@@ -78,6 +78,29 @@ export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: nu
   const posts = (data as unknown as PostRow[]).map(mapPost);
   const sorted = sort === "new" ? posts : sort === "comments" ? [...posts].sort((a, b) => b.comments - a.comments) : [...posts].sort((a, b) => hotScore(b) - hotScore(a));
   return { posts: sorted.slice(0, limit), live: true };
+}
+
+export type CommentPreview = { id: string; author: string; body: string; createdAt: string };
+
+/** 게시글별 최신 댓글 미리보기 (게시글당 최대 `perPost` 개). Supabase 미설정 시 빈 결과. */
+export async function listCommentPreviews(postIds: string[], perPost = 2): Promise<Record<string, CommentPreview[]>> {
+  const ids = postIds.filter((id) => UUID_RE.test(id));
+  if (!isSupabaseConfigured || ids.length === 0) return {};
+  const sb = await createClient();
+  const { data } = await sb
+    .from("comments")
+    .select("id,post_id,body,created_at,author:profiles(nickname)")
+    .in("post_id", ids)
+    .eq("status", "published")
+    .order("created_at", { ascending: false })
+    .limit(ids.length * perPost * 3);
+  type Row = { id: string; post_id: string; body: string; created_at: string; author: { nickname: string } | { nickname: string }[] | null };
+  const out: Record<string, CommentPreview[]> = {};
+  for (const r of (data ?? []) as unknown as Row[]) {
+    const list = (out[r.post_id] ??= []);
+    if (list.length < perPost) list.push({ id: r.id, author: nick(r.author), body: r.body, createdAt: timeAgo(r.created_at) });
+  }
+  return out;
 }
 
 export async function getCurrentUser() {
