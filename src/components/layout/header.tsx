@@ -73,7 +73,7 @@ export function Header() {
             </span>
           </Link>
           <ThemeToggle />
-          <Link href="/me" className="sm:hidden" aria-label="내 정보">
+          <Link href={user ? `/me/${encodeURIComponent(user.nickname)}` : "/me"} className="sm:hidden" aria-label="내 정보">
             <span className="grid size-9 place-items-center rounded-md hover:bg-muted">
               <UserRound className="size-5" />
             </span>
@@ -97,7 +97,7 @@ export function Header() {
                   <Button variant="ghost" size="lg">관리자</Button>
                 </Link>
               )}
-              <Link href="/me" className="hidden max-w-36 items-center gap-1.5 truncate rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted sm:flex">
+              <Link href={`/me/${encodeURIComponent(user.nickname)}`} className="hidden max-w-36 items-center gap-1.5 truncate rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted sm:flex">
                 <UserAvatar name={user.nickname} url={user.avatar_url} className="size-6 text-xs" />
                 <span className="truncate">{user.nickname}</span>
               </Link>
