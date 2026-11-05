@@ -36,6 +36,9 @@ export function Footer() {
           {LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="hover:text-brand">{l.label}</Link>
           ))}
+          <span className="hidden h-4 w-px self-center bg-border sm:block" aria-hidden="true" />
+          <Link href="/terms" className="hover:text-brand">이용약관</Link>
+          <Link href="/privacy" className="font-semibold text-foreground hover:text-brand">개인정보처리방침</Link>
         </nav>
 
         <dl className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">

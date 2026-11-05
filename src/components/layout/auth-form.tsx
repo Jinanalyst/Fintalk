@@ -89,7 +89,10 @@ export function AuthForm({
           {mode === "signup" && (
             <label className="flex items-start gap-2 text-xs text-muted-foreground">
               <input type="checkbox" name="agree" required className="mt-0.5" />
-              이용약관 및 개인정보 처리방침에 동의합니다. (투자 권유가 아닌 정보 공유 커뮤니티임을 이해합니다)
+              <span>
+                <Link href="/terms" target="_blank" className="text-brand underline">이용약관</Link> 및{" "}
+                <Link href="/privacy" target="_blank" className="text-brand underline">개인정보처리방침</Link>에 동의합니다. (투자 권유가 아닌 정보 공유 커뮤니티임을 이해합니다)
+              </span>
             </label>
           )}
           <button

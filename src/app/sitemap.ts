@@ -6,7 +6,7 @@ import { CREATORS, POSTS, TICKERS } from "@/lib/sample-data";
 const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const fixed = ["", "/community", "/insights", "/outlook", "/rewards"].map((p) => ({ url: `${base}${p}` }));
+  const fixed = ["", "/community", "/insights", "/outlook", "/rewards", "/terms", "/privacy"].map((p) => ({ url: `${base}${p}` }));
   let postUrls = POSTS.map((p) => ({ url: `${base}/community/${p.id}` }));
 
   if (isSupabaseConfigured) {
