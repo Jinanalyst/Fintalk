@@ -4,6 +4,7 @@ import { getPopularCreators } from "@/lib/data/creators";
 import { PopularCreatorsView } from "./popular-creators";
 import { MyContributionCard, TopHelpersCard, TrendingTickersCard } from "./side-cards";
 import { Header } from "./header";
+import { Footer } from "./footer";
 import { BottomNav, SidebarNav } from "./nav";
 
 /** 인기 작성자 (조회수 → 저장 → 좋아요 우선순위) */
@@ -52,6 +53,7 @@ export function MainShell({ children }: { children: React.ReactNode }) {
         <main className="min-w-0">{children}</main>
         <RightSidebar />
       </div>
+      <Footer />
       <BottomNav />
     </>
   );
@@ -63,6 +65,7 @@ export function NarrowShell({ children, width = "max-w-2xl" }: { children: React
     <>
       <Header />
       <main className={`mx-auto w-full flex-1 px-3 py-6 pb-24 sm:px-4 lg:pb-10 ${width}`}>{children}</main>
+      <Footer />
       <BottomNav />
     </>
   );
