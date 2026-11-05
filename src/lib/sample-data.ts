@@ -197,8 +197,15 @@ export type Post = {
   tickers: string[];
   hasChart?: boolean;
   pinned?: boolean;
-  /** 샘플 정렬용 숫자 (낮을수록 최근) */
+  /** 정렬용 숫자 (낮을수록 최근) */
   ageMin: number;
+  // ── Supabase 연동 시에만 채워지는 필드 ──
+  live?: boolean;
+  authorId?: string;
+  images?: string[];
+  myVote?: 0 | 1 | -1;
+  saved?: boolean;
+  rawBody?: string;
 };
 
 export const POSTS: Post[] = [
@@ -236,7 +243,8 @@ export type Comment = {
   author: string;
   body: string;
   createdAt: string;
-  upvotes: number;
+  upvotes?: number;
+  mine?: boolean;
   replies?: Comment[];
 };
 

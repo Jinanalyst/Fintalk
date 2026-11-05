@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell, Bookmark, FileText, Settings, Star, UserX } from "lucide-react";
+import { Bookmark, FileText, Settings, Star } from "lucide-react";
 import { Card, Change, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
-import { ComingSoonButton } from "@/components/feed/interactive";
-import { ASSETS, POSTS, formatPrice } from "@/lib/sample-data";
+import { DeleteAccountButton, ProfileForm } from "@/components/layout/profile-form";
+import { getCurrentUser, listPosts, listSavedPosts, listWatchSymbols } from "@/lib/data/community";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { ASSETS, POSTS, formatPrice, getAsset } from "@/lib/sample-data";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -19,26 +21,44 @@ const TABS = [
   { k: "settings", l: "설정", i: Settings },
 ];
 
-const toggles = ["댓글 알림", "추천 알림", "팔로우 알림", "챌린지 결과 알림", "관심 종목 뉴스 알림"];
-
 export default async function MePage({ searchParams }: PageProps<"/me">) {
   const sp = await searchParams;
   const tab = TABS.some((t) => t.k === sp.tab) ? (sp.tab as string) : "posts";
-  const field = "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
+  const me = await getCurrentUser();
+  const live = isSupabaseConfigured && !!me;
+
+  if (isSupabaseConfigured && !me) {
+    return (
+      <Card className="p-8 text-center">
+        <h1 className="text-lg font-bold">로그인이 필요합니다</h1>
+        <p className="mt-1 text-sm text-muted-foreground">내 게시글, 저장한 글, 관심 종목은 로그인 후 확인할 수 있습니다.</p>
+        <Link href="/login?next=/me" className="mt-4 inline-block rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-primary-foreground">로그인</Link>
+      </Card>
+    );
+  }
+
+  const myPosts = live ? (await listPosts({ authorId: me!.id, sort: "new", limit: 50 })).posts : POSTS.slice(0, 2);
+  const saved = live ? await listSavedPosts(me!.id) : POSTS.slice(2, 4);
+  const watch = live
+    ? (await listWatchSymbols(me!.id)).map((s) => ({ symbol: s, asset: getAsset(s) }))
+    : ASSETS.filter((a) => ["BTC", "005930", "NVDA", "KOSPI"].includes(a.symbol)).map((a) => ({ symbol: a.symbol, asset: a }));
 
   return (
     <div className="space-y-4">
       <Card className="p-5">
         <div className="flex items-center gap-4">
-          <span className="grid size-16 place-items-center rounded-full bg-brand-soft text-2xl font-bold text-brand">핀</span>
+          <span className="grid size-16 place-items-center rounded-full bg-brand-soft text-2xl font-bold text-brand">
+            {(me?.nickname ?? "핀").slice(0, 1)}
+          </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-bold">핀톡 방문자</h1>
-              <SampleBadge label="미리보기 계정" />
+              <h1 className="truncate text-xl font-bold">{me?.nickname ?? "핀톡 방문자"}</h1>
+              {!live && <SampleBadge label="미리보기 (Supabase 미연결)" />}
+              {me?.role === "admin" && <span className="rounded bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">관리자</span>}
+              {me?.status === "suspended" && <span className="rounded bg-down/10 px-1.5 py-0.5 text-xs font-semibold text-down">이용 제한</span>}
             </div>
-            <p className="text-sm text-muted-foreground">로그인 후 내 활동이 이곳에 표시됩니다.</p>
+            <p className="truncate text-sm text-muted-foreground">{me?.bio || "자기소개를 설정에서 작성해 보세요."}</p>
           </div>
-          <Link href="/login" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground">로그인</Link>
         </div>
       </Card>
 
@@ -59,26 +79,27 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
 
       {tab === "posts" && (
         <div className="space-y-2.5">
-          <p className="text-xs text-muted-foreground">샘플 게시글을 예시로 보여 줍니다. 수정·삭제는 Phase 2에서 연결됩니다.</p>
-          {POSTS.slice(0, 2).map((p) => <PostCard key={p.id} post={p} />)}
+          {myPosts.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">작성한 게시글이 없습니다.</p>}
+          {myPosts.map((p) => <PostCard key={p.id} post={p} />)}
         </div>
       )}
 
       {tab === "saved" && (
         <div className="space-y-2.5">
-          <p className="text-xs text-muted-foreground">게시글의 “저장” 버튼으로 담은 글이 여기에 모입니다. (샘플)</p>
-          {POSTS.slice(2, 4).map((p) => <PostCard key={p.id} post={p} />)}
+          {saved.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">저장한 게시글이 없습니다. 게시글의 “저장” 버튼으로 담아 보세요.</p>}
+          {saved.map((p) => <PostCard key={p.id} post={p} />)}
         </div>
       )}
 
       {tab === "watchlist" && (
         <Card className="p-0">
+          {watch.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">마켓에서 ★ 를 눌러 관심 종목을 추가해 보세요.</p>}
           <ul className="divide-y">
-            {ASSETS.filter((a) => ["BTC", "005930", "NVDA", "KOSPI"].includes(a.symbol)).map((a) => (
-              <li key={a.symbol}>
-                <Link href={`/market/${a.symbol}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
-                  <span><span className="block text-sm font-semibold">{a.name}</span><span className="text-xs text-muted-foreground">{a.symbol}</span></span>
-                  <span className="text-right text-sm tabular-nums">{formatPrice(a)}<br /><Change pct={a.changePct} className="text-xs" /></span>
+            {watch.map(({ symbol, asset: a }) => (
+              <li key={symbol}>
+                <Link href={`/market/${symbol}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
+                  <span><span className="block text-sm font-semibold">{a?.name ?? symbol}</span><span className="text-xs text-muted-foreground">{symbol}</span></span>
+                  {a && <span className="text-right text-sm tabular-nums">{formatPrice(a)}<br /><Change pct={a.changePct} className="text-xs" /></span>}
                 </Link>
               </li>
             ))}
@@ -88,33 +109,23 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
 
       {tab === "settings" && (
         <div className="space-y-4">
-          <Card>
-            <h2 className="mb-3 text-base font-bold">프로필</h2>
-            <div className="space-y-3">
-              <div><label className="mb-1 block text-sm font-medium" htmlFor="n">닉네임</label><input id="n" className={field} defaultValue="핀톡 방문자" /></div>
-              <div><label className="mb-1 block text-sm font-medium" htmlFor="b">자기소개</label><textarea id="b" rows={3} className={field} placeholder="간단한 소개를 적어 주세요" /></div>
-              <div className="flex items-center gap-2">
-                <ComingSoonButton feature="프로필 이미지 업로드" className="rounded-lg border px-3 py-2 text-sm hover:bg-muted">프로필 이미지 변경</ComingSoonButton>
-                <ComingSoonButton feature="프로필 저장" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground">저장</ComingSoonButton>
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <h2 className="mb-3 flex items-center gap-1.5 text-base font-bold"><Bell className="size-4" />알림 설정</h2>
-            <ul className="divide-y">
-              {toggles.map((t) => (
-                <li key={t} className="flex items-center justify-between py-2.5 text-sm">
-                  {t}
-                  <input type="checkbox" defaultChecked aria-label={t} className="size-4 accent-[var(--brand)]" />
-                </li>
-              ))}
-            </ul>
-          </Card>
-          <Card className="border-down/30">
-            <h2 className="mb-1 flex items-center gap-1.5 text-base font-bold text-down"><UserX className="size-4" />회원 탈퇴</h2>
-            <p className="mb-3 text-xs text-muted-foreground">탈퇴 시 계정과 개인정보가 삭제되며 복구할 수 없습니다.</p>
-            <ComingSoonButton feature="회원 탈퇴" className="rounded-lg border border-down/40 px-3 py-2 text-sm font-medium text-down hover:bg-down/10">회원 탈퇴</ComingSoonButton>
-          </Card>
+          {live ? (
+            <Card>
+              <h2 className="mb-3 text-base font-bold">프로필 · 알림</h2>
+              <ProfileForm profile={me!} email={me!.email} />
+              <p className="mt-3 text-xs text-muted-foreground">프로필 이미지 업로드는 이후 단계에서 제공됩니다. 비밀번호 변경은 <Link href="/forgot-password" className="text-brand underline">재설정 메일</Link>로 진행하세요.</p>
+            </Card>
+          ) : (
+            <Card><p className="text-sm text-muted-foreground">Supabase 환경변수를 설정하면 프로필과 알림 설정을 저장할 수 있습니다.</p></Card>
+          )}
+          {live && (
+            <Card className="border-down/30">
+              <h2 className="mb-1 text-base font-bold text-down">회원 탈퇴</h2>
+              <p className="mb-3 text-xs text-muted-foreground">탈퇴 시 계정과 작성한 게시글·댓글이 모두 삭제되며 복구할 수 없습니다.</p>
+              {sp.error === "delete" && <p className="mb-2 text-sm text-down">탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.</p>}
+              <DeleteAccountButton />
+            </Card>
+          )}
         </div>
       )}
     </div>

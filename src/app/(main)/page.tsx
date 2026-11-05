@@ -6,15 +6,14 @@ import { NewsCard, PostCard } from "@/components/feed/cards";
 import { Sparkline } from "@/components/market/charts";
 import { PopularCreators } from "@/components/layout/shell";
 import { SplitBar } from "@/components/market/charts";
+import { listPosts } from "@/lib/data/community";
 import {
   MARKET_MOOD,
   NEWS,
-  POSTS,
   TICKER_SYMBOLS,
   TRENDING_TICKERS,
   formatPrice,
   getAsset,
-  sortPosts,
   type SortKey,
 } from "@/lib/sample-data";
 
@@ -28,7 +27,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const sort: SortKey = sp.sort === "new" ? "new" : "hot";
   const quotes = TICKER_SYMBOLS.map((s) => getAsset(s)!);
   const breaking = NEWS.filter((n) => n.breaking).concat(NEWS.filter((n) => !n.breaking)).slice(0, 5);
-  const posts = sortPosts(POSTS, sort).slice(0, 6);
+  const { posts, live } = await listPosts({ sort, limit: 6 });
 
   return (
     <div className="space-y-5">
@@ -130,7 +129,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       {/* 커뮤니티 피드 */}
       <section>
-        <SectionHeader title="커뮤니티 게시글" href="/community" right={<SampleBadge label="샘플 게시글" />} className="mb-2" />
+        <SectionHeader title="커뮤니티 게시글" href="/community" right={live ? undefined : <SampleBadge label="샘플 게시글" />} className="mb-2" />
         <Pills items={SORTS} active={sort} hrefFor={(s) => `/?sort=${s}`} className="mb-3" />
         <div className="space-y-2.5">
           {posts.slice(0, 3).map((p) => (
@@ -141,6 +140,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             <PostCard key={p.id} post={p} />
           ))}
         </div>
+        {posts.length === 0 && (
+          <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">아직 게시글이 없습니다. 첫 글을 작성해보세요.</p>
+        )}
         <div className="mt-3 text-center">
           <Link href="/community" className="text-sm font-medium text-brand hover:underline">
             게시글 더 보기 ›

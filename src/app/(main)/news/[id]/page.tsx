@@ -35,7 +35,7 @@ export default async function NewsDetail({ params }: PageProps<"/news/[id]">) {
 
   return (
     <article className="space-y-4">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Link href="/news" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand">
         <ArrowLeft className="size-4" /> 뉴스 목록
       </Link>

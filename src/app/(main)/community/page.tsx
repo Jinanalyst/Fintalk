@@ -4,7 +4,8 @@ import { PenLine } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
-import { BOARD_CATEGORIES, POSTS, boardLabel, sortPosts, type SortKey } from "@/lib/sample-data";
+import { listPosts } from "@/lib/data/community";
+import { BOARD_CATEGORIES, boardLabel, type SortKey } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
   title: "커뮤니티",
@@ -21,8 +22,7 @@ export default async function CommunityPage({ searchParams }: PageProps<"/commun
   const sp = await searchParams;
   const cat = typeof sp.cat === "string" && BOARD_CATEGORIES.some((c) => c.slug === sp.cat) ? sp.cat : "all";
   const sort: SortKey = sp.sort === "new" || sp.sort === "comments" ? sp.sort : "hot";
-  const filtered = POSTS.filter((p) => cat === "all" || p.category === cat);
-  const list = sortPosts(filtered, sort);
+  const { posts: list, live } = await listPosts({ cat, sort });
   const catQ = cat === "all" ? "" : `cat=${cat}&`;
 
   return (
@@ -39,15 +39,17 @@ export default async function CommunityPage({ searchParams }: PageProps<"/commun
           </Link>
         }
       />
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <SampleBadge label="샘플 게시글" />
-      </div>
+      {!live && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <SampleBadge label="샘플 게시글 (Supabase 미연결)" />
+        </div>
+      )}
       <Pills items={BOARD_CATEGORIES} active={cat} hrefFor={(c) => (c === "all" ? `/community?sort=${sort}` : `/community?cat=${c}&sort=${sort}`)} className="mb-3 lg:hidden" />
       <Pills items={SORTS} active={sort} hrefFor={(s) => `/community?${catQ}sort=${s}`} className="mb-4" />
 
       {list.length === 0 ? (
         <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">
-          아직 게시글이 없습니다. 첫 글을 작성해보세요.
+          아직 게시글이 없습니다. <Link href="/community/write" className="text-brand underline">첫 글을 작성해보세요.</Link>
         </div>
       ) : (
         <div className="space-y-2.5">

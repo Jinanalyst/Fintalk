@@ -5,6 +5,8 @@ import { ComingSoonButton } from "@/components/feed/interactive";
 import { Sparkline } from "@/components/market/charts";
 import { ADMIN_USERS, ANNOUNCEMENTS, AD_SLOTS, NEWS, POSTS, REPORTS, boardLabel, creatorName } from "@/lib/sample-data";
 import { cn } from "@/lib/utils";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { LiveAdmin } from "./live-admin";
 
 const TABS = [
   { k: "stats", l: "통계", i: BarChart3 },
@@ -36,6 +38,7 @@ function Table({ head, children }: { head: string[]; children: React.ReactNode }
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const sp = await searchParams;
   const tab = TABS.some((t) => t.k === sp.tab) ? (sp.tab as string) : "stats";
+  if (isSupabaseConfigured) return <LiveAdmin tab={tab} tabs={TABS} />;
   const field = "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:border-brand";
 
   return (

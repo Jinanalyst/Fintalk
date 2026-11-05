@@ -8,7 +8,7 @@ export function PostCard({ post }: { post: Post }) {
   return (
     <article className="flex gap-3 rounded-xl border bg-card p-3 shadow-xs transition-colors hover:border-brand/40 sm:p-4">
       <div className="hidden sm:block">
-        <VoteBar up={post.upvotes} down={post.downvotes} vertical />
+        <VoteBar up={post.upvotes} down={post.downvotes} vertical postId={post.live ? post.id : undefined} initial={post.myVote} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -17,7 +17,7 @@ export function PostCard({ post }: { post: Post }) {
             {boardLabel(post.category)}
           </Link>
           <span>·</span>
-          <Link href={`/creators/${post.author}`} className="hover:text-brand">
+          <Link href={`/creators/${encodeURIComponent(post.author)}`} className="hover:text-brand">
             {creatorName(post.author)}
           </Link>
           <span>·</span>
@@ -44,7 +44,7 @@ export function PostCard({ post }: { post: Post }) {
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="sm:hidden">
-              <VoteBar up={post.upvotes} down={post.downvotes} />
+              <VoteBar up={post.upvotes} down={post.downvotes} postId={post.live ? post.id : undefined} initial={post.myVote} />
             </span>
             <span className="inline-flex items-center gap-1">
               <MessageSquare className="size-3.5" />
@@ -55,7 +55,7 @@ export function PostCard({ post }: { post: Post }) {
               {post.views.toLocaleString("ko-KR")}
             </span>
           </div>
-          <PostActions id={post.id} compact />
+          <PostActions id={post.id} compact live={post.live} saved={post.saved} />
         </div>
       </div>
     </article>

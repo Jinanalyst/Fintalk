@@ -9,6 +9,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ThemeToggle } from "@/components/common/theme";
 import { useToast } from "@/components/common/toast";
 import { SidebarNav, TopNav } from "./nav";
+import { useUser } from "./use-user";
+import { signOutAction } from "@/app/actions/auth";
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
@@ -56,6 +58,7 @@ export function SearchBox({ className = "" }: { className?: string }) {
 export function Header() {
   const [open, setOpen] = useState(false);
   const { comingSoon } = useToast();
+  const user = useUser();
   return (
     <header className="sticky top-0 z-40 border-b bg-card/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1320px] items-center gap-2 px-3 sm:gap-3 sm:px-4">
@@ -84,12 +87,25 @@ export function Header() {
               <PenLine className="size-4" /> 글쓰기
             </Button>
           </Link>
-          <Link href="/login" className="hidden sm:block">
-            <Button variant="outline" size="lg">로그인</Button>
-          </Link>
-          <Link href="/login" className="sm:hidden">
-            <Button variant="outline" size="lg">로그인</Button>
-          </Link>
+          {user ? (
+            <>
+              {user.role === "admin" && (
+                <Link href="/admin" className="hidden md:block">
+                  <Button variant="ghost" size="lg">관리자</Button>
+                </Link>
+              )}
+              <Link href="/me" className="hidden max-w-28 truncate rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted sm:block">
+                {user.nickname}
+              </Link>
+              <form action={signOutAction}>
+                <Button variant="outline" size="lg" type="submit">로그아웃</Button>
+              </form>
+            </>
+          ) : (
+            <Link href="/login">
+              <Button variant="outline" size="lg">로그인</Button>
+            </Link>
+          )}
         </div>
       </div>
 

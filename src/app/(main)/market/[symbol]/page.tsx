@@ -6,6 +6,7 @@ import { Card, Change, SampleBadge, SectionHeader } from "@/components/common/bi
 import { NewsCard, PostCard } from "@/components/feed/cards";
 import { WatchStar } from "@/components/feed/interactive";
 import { PriceChart } from "@/components/market/charts";
+import { getWatchState } from "@/lib/data/community";
 import { ASSETS, MARKET_TABS, NEWS, POSTS, formatPrice, getAsset } from "@/lib/sample-data";
 
 export function generateStaticParams() {
@@ -26,6 +27,7 @@ export default async function SymbolPage({ params }: PageProps<"/market/[symbol]
   const { symbol } = await params;
   const a = getAsset(symbol);
   if (!a) notFound();
+  const watch = await getWatchState();
   const up = a.changePct >= 0;
   const news = NEWS.filter((n) => n.tickers.includes(a.symbol));
   const posts = POSTS.filter((p) => p.tickers.includes(a.symbol));
@@ -52,7 +54,7 @@ export default async function SymbolPage({ params }: PageProps<"/market/[symbol]
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <WatchStar symbol={a.symbol} />
+            <WatchStar symbol={a.symbol} live={watch.live} initial={watch.set.has(a.symbol)} />
             <SampleBadge label="샘플 시세" />
           </div>
         </div>

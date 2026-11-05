@@ -4,6 +4,7 @@ import { Info } from "lucide-react";
 import { Change, PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { WatchStar } from "@/components/feed/interactive";
 import { Sparkline } from "@/components/market/charts";
+import { getWatchState } from "@/lib/data/community";
 import { ASSETS, MARKET_TABS, formatPrice, type MarketType } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 
 export default async function MarketPage({ searchParams }: PageProps<"/market">) {
   const sp = await searchParams;
+  const watch = await getWatchState();
   const m = (MARKET_TABS.some((t) => t.slug === sp.m) ? sp.m : "crypto") as MarketType;
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase() : "";
   const list = ASSETS.filter((a) => (q ? true : a.market === m) && (!q || (a.name + a.symbol).toLowerCase().includes(q)));
@@ -67,7 +69,7 @@ export default async function MarketPage({ searchParams }: PageProps<"/market">)
         <ul className="divide-y">
           {list.map((a) => (
             <li key={a.symbol} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 px-3 py-2.5 sm:grid-cols-[28px_1fr_140px_90px_100px]">
-              <WatchStar symbol={a.symbol} />
+              <WatchStar symbol={a.symbol} live={watch.live} initial={watch.set.has(a.symbol)} />
               <Link href={`/market/${a.symbol}`} className="min-w-0 hover:text-brand">
                 <p className="truncate text-sm font-semibold">{a.name}</p>
                 <p className="text-xs text-muted-foreground">{a.symbol} · {a.unit}</p>

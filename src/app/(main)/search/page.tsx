@@ -3,6 +3,9 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { Change, PageTitle, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
 import { NewsCard, PostCard } from "@/components/feed/cards";
+import { listPosts } from "@/lib/data/community";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { ASSETS, CREATORS, NEWS, POSTS, fmtNum, formatPrice } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
@@ -17,15 +20,23 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
   const has = (s: string) => s.toLowerCase().includes(lq);
 
   const news = q ? NEWS.filter((n) => has(n.title + n.summary + n.tickers.join(" "))) : [];
-  const posts = q ? POSTS.filter((p) => has(p.title + p.body.join(" ") + p.tickers.join(" "))) : [];
+  const { posts: foundPosts, live } = q ? await listPosts({ q, sort: "new", limit: 30 }) : { posts: [], live: false };
+  const tagPosts = q && live && /^[0-9A-Za-z._-]{1,20}$/.test(q) ? (await listPosts({ ticker: q, sort: "new", limit: 30 })).posts : [];
+  const posts = Array.from(new Map([...foundPosts, ...tagPosts].map((p) => [p.id, p])).values());
   const assets = q ? ASSETS.filter((a) => has(a.name + a.symbol)) : [];
-  const creators = q ? CREATORS.filter((c) => has(c.name + c.handle + c.bio)) : [];
-  const tags = q ? Array.from(new Set([...NEWS.flatMap((n) => n.tickers), ...POSTS.flatMap((p) => p.tickers)])).filter(has) : [];
+  let creators: { handle: string; name: string; followers?: number; bio: string }[] = q && !isSupabaseConfigured ? CREATORS.filter((c) => has(c.name + c.handle + c.bio)) : [];
+  if (q && isSupabaseConfigured) {
+    const safe = q.replace(/[%_,()]/g, " ").trim();
+    const sb = await createClient();
+    const { data } = safe ? await sb.from("profiles").select("nickname,bio").ilike("nickname", `%${safe}%`).limit(20) : { data: [] };
+    creators = (data ?? []).map((p) => ({ handle: p.nickname, name: p.nickname, bio: p.bio }));
+  }
+  const tags = q ? Array.from(new Set([...NEWS.flatMap((n) => n.tickers), ...(live ? posts : POSTS).flatMap((p) => p.tickers)])).filter(has) : [];
   const total = news.length + posts.length + assets.length + creators.length;
 
   return (
     <div className="space-y-5">
-      <PageTitle title="통합 검색" desc="뉴스 · 게시글 · 종목 · 작성자 · 태그를 한 번에 검색합니다." right={<SampleBadge label="샘플 데이터 검색" />} />
+      <PageTitle title="통합 검색" desc="뉴스 · 게시글 · 종목 · 작성자 · 태그를 한 번에 검색합니다." right={<SampleBadge label="뉴스·종목은 샘플 데이터" />} />
       <form action="/search" role="search">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -74,9 +85,9 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           <ul className="divide-y rounded-xl border bg-card">
             {creators.map((c) => (
               <li key={c.handle}>
-                <Link href={`/creators/${c.handle}`} className="block px-4 py-3 hover:bg-muted/50">
+                <Link href={`/creators/${encodeURIComponent(c.handle)}`} className="block px-4 py-3 hover:bg-muted/50">
                   <p className="text-sm font-semibold">{c.name} <span className="font-normal text-muted-foreground">@{c.handle}</span></p>
-                  <p className="text-xs text-muted-foreground">팔로워 {fmtNum(c.followers)} · {c.bio}</p>
+                  <p className="text-xs text-muted-foreground">{c.followers !== undefined && <>팔로워 {fmtNum(c.followers)} · </>}{c.bio}</p>
                 </Link>
               </li>
             ))}

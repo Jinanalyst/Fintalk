@@ -4,16 +4,15 @@ import { Flame, Trophy } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { Card, Change, SampleBadge, SectionHeader } from "@/components/common/bits";
 import { FollowButton } from "@/components/feed/interactive";
+import { listPosts } from "@/lib/data/community";
 import { Header } from "./header";
 import { BottomNav, SidebarNav } from "./nav";
 import {
   CREATORS,
-  POSTS,
   TICKER_SYMBOLS,
   fmtNum,
   formatPrice,
   getAsset,
-  sortPosts,
 } from "@/lib/sample-data";
 
 export function PopularCreators({ limit = 4 }: { limit?: number }) {
@@ -39,9 +38,9 @@ export function PopularCreators({ limit = 4 }: { limit?: number }) {
   );
 }
 
-function RightSidebar() {
+async function RightSidebar() {
   const quotes = TICKER_SYMBOLS.slice(0, 6).map((s) => getAsset(s)!);
-  const hot = sortPosts(POSTS, "hot").slice(0, 5);
+  const { posts: hot } = await listPosts({ sort: "hot", limit: 5 });
   return (
     <aside className="hidden space-y-4 xl:block" aria-label="사이드 정보">
       <Card>
@@ -64,6 +63,7 @@ function RightSidebar() {
       <Card>
         <SectionHeader title={<span className="inline-flex items-center gap-1.5"><Flame className="size-4 text-down" />인기 게시글</span>} href="/community" />
         <ol className="mt-3 space-y-2.5">
+          {hot.length === 0 && <li className="text-sm text-muted-foreground">아직 게시글이 없습니다.</li>}
           {hot.map((p, i) => (
             <li key={p.id} className="flex gap-2.5 text-sm">
               <span className="w-4 shrink-0 text-center font-bold text-brand">{i + 1}</span>
