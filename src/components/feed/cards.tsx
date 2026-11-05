@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LiveViews } from "@/components/feed/live-views";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Eye, ImageIcon, MessageSquare, Pin } from "lucide-react";
 import { type Post, boardLabel, creatorName, postTypeLabel } from "@/lib/sample-data";
@@ -76,7 +77,7 @@ export function PostCard({ post }: { post: Post }) {
             </span>
             <span className="inline-flex items-center gap-1">
               <Eye className="size-3.5" />
-              {post.views.toLocaleString("ko-KR")}
+              <LiveViews postId={post.id} initial={post.views} live={post.live} />
             </span>
           </div>
           <PostActions id={post.id} compact live={post.live} saved={post.saved} />
@@ -112,7 +113,7 @@ export function InsightCard({ post, featured = false }: { post: Post; featured?:
           {creatorName(post.author)}
         </Link>
         <span className="ml-auto inline-flex items-center gap-1"><MessageSquare className="size-3.5" />{post.comments}</span>
-        <span className="inline-flex items-center gap-1"><Eye className="size-3.5" />{post.views.toLocaleString("ko-KR")}</span>
+        <span className="inline-flex items-center gap-1"><Eye className="size-3.5" /><LiveViews postId={post.id} initial={post.views} live={post.live} /></span>
         <span>좋아요 {post.upvotes}</span>
       </div>
     </article>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LiveViews, ViewCounter } from "@/components/feed/live-views";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Eye, ImageIcon } from "lucide-react";
@@ -13,7 +14,6 @@ import { ComingSoonButton, FollowButton, PostActions, VoteBar } from "@/componen
 import { PostOwnerActions } from "@/components/feed/post-owner";
 import { getPostDetail, listPosts } from "@/lib/data/community";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
 import {
   SAMPLE_COMMENTS,
   boardLabel,
@@ -48,9 +48,6 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
     if (!detail) notFound();
     ({ post, comments, viewerId } = detail);
     live = true;
-    // 조회수 증가 (DB 함수, 게시된 글에만 적용)
-    const sb = await createClient();
-    await sb.rpc("increment_post_views", { p_id: id });
   } else {
     post = getPost(id);
     if (!post) notFound();
@@ -88,7 +85,7 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
           <PostBadges post={post} />
           <span>· {post.createdAt}</span>
           {["analysis", "strategy", "review", "resource"].includes(post.type) && <span>· 약 {readingMinutes(post.rawBody ?? post.body.join(" "))}분</span>}
-          <span className="inline-flex items-center gap-1"><Eye className="size-3.5" />{post.views.toLocaleString("ko-KR")}</span>
+          <span className="inline-flex items-center gap-1"><Eye className="size-3.5" /><LiveViews postId={post.id} initial={post.views} live={live} />{live && <ViewCounter postId={post.id} />}</span>
           {!live && <SampleBadge label="샘플 게시글" />}
         </div>
         <h1 className="text-xl font-bold leading-snug sm:text-2xl">{post.title}</h1>

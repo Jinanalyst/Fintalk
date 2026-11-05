@@ -79,3 +79,9 @@ end $$;
 drop trigger if exists notify_on_comment on public.comments;
 create trigger notify_on_comment after insert on public.comments
   for each row execute function public.notify_on_comment();
+
+-- ───────── 4. 조회수 실시간 반영 (Realtime) ─────────
+do $$ begin
+  alter publication supabase_realtime add table public.posts;
+exception when duplicate_object then null;
+end $$;
