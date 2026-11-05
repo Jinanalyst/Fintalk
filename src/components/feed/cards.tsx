@@ -3,6 +3,7 @@ import { Eye, ImageIcon, MessageSquare, Pin } from "lucide-react";
 import { type Post, boardLabel, creatorName, postTypeLabel } from "@/lib/sample-data";
 import { Tag } from "@/components/common/bits";
 import { PostActions, VoteBar } from "./interactive";
+import { readingMinutes } from "./rich-body";
 
 /** 질문 상태: 답변 대기 / 답변 완료 / 채택 완료 */
 export function questionStatus(post: Pick<Post, "type" | "comments" | "acceptedCommentId">) {
@@ -79,6 +80,39 @@ export function PostCard({ post }: { post: Post }) {
           </div>
           <PostActions id={post.id} compact live={post.live} saved={post.saved} />
         </div>
+      </div>
+    </article>
+  );
+}
+
+/** 인사이트 카드: 읽는 시간과 근거 표시(차트·이미지, 종목 태그)를 함께 보여줍니다. */
+export function InsightCard({ post, featured = false }: { post: Post; featured?: boolean }) {
+  const mins = readingMinutes(post.rawBody ?? post.body.join(" "));
+  const chips = [post.hasChart && "차트·이미지 포함", post.tickers.length > 0 && "종목 태그", post.sponsored && "협찬·이해관계"].filter(Boolean) as string[];
+  return (
+    <article className={`flex flex-col gap-2.5 rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:border-brand/40 sm:p-5 ${featured ? "sm:p-6" : ""}`}>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span className="rounded-full bg-muted px-2 py-0.5 font-semibold text-foreground">{postTypeLabel(post.type)}</span>
+        <span>{boardLabel(post.category)}</span>
+        <span>· 읽는 시간 {mins}분</span>
+      </div>
+      <Link href={`/community/${post.id}`} className="block">
+        <h3 className={`font-extrabold leading-snug tracking-tight ${featured ? "text-xl sm:text-2xl" : "text-base sm:text-lg"}`}>{post.title}</h3>
+        <p className={`mt-1.5 text-sm leading-relaxed text-muted-foreground ${featured ? "line-clamp-3" : "line-clamp-2"}`}>{post.body[0]}</p>
+      </Link>
+      {chips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {chips.map((c) => <span key={c} className="rounded-md bg-up/10 px-1.5 py-0.5 text-[11px] font-semibold text-up">{c}</span>)}
+        </div>
+      )}
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 text-xs text-muted-foreground">
+        <Link href={`/creators/${encodeURIComponent(post.author)}`} className="inline-flex items-center gap-1.5 font-semibold text-foreground hover:text-brand">
+          <span className="grid size-6 place-items-center rounded-full bg-brand-soft text-[11px] font-bold text-brand">{creatorName(post.author).slice(0, 1)}</span>
+          {creatorName(post.author)}
+        </Link>
+        <span className="ml-auto inline-flex items-center gap-1"><MessageSquare className="size-3.5" />{post.comments}</span>
+        <span className="inline-flex items-center gap-1"><Eye className="size-3.5" />{post.views.toLocaleString("ko-KR")}</span>
+        <span>좋아요 {post.upvotes}</span>
       </div>
     </article>
   );

@@ -45,7 +45,8 @@ function fromDb(r: DbRow): CreatorRow {
 }
 
 function sort(list: CreatorRow[], by: CreatorSort) {
-  const k = by === "new" ? (c: CreatorRow) => Date.parse(c.createdAt) : by === "followers" ? (c: CreatorRow) => c.followers : (c: CreatorRow) => c.score;
+  if (by === "popular") return [...list].sort((a, b) => b.views - a.views || b.saves - a.saves || b.upvotes - a.upvotes);
+  const k = by === "new" ? (c: CreatorRow) => Date.parse(c.createdAt) : (c: CreatorRow) => c.followers;
   return [...list].sort((a, b) => k(b) - k(a));
 }
 
@@ -55,7 +56,7 @@ export async function listCreators(opts: { q?: string; field?: string; sort?: Cr
   if (!isSupabaseConfigured) {
     const now = Date.now();
     let list: CreatorRow[] = CREATORS.map((c, i) => ({
-      id: null, handle: c.handle, name: c.name, bio: c.bio, interests: [c.focus], followers: c.followers, following: 0, posts: c.posts, insights: 0, answers: 0, accepted: 0,
+      id: null, handle: c.handle, name: c.name, bio: c.bio, interests: [c.focus], followers: c.followers, following: 0, posts: c.posts, insights: Math.round(c.posts * 0.3), answers: 0, accepted: Math.max(1, Math.round(c.upvotes / 2500)),
       upvotes: c.upvotes, views: c.views, saves: Math.round(c.upvotes * 0.4), score: c.upvotes, createdAt: new Date(now - (i + 1) * 864e5 * 9).toISOString(), live: false,
     }));
     if (q) list = list.filter((c) => (c.name + c.handle + c.bio + c.interests.join(" ")).toLowerCase().includes(q.toLowerCase()));
@@ -114,5 +115,12 @@ export async function getPopularCreators(): Promise<{ items: PopularItem[]; live
     .sort((a, b) => b.views - a.views || b.saves - a.saves || b.upvotes - a.upvotes)
     .filter((c) => c.views + c.saves + c.upvotes > 0 || !live)
     .map((c) => ({ handle: c.handle, name: c.name, id: c.id, following: c.id ? following.has(c.id) : false, mine: c.id !== null && c.id === viewerId, views: c.views, saves: c.saves, likes: c.upvotes }));
+  return { items, live };
+}
+
+/** 채택된 답변이 많은 순 (질문에 실제로 도움을 준 사람) */
+export async function getTopHelpers(limit = 3): Promise<{ items: CreatorRow[]; live: boolean }> {
+  const { creators, live } = await listCreators({ limit: 300 });
+  const items = [...creators].sort((a, b) => b.accepted - a.accepted || b.answers - a.answers).filter((c) => c.accepted > 0).slice(0, limit);
   return { items, live };
 }

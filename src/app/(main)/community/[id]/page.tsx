@@ -10,7 +10,7 @@ import { getFollowState } from "@/lib/data/creators";
 import { RichBody, readingMinutes } from "@/components/feed/rich-body";
 import { ComingSoonButton, FollowButton, PostActions, VoteBar } from "@/components/feed/interactive";
 import { PostOwnerActions } from "@/components/feed/post-owner";
-import { getPostDetail } from "@/lib/data/community";
+import { getPostDetail, listPosts } from "@/lib/data/community";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -58,6 +58,9 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
   const author = live ? undefined : getCreator(post.author);
   const isMine = live && viewerId !== null && post.authorId === viewerId;
   const followed = live && post.authorId ? (await getFollowState([post.authorId])).following.has(post.authorId) : false;
+
+  const isQuestion = post.type === "question";
+  const similar = isQuestion ? (await listPosts({ cat: post.category, types: ["question"], sort: "hot", limit: 6 })).posts.filter((p) => p.id !== post.id).slice(0, 3) : [];
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -149,12 +152,50 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
       <AdSlot slot="post-detail" />
 
       <section>
-        <SectionHeader title={`댓글 ${live ? post.comments : post.comments}`} right={!live ? <SampleBadge label="샘플 댓글" /> : undefined} className="mb-2" />
-        <CommentForm postId={post.id} live={live} />
+        <SectionHeader
+          title={isQuestion ? `답변 ${post.comments}개` : `댓글 ${post.comments}`}
+          right={!live ? <SampleBadge label={isQuestion ? "샘플 답변" : "샘플 댓글"} /> : undefined}
+          className="mb-2"
+        />
         <div className="mt-3">
-          <CommentList comments={comments} postId={post.id} live={live} canAccept={live && viewerId !== null && post.authorId === viewerId && post.type === "question"} />
+          <CommentList comments={comments} postId={post.id} live={live} answer={isQuestion} canAccept={live && viewerId !== null && post.authorId === viewerId && isQuestion} />
+        </div>
+        <div id="answer" className="mt-4 scroll-mt-20">
+          {isQuestion && (
+            <div className="mb-2">
+              <h2 className="text-base font-bold">내 경험으로 답해 주세요</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">결론부터 한 문장으로, 근거와 출처를 함께 적으면 채택될 확률이 높아져요. 채택되면 기여도 +15점이 기록됩니다.</p>
+            </div>
+          )}
+          <CommentForm postId={post.id} live={live} answer={isQuestion} />
         </div>
       </section>
+
+      {isQuestion && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card className="bg-brand-soft/60">
+            <h2 className="text-sm font-bold">좋은 답변이 되려면</h2>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-foreground/80">
+              <li>질문의 핵심부터 답해요</li>
+              <li>근거 데이터나 출처를 남겨요</li>
+              <li>모르는 부분은 모른다고 말해요</li>
+              <li>수익 보장·유료 리딩방 홍보는 금지예요</li>
+            </ul>
+          </Card>
+          <Card>
+            <h2 className="text-sm font-bold">비슷한 질문</h2>
+            <ul className="mt-2 space-y-2">
+              {similar.length === 0 && <li className="text-sm text-muted-foreground">비슷한 질문이 아직 없어요.</li>}
+              {similar.map((p) => (
+                <li key={p.id}>
+                  <Link href={`/community/${p.id}`} className="line-clamp-2 text-sm font-medium leading-snug hover:text-brand">{p.title}</Link>
+                  <span className="text-xs text-muted-foreground">답변 {p.comments}{p.acceptedCommentId ? " · 채택 완료" : ""}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

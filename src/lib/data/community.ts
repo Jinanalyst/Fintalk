@@ -62,8 +62,9 @@ export function mapPost(r: PostRow): Post {
 export type PostList = { posts: Post[]; live: boolean };
 
 /** 게시글 목록. Supabase 미설정 시 샘플 데이터를 반환합니다. */
-export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: number; authorId?: string; q?: string; ticker?: string; types?: PostType[] } = {}): Promise<PostList> {
-  const { cat = "all", sort = "hot", limit = 50, authorId, q, ticker, types } = opts;
+export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: number; authorId?: string; q?: string; ticker?: string; types?: PostType[]; authorIds?: string[] } = {}): Promise<PostList> {
+  const { cat = "all", sort = "hot", limit = 50, authorId, q, ticker, types, authorIds } = opts;
+  if (authorIds && authorIds.length === 0) return { posts: [], live: isSupabaseConfigured };
   if (!isSupabaseConfigured) {
     let list = POSTS.filter((p) => (cat === "all" || p.category === cat) && (!ticker || p.tickers.includes(ticker.toUpperCase())) && (!types || types.includes(p.type)));
     if (q) list = list.filter((p) => (p.title + p.body.join(" ") + p.tickers.join(" ")).toLowerCase().includes(q.toLowerCase()));
@@ -73,6 +74,7 @@ export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: nu
   let query = sb.from("posts").select(SELECT).eq("status", "published").order("created_at", { ascending: false }).limit(200);
   if (cat !== "all") query = query.eq("category_slug", cat);
   if (authorId) query = query.eq("author_id", authorId);
+  if (authorIds) query = query.in("author_id", authorIds);
   if (types?.length) query = query.in("post_type", types);
   if (ticker) query = query.contains("tickers", [ticker.toUpperCase()]);
   if (q) {
@@ -138,6 +140,34 @@ export async function getMyStats(userId: string): Promise<MyStats | null> {
 /** 기여도 점수: 단순 조회·추천보다 실제 도움(채택 답변, 인사이트)에 더 높은 가중치 */
 export const contributionScore = (s: Pick<MyStats, "posts" | "insights" | "answers" | "accepted" | "upvotes" | "views">) =>
   s.posts * 2 + s.insights * 5 + s.answers * 2 + s.accepted * 15 + s.upvotes + Math.floor(s.views / 50);
+
+/**
+ * 지금 답을 기다리는 질문: 아직 답변이 없는 질문을 최신순으로. 부족하면 채택이 없는 질문으로 채웁니다.
+ */
+export async function listWaitingQuestions(limit = 4): Promise<{ posts: Post[]; live: boolean }> {
+  const { posts, live } = await listPosts({ sort: "new", types: ["question"], limit: 50 });
+  const open = posts.filter((p) => !p.acceptedCommentId);
+  const none = open.filter((p) => p.comments === 0);
+  const rest = open.filter((p) => p.comments > 0);
+  return { posts: [...none, ...rest].slice(0, limit), live };
+}
+
+/** 기여도 단계 (점수 구간). 현금 보상과는 무관한 활동 단계입니다. */
+export const LEVELS = [
+  { name: "새싹", min: 0 },
+  { name: "참여자", min: 30 },
+  { name: "기여자", min: 100 },
+  { name: "전문가", min: 300 },
+  { name: "마스터", min: 1000 },
+];
+
+export function contributionLevel(score: number) {
+  let i = 0;
+  LEVELS.forEach((l, j) => { if (score >= l.min) i = j; });
+  const cur = LEVELS[i];
+  const next = LEVELS[i + 1] ?? null;
+  return { cur, next, remain: next ? next.min - score : 0, pct: next ? Math.round(((score - cur.min) / (next.min - cur.min)) * 100) : 100 };
+}
 
 export async function getCurrentUser() {
   if (!isSupabaseConfigured) return null;

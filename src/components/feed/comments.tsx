@@ -16,12 +16,15 @@ export function CommentForm({
   live = false,
   onDone,
   placeholder,
+  answer = false,
 }: {
   postId?: string;
   parentId?: string | null;
   live?: boolean;
   onDone?: () => void;
   placeholder?: string;
+  /** 질문 글: 답변 작성 문구로 표시 */
+  answer?: boolean;
 }) {
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
@@ -39,7 +42,7 @@ export function CommentForm({
           const r = await addCommentAction(postId, parentId, text);
           if (guard(r)) {
             setText("");
-            show("댓글을 등록했습니다.");
+            show(answer && !parentId ? "답변을 등록했습니다." : "댓글을 등록했습니다.");
             onDone?.();
             router.refresh();
           }
@@ -51,7 +54,7 @@ export function CommentForm({
         onChange={(e) => setText(e.target.value)}
         rows={parentId ? 2 : 3}
         maxLength={1000}
-        placeholder={placeholder ?? "서로 존중하는 토론 문화를 만들어 주세요. (로그인 필요)"}
+        placeholder={placeholder ?? (answer ? "내 경험과 근거를 바탕으로 질문자에게 도움이 될 답변을 작성해 주세요. (로그인 필요)" : "서로 존중하는 토론 문화를 만들어 주세요. (로그인 필요)")}
         className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
       />
       <div className="flex items-center justify-between border-t pt-2">
@@ -61,7 +64,7 @@ export function CommentForm({
           disabled={pending || !text.trim()}
           className="rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          {parentId ? "답글 등록" : "댓글 등록"}
+          {parentId ? "답글 등록" : answer ? "답변 등록" : "댓글 등록"}
         </button>
       </div>
     </form>
@@ -75,7 +78,7 @@ function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Com
   const [replying, setReplying] = useState(false);
 
   return (
-    <li className={depth ? "ml-5 border-l pl-4 sm:ml-8" : ""}>
+    <li className={depth ? "ml-5 border-l pl-4 sm:ml-8" : c.accepted ? "-mx-4 rounded-xl border-2 border-up/60 bg-up/5 px-4" : ""}>
       <div className="py-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="grid size-6 place-items-center rounded-full bg-brand-soft text-[11px] font-bold text-brand">
@@ -148,12 +151,14 @@ function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Com
   );
 }
 
-export function CommentList({ comments, postId, live = false, canAccept = false }: { comments: Comment[]; postId?: string; live?: boolean; canAccept?: boolean }) {
+export function CommentList({ comments, postId, live = false, canAccept = false, answer = false }: { comments: Comment[]; postId?: string; live?: boolean; canAccept?: boolean; answer?: boolean }) {
   if (comments.length === 0)
-    return <p className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">첫 댓글을 남겨보세요.</p>;
+    return <p className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">{answer ? "아직 답변이 없어요. 아는 만큼 먼저 답해 주세요." : "첫 댓글을 남겨보세요."}</p>;
+  // 채택된 답변을 맨 위로
+  const ordered = [...comments].sort((a, b) => Number(!!b.accepted) - Number(!!a.accepted));
   return (
     <ul className="divide-y rounded-xl border bg-card px-4">
-      {comments.map((c) => (
+      {ordered.map((c) => (
         <CommentItem key={c.id} c={c} postId={postId} live={live} canAccept={canAccept} />
       ))}
     </ul>
