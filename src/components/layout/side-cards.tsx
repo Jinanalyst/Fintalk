@@ -1,4 +1,6 @@
 import { UserAvatar } from "@/components/common/user-avatar";
+import { TrendingTickers } from "@/components/feed/trending-tickers";
+import { getTrendingTickers } from "@/lib/data/trending";
 import Link from "next/link";
 import { Award } from "lucide-react";
 import { SampleBadge } from "@/components/common/bits";
@@ -65,4 +67,16 @@ export async function TopHelpersCard() {
       </ol>
     </section>
   );
+}
+
+/** 인기 종목 토론 (실시간 순위) — 사이드 카드 */
+export async function TrendingTickersCard() {
+  const { items, live } = await getTrendingTickers(6);
+  return <TrendingTickers initial={items} live={live} variant="card" />;
+}
+
+/** 인기 종목 토론 (실시간 순위) — 가로 칩 */
+export async function TrendingTickersStrip() {
+  const { items, live } = await getTrendingTickers(6);
+  return <TrendingTickers initial={items} live={live} variant="strip" />;
 }

@@ -85,3 +85,9 @@ do $$ begin
   alter publication supabase_realtime add table public.posts;
 exception when duplicate_object then null;
 end $$;
+
+-- 인기 종목 토론 실시간 집계용 (댓글 추가 이벤트)
+do $$ begin
+  alter publication supabase_realtime add table public.comments;
+exception when duplicate_object then null;
+end $$;

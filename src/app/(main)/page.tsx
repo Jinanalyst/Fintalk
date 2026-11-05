@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, MessageCircleQuestion, PenLine } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
-import { Pills, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
+import { Pills, SampleBadge, SectionHeader } from "@/components/common/bits";
 import { InsightCard, PostCard, questionStatus } from "@/components/feed/cards";
 import { SideCards } from "@/components/layout/shell";
+import { TrendingTickersStrip } from "@/components/layout/side-cards";
 import { getCurrentUser, listPosts, listWaitingQuestions } from "@/lib/data/community";
 import { listFollowingIds } from "@/lib/data/creators";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { INSIGHT_TYPES, TRENDING_TICKERS, boardLabel, tickerName } from "@/lib/sample-data";
+import { INSIGHT_TYPES, boardLabel } from "@/lib/sample-data";
 
 type Tab = "hot" | "new" | "following";
 
@@ -116,6 +117,11 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         </section>
       )}
 
+      {/* 인기 종목 토론: 넓은 화면에서는 오른쪽 열 카드로 보이므로 좁은 화면에서만 */}
+      <div className="xl:hidden">
+        <TrendingTickersStrip />
+      </div>
+
       {/* 피드 */}
       <section>
         <SectionHeader title="커뮤니티" href="/community" right={live ? undefined : <SampleBadge label="샘플 게시글" />} className="mb-2" />
@@ -150,19 +156,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       {/* 좁은 화면에서는 오른쪽 열 대신 여기에 */}
       <div className="space-y-4 xl:hidden">
-        <SideCards />
+        <SideCards trending={false} />
       </div>
 
-      <div>
-        <p className="mb-2 text-xs text-muted-foreground">인기 종목 토론</p>
-        <div className="flex flex-wrap gap-1.5">
-          {TRENDING_TICKERS.map((t) => (
-            <Tag key={t} href={`/community?ticker=${t}`}>
-              ${t} {tickerName(t) !== t ? tickerName(t) : ""}
-            </Tag>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

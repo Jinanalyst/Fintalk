@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { getPopularCreators } from "@/lib/data/creators";
 import { PopularCreatorsView } from "./popular-creators";
-import { MyContributionCard, TopHelpersCard } from "./side-cards";
+import { MyContributionCard, TopHelpersCard, TrendingTickersCard } from "./side-cards";
 import { Header } from "./header";
 import { BottomNav, SidebarNav } from "./nav";
 
@@ -13,10 +13,11 @@ export async function PopularCreators({ limit = 4 }: { limit?: number }) {
 }
 
 /** 오른쪽 열: 내 기여도 · 도움왕 · 인기 작성자 (홈 하단에서도 같은 카드를 재사용) */
-export function SideCards() {
+export function SideCards({ trending = true }: { trending?: boolean }) {
   return (
     <>
       <MyContributionCard />
+      {trending && <TrendingTickersCard />}
       <TopHelpersCard />
       <PopularCreators limit={4} />
     </>
