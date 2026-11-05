@@ -13,8 +13,6 @@ export const NEWS_CATEGORIES: Category[] = [
   { slug: "us-stock", label: "해외 주식" },
   { slug: "crypto", label: "암호화폐" },
   { slug: "macro", label: "거시경제" },
-  { slug: "rates", label: "채권 및 금리" },
-  { slug: "fx-commodity", label: "외환 및 원자재" },
 ];
 
 export const BOARD_CATEGORIES: Category[] = [
@@ -170,9 +168,9 @@ export const NEWS: NewsItem[] = [
   { id: "n2", title: "비트코인 9,800만원 돌파 시도…현물 ETF 자금 유입 지속", summary: "미국 현물 ETF로의 순유입이 이어지면서 비트코인이 전고점 부근에서 등락하고 있다. 파생시장 미결제약정도 증가세다.", source: "샘플코인데일리", category: "crypto", publishedAt: "28분 전", tickers: ["BTC", "ETH"], relatedPostIds: ["p2", "p6"], breaking: true },
   { id: "n3", title: "미 연준 인사 “금리 인하 속도 신중해야”…달러 강세 전환", summary: "연준 고위 인사가 물가 둔화세가 더디다고 언급하면서 금리 인하 기대가 후퇴했다. 달러 인덱스는 소폭 상승했다.", source: "샘플글로벌", category: "macro", publishedAt: "45분 전", tickers: ["USDKRW", "SPX"], relatedPostIds: ["p3"] },
   { id: "n4", title: "엔비디아, 차세대 칩 출하 앞당긴다…AI 반도체 랠리 재점화", summary: "엔비디아가 차세대 AI 가속기 출하 일정을 앞당긴다고 밝히며 관련 공급망 종목이 동반 상승했다.", source: "샘플테크", category: "us-stock", publishedAt: "1시간 전", tickers: ["NVDA", "000660"], relatedPostIds: ["p4"] },
-  { id: "n5", title: "국고채 10년물 금리 소폭 하락…채권시장 관망세", summary: "미국 금리 경로를 확인하려는 심리가 커지며 국고채 금리가 좁은 범위에서 움직였다.", source: "샘플채권뉴스", category: "rates", publishedAt: "1시간 전", tickers: [], relatedPostIds: [] },
-  { id: "n6", title: "국제 유가 하락, 산유국 증산 우려…WTI 71달러대", summary: "OPEC+의 증산 가능성이 거론되며 국제 유가가 약세를 보였다. 금은 안전자산 선호로 소폭 올랐다.", source: "샘플에너지", category: "fx-commodity", publishedAt: "2시간 전", tickers: ["WTI", "GOLD"], relatedPostIds: ["p7"] },
-  { id: "n7", title: "원/달러 환율 1,390원대 안착 시도…수출주 영향은?", summary: "환율이 1,390원 선에서 등락하며 수출 업종의 실적 전망에 대한 엇갈린 해석이 나온다.", source: "샘플금융", category: "fx-commodity", publishedAt: "2시간 전", tickers: ["USDKRW", "005930"], relatedPostIds: ["p3"] },
+  { id: "n5", title: "국고채 10년물 금리 소폭 하락…채권시장 관망세", summary: "미국 금리 경로를 확인하려는 심리가 커지며 국고채 금리가 좁은 범위에서 움직였다.", source: "샘플채권뉴스", category: "macro", publishedAt: "1시간 전", tickers: [], relatedPostIds: [] },
+  { id: "n6", title: "국제 유가 하락, 산유국 증산 우려…WTI 71달러대", summary: "OPEC+의 증산 가능성이 거론되며 국제 유가가 약세를 보였다. 금은 안전자산 선호로 소폭 올랐다.", source: "샘플에너지", category: "macro", publishedAt: "2시간 전", tickers: ["WTI", "GOLD"], relatedPostIds: ["p7"] },
+  { id: "n7", title: "원/달러 환율 1,390원대 안착 시도…수출주 영향은?", summary: "환율이 1,390원 선에서 등락하며 수출 업종의 실적 전망에 대한 엇갈린 해석이 나온다.", source: "샘플금융", category: "macro", publishedAt: "2시간 전", tickers: ["USDKRW", "005930"], relatedPostIds: ["p3"] },
   { id: "n8", title: "이더리움 업그레이드 일정 공개…스테이킹 수익률 변화 전망", summary: "이더리움 개발진이 차기 업그레이드 로드맵을 공개했다. 시장은 스테이킹 수익률에 미칠 영향을 분석 중이다.", source: "샘플코인데일리", category: "crypto", publishedAt: "3시간 전", tickers: ["ETH"], relatedPostIds: [] },
   { id: "n9", title: "테슬라, 신규 모델 발표 앞두고 변동성 확대", summary: "발표를 앞두고 옵션 시장에서 변동성 지표가 상승했다. 단기 주가 방향성에 대한 의견이 갈린다.", source: "샘플글로벌", category: "us-stock", publishedAt: "4시간 전", tickers: ["TSLA"], relatedPostIds: [] },
   { id: "n10", title: "한국은행 총재 “물가 안정 확인 후 정책 판단”", summary: "한국은행 총재가 통화정책 방향과 관련해 데이터에 의존한 판단을 강조했다.", source: "샘플경제", category: "macro", publishedAt: "5시간 전", tickers: ["KOSPI"], relatedPostIds: ["p3"] },

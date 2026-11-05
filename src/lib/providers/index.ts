@@ -36,14 +36,14 @@ const ALIASES: Record<string, string[]> = {
 /** 종목 연관 뉴스 검색용 키워드 */
 export const newsKeywords = (a: { symbol: string; name: string }) => [a.name, ...(ALIASES[a.symbol] ?? []), ...(/^[A-Z]{3,}$/.test(a.symbol) ? [a.symbol] : [])];
 
+/** 카테고리: 국내 주식 / 미국 주식 / 암호화폐 / 거시경제 */
 const CATEGORY_RULES: [string, RegExp][] = [
-  ["rates", /금리|채권|국채|국고채|기준금리|yield|treasury|rate (cut|hike)/i],
-  ["fx-commodity", /환율|달러|엔화|유가|원유|금값|원자재|oil|gold|commodit|forex/i],
-  ["crypto", /비트코인|이더리움|암호화폐|가상자산|bitcoin|ethereum|crypto|solana|ripple/i],
+  ["crypto", /비트코인|이더리움|암호화폐|가상자산|코인|bitcoin|ethereum|crypto|solana|ripple|stablecoin/i],
+  ["macro", /금리|물가|인플레|환율|연준|기준금리|국채|고용|gdp|cpi|fomc|inflation|interest rate|treasury|jobs report|tariff|관세|유가/i],
 ];
 
-function classify(text: string, fallback: string) {
-  return CATEGORY_RULES.find(([, re]) => re.test(text))?.[0] ?? fallback;
+function classify(text: string, fallback: string, enabled: boolean) {
+  return enabled ? (CATEGORY_RULES.find(([, re]) => re.test(text))?.[0] ?? fallback) : fallback;
 }
 
 function tickersIn(text: string): string[] {
@@ -61,7 +61,7 @@ export async function getLatestNews({ cat = "all", q = "", keywords, limit = 30 
       if (!r.ok) return [];
       return r.data.map((a): NewsArticle => {
         const text = a.title + " " + a.summary;
-        return { ...a, category: classify(text, p.category), tickers: tickersIn(text), provider: p.meta.id, attribution: p.meta.attribution };
+        return { ...a, category: classify(text, p.category, !!p.classify), tickers: tickersIn(text), provider: p.meta.id, attribution: p.meta.attribution };
       });
     }),
   );

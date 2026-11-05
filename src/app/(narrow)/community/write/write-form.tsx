@@ -14,7 +14,7 @@ type Initial = { id: string; category: string; title: string; body: string; tick
 const MAX_BYTES = 5 * 1024 * 1024;
 const TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
-export function WriteForm({ live, initial }: { live: boolean; initial?: Initial }) {
+export function WriteForm({ live, initial, prefillTickers }: { live: boolean; initial?: Initial; prefillTickers?: string[] }) {
   const { comingSoon, show } = useToast();
   const guard = useGuard();
   const router = useRouter();
@@ -23,7 +23,7 @@ export function WriteForm({ live, initial }: { live: boolean; initial?: Initial 
   const [category, setCategory] = useState(initial?.category ?? "free");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
-  const [tags, setTags] = useState<string[]>(initial?.tickers ?? []);
+  const [tags, setTags] = useState<string[]>(initial?.tickers ?? prefillTickers ?? []);
   const [tagInput, setTagInput] = useState("");
   const [existing, setExisting] = useState<string[]>(initial?.images ?? []);
   const [files, setFiles] = useState<File[]>([]);

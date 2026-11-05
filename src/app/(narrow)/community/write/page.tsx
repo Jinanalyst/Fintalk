@@ -9,7 +9,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function WritePage() {
+export default async function WritePage({ searchParams }: PageProps<"/community/write">) {
+  const sp = await searchParams;
+  const ticker = typeof sp.ticker === "string" && /^[0-9A-Za-z._-]{1,20}$/.test(sp.ticker) ? sp.ticker.toUpperCase() : null;
   if (isSupabaseConfigured) {
     const me = await getCurrentUser();
     if (!me) redirect("/login?next=/community/write");
@@ -23,7 +25,7 @@ export default async function WritePage() {
       <p className="mb-4 mt-1 text-sm text-muted-foreground">
         {isSupabaseConfigured ? "서로 존중하는 토론 문화를 만들어 주세요." : "Supabase 환경변수가 없어 미리보기 모드입니다. 등록되지 않습니다."}
       </p>
-      <WriteForm live={isSupabaseConfigured} />
+      <WriteForm live={isSupabaseConfigured} prefillTickers={ticker ? [ticker] : undefined} />
     </div>
   );
 }

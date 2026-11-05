@@ -25,8 +25,8 @@ const state: State = (g.__providerState ??= { cache: new Map(), hits: new Map(),
  * - 운영(production): PROVIDER_LICENSE_VERIFIED 에 ID 가 등록된 공급처만 허용 (무료 API ≠ 상업 이용 허용)
  * - 개발/테스트: 모두 허용 (이용약관 미확인 공급처는 개발·테스트 전용)
  */
-export function isLicensed(id: string): boolean {
-  if (process.env.NODE_ENV !== "production") return true;
+export function isLicensed(id: string, licensedByDefault = false): boolean {
+  if (process.env.NODE_ENV !== "production" || licensedByDefault) return true;
   const verified = (process.env.PROVIDER_LICENSE_VERIFIED ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   return verified.includes(id);
 }
@@ -48,7 +48,7 @@ export async function callProvider<T>(
   cacheKey: string,
   run: (signal: AbortSignal) => Promise<T | null>,
 ): Promise<CallResult<T>> {
-  if (!isLicensed(meta.id)) return { ok: false, reason: "unlicensed" };
+  if (!isLicensed(meta.id, meta.licensedByDefault)) return { ok: false, reason: "unlicensed" };
 
   const key = `${meta.id}:${cacheKey}`;
   const cached = state.cache.get(key);

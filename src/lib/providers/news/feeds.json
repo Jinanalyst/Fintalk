@@ -1,0 +1,48 @@
+[
+  {
+    "id": "coindesk",
+    "name": "CoinDesk",
+    "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    "category": "crypto",
+    "classify": false,
+    "license": "unverified",
+    "licenseNote": "© CoinDesk, Inc. RSS 재게시·상업 이용 조건을 확인하지 못함. 운영 노출 전 약관 확인/허락 필요."
+  },
+  {
+    "id": "cointelegraph",
+    "name": "Cointelegraph",
+    "url": "https://cointelegraph.com/rss",
+    "category": "crypto",
+    "classify": false,
+    "license": "unverified",
+    "licenseNote": "일반 약관은 출처 표기 하의 공정이용 인용만 언급. RSS 상업 이용 조건은 미확인."
+  },
+  {
+    "id": "cnbc",
+    "name": "CNBC",
+    "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    "category": "us-stock",
+    "classify": true,
+    "license": "unverified",
+    "licenseNote": "NBCUniversal 약관 적용. 동종 방송사 RSS 는 개인·비상업 이용으로 제한하는 경우가 많아 허락 전까지 운영 비활성."
+  },
+  {
+    "id": "federalreserve",
+    "name": "Federal Reserve",
+    "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+    "category": "macro",
+    "classify": false,
+    "license": "allowed",
+    "licenseNote": "연준 이용 안내: 별도 표기가 없는 한 공공 저작물(public domain). 출처(Federal Reserve Board) 표기.",
+    "staleHours": 336
+  },
+  {
+    "id": "google-news-kospi",
+    "name": "Google 뉴스",
+    "url": "https://news.google.com/rss/search?q=%EC%BD%94%EC%8A%A4%ED%94%BC&hl=ko&gl=KR&ceid=KR:ko",
+    "category": "kr-stock",
+    "classify": true,
+    "license": "restricted",
+    "licenseNote": "피드 저작권 문구: 개인 피드 리더용 개인·비상업 이용에 한정, 그 외 이용 금지. 운영 비활성(계약 시에만 예외)."
+  }
+]

@@ -19,6 +19,8 @@ export type ProviderMeta = {
   rateLimit: { max: number; windowMs: number };
   /** 정상 응답 캐시 유지 시간 */
   ttlMs: number;
+  /** 라이선스를 코드/문서로 이미 확인해 운영 기본 허용인지 (그 외는 PROVIDER_LICENSE_VERIFIED 필요) */
+  licensedByDefault?: boolean;
 };
 
 export type QuoteTarget = { symbol: string; market: string };
@@ -58,6 +60,8 @@ export interface NewsProvider {
   meta: ProviderMeta;
   /** 피드의 기본 카테고리 (sample-data 의 NEWS_CATEGORIES slug) */
   category: string;
+  /** true 면 제목/요약 키워드로 카테고리를 다시 분류 */
+  classify?: boolean;
   fetchLatest(signal: AbortSignal): Promise<Omit<NewsArticle, "provider" | "attribution" | "category" | "tickers">[]>;
 }
 
