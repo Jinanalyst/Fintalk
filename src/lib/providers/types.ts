@@ -48,13 +48,17 @@ export type NewsArticle = {
   url: string;
   source: string;
   publishedAt: number;
+  category: string;
+  tickers: string[];
   provider: string;
   attribution: string;
 };
 
 export interface NewsProvider {
   meta: ProviderMeta;
-  fetchLatest(signal: AbortSignal): Promise<Omit<NewsArticle, "provider" | "attribution">[]>;
+  /** 피드의 기본 카테고리 (sample-data 의 NEWS_CATEGORIES slug) */
+  category: string;
+  fetchLatest(signal: AbortSignal): Promise<Omit<NewsArticle, "provider" | "attribution" | "category" | "tickers">[]>;
 }
 
 /** 호출 결과. 실패해도 예외를 던지지 않고 사유를 돌려줘서 페이지가 계속 렌더링되게 합니다. */

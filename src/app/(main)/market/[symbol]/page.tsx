@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, Info, MessageSquare } from "lucide-react";
+import { ArrowLeft, Info, MessageSquare } from "lucide-react";
 import { Card, Change, SampleBadge, SectionHeader } from "@/components/common/bits";
-import { NewsCard, PostCard } from "@/components/feed/cards";
+import { ArticleCard, NewsCard, PostCard } from "@/components/feed/cards";
 import { WatchStar } from "@/components/feed/interactive";
 import { SymbolComposer } from "@/components/feed/symbol-composer";
 import { PriceChart } from "@/components/market/charts";
 import { TradingViewWidget } from "@/components/market/tv-widget";
 import { getWatchState, listCommentPreviews, listPosts } from "@/lib/data/community";
-import { getNewsFor, getQuote, tvSymbol } from "@/lib/providers";
+import { getNewsFor, getQuote, newsKeywords, tvSymbol } from "@/lib/providers";
 import { ASSETS, MARKET_TABS, NEWS, formatPrice, getAsset } from "@/lib/sample-data";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -39,7 +39,7 @@ export default async function SymbolPage({ params }: PageProps<"/market/[symbol]
   const [watch, quote, articles, { posts }] = await Promise.all([
     getWatchState().catch(() => ({ live: false, set: new Set<string>() })),
     getQuote(a).catch(() => null),
-    getNewsFor([a.symbol, a.name]).catch(() => []),
+    getNewsFor(newsKeywords(a)).catch(() => []),
     listPosts({ ticker: a.symbol, sort: "new", limit: 20 }).catch(() => ({ posts: [], live: false })),
   ]);
   const previews: Awaited<ReturnType<typeof listCommentPreviews>> = await listCommentPreviews(posts.filter((p) => p.live).map((p) => p.id)).catch(() => ({}));
@@ -124,13 +124,7 @@ export default async function SymbolPage({ params }: PageProps<"/market/[symbol]
         <SectionHeader title={`${a.name} 뉴스`} href="/news" className="mb-2" />
         {articles.length > 0 ? (
           <div className="space-y-2.5">
-            {articles.map((n) => (
-              <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer nofollow" className="block rounded-xl border bg-card p-3 shadow-xs transition-colors hover:border-brand/40 sm:p-4">
-                <h3 className="flex items-start gap-1.5 text-[15px] font-semibold leading-snug">{n.title}<ExternalLink className="mt-1 size-3.5 shrink-0 text-muted-foreground" /></h3>
-                {n.summary && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{n.summary}</p>}
-                <p className="mt-2 text-xs text-muted-foreground">{n.attribution} · {new Date(n.publishedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
-              </a>
-            ))}
+            {articles.map((n) => <ArticleCard key={n.id} item={n} compact />)}
           </div>
         ) : sampleNews.length > 0 ? (
           <div className="space-y-2.5">{sampleNews.map((n) => <NewsCard key={n.id} item={n} compact />)}</div>

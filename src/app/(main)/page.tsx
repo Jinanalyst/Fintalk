@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Flame, Zap } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { Card, Pills, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
-import { NewsCard, PostCard } from "@/components/feed/cards";
+import { ArticleCard, NewsCard, PostCard } from "@/components/feed/cards";
 import { TradingViewWidget } from "@/components/market/tv-widget";
-import { tvItems } from "@/lib/providers";
+import { getLatestNews, tvItems } from "@/lib/providers";
 import { PopularCreators } from "@/components/layout/shell";
 import { SplitBar } from "@/components/market/charts";
 import { listPosts } from "@/lib/data/community";
@@ -26,7 +26,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
   const sort: SortKey = sp.sort === "new" ? "new" : "hot";
   const quotes = TICKER_SYMBOLS.map((s) => getAsset(s)!);
-  const breaking = NEWS.filter((n) => n.breaking).concat(NEWS.filter((n) => !n.breaking)).slice(0, 5);
+  const articles = await getLatestNews({ limit: 5 }).catch(() => []);
+  const sampleNews = articles.length === 0 && process.env.NODE_ENV !== "production";
+  const breaking = sampleNews ? NEWS.filter((n) => n.breaking).concat(NEWS.filter((n) => !n.breaking)).slice(0, 5) : [];
   const { posts, live } = await listPosts({ sort, limit: 6 });
 
   return (
@@ -103,10 +105,12 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         <SectionHeader
           title={<span className="inline-flex items-center gap-1.5"><Zap className="size-4 text-down" />실시간 금융 뉴스</span>}
           href="/news"
-          right={<SampleBadge label="샘플 뉴스" />}
+          right={sampleNews ? <SampleBadge label="샘플 뉴스" /> : undefined}
           className="mb-2"
         />
         <div className="space-y-2.5">
+          {articles.map((n) => <ArticleCard key={n.id} item={n} compact />)}
+          {articles.length === 0 && !sampleNews && <p className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">표시할 뉴스가 아직 없습니다.</p>}
           {breaking.map((n) => (
             <NewsCard key={n.id} item={n} compact />
           ))}
