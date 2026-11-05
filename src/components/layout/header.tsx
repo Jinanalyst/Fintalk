@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Bell, Menu, PenLine, Search, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { LogoMark } from "@/components/common/logo-mark";
 import { ThemeToggle } from "@/components/common/theme";
 import { useToast } from "@/components/common/toast";
 import { SidebarNav, TopNav } from "./nav";
@@ -15,15 +16,8 @@ import { signOutAction } from "@/app/actions/auth";
 export function Logo({ className = "" }: { className?: string }) {
   return (
     <Link href="/" className={`flex items-center gap-2 ${className}`} aria-label="핀톡 홈">
-      <span className="grid size-8 place-items-center rounded-lg bg-brand text-primary-foreground">
-        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M4 17l5-6 4 3 7-8" />
-          <path d="M15 6h5v5" />
-        </svg>
-      </span>
-      <span className="text-lg font-extrabold tracking-tight">
-        핀톡<span className="text-brand">.</span>
-      </span>
+      <LogoMark className="size-8" />
+      <span className="text-xl font-extrabold tracking-tighter">핀톡</span>
     </Link>
   );
 }
