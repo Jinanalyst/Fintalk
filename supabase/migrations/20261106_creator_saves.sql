@@ -3,7 +3,9 @@
 -- 사전 조건: 20261105_creator_community.sql 실행 완료. 여러 번 실행해도 안전합니다.
 -- 기존 컬럼 순서는 유지하고 saves 를 마지막에 추가합니다. (create or replace view 제약)
 -- ============================================================================
-create or replace view public.creator_stats with (security_invoker = true) as
+-- 컬럼 구성이 달라진 뷰는 create or replace 로 바꿀 수 없어서(42P16) 먼저 삭제 후 다시 만듭니다.
+drop view if exists public.creator_stats;
+create view public.creator_stats with (security_invoker = true) as
 select
   pr.id,
   pr.nickname,

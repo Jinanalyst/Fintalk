@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PenLine } from "lucide-react";
+import { ChevronDown, PenLine } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
@@ -58,8 +58,31 @@ export default async function CommunityPage({ searchParams }: PageProps<"/commun
         </div>
       )}
       <Pills items={BOARD_CATEGORIES} active={cat} hrefFor={(c) => `/community?${c === "all" ? "" : `cat=${c}&`}${ticker ? `ticker=${ticker}&` : ""}${typeQ}sort=${sort}`} className="mb-3 lg:hidden" />
-      <Pills items={TYPE_PILLS} active={type} hrefFor={(t) => `/community?${cat === "all" ? "" : `cat=${cat}&`}${ticker ? `ticker=${ticker}&` : ""}${t === "all" ? "" : `type=${t}&`}sort=${sort}`} className="mb-3" />
-      <Pills items={SORTS} active={sort} hrefFor={(s) => `/community?${catQ}sort=${s}`} className="mb-4" />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <details className="group relative">
+          <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-lg border bg-card px-3 text-sm font-medium hover:bg-muted [&::-webkit-details-marker]:hidden">
+            {TYPE_PILLS.find((t) => t.slug === type)?.label === "전체" ? "전체 유형" : TYPE_PILLS.find((t) => t.slug === type)?.label}
+            <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <ul className="absolute left-0 z-10 mt-1 min-w-44 overflow-hidden rounded-xl border bg-card p-1 shadow-lg">
+            {TYPE_PILLS.map((t) => (
+              <li key={t.slug}>
+                <Link
+                  href={`/community?${cat === "all" ? "" : `cat=${cat}&`}${ticker ? `ticker=${ticker}&` : ""}${t.slug === "all" ? "" : `type=${t.slug}&`}sort=${sort}`}
+                  className={`block rounded-lg px-3 py-2 text-sm hover:bg-muted ${t.slug === type ? "font-bold text-brand" : ""}`}
+                >
+                  {t.slug === "all" ? "전체 유형" : t.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+        <nav aria-label="정렬" className="flex items-center gap-1 text-sm">
+          {SORTS.map((o) => (
+            <Link key={o.slug} href={`/community?${catQ}sort=${o.slug}`} className={`rounded-md px-2.5 py-1.5 ${o.slug === sort ? "bg-muted font-bold text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{o.label.replace("🔥 ", "")}</Link>
+          ))}
+        </nav>
+      </div>
 
       {list.length === 0 ? (
         <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">

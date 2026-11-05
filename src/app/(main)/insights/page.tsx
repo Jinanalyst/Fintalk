@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PenLine } from "lucide-react";
+import { ChevronDown, PenLine } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { InsightCard } from "@/components/feed/cards";
@@ -23,7 +23,7 @@ const CATS: Category[] = [
 
 const TYPE_PILLS = [{ slug: "all", label: "전체 유형" }, ...POST_TYPES.filter((t) => t.insight).map((t) => ({ slug: t.slug as string, label: t.label }))];
 const SORTS = [
-  { slug: "hot", label: "🔥 인기" },
+  { slug: "hot", label: "인기" },
   { slug: "new", label: "최신" },
   { slug: "comments", label: "댓글순" },
 ];
@@ -72,10 +72,28 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
         </section>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <Pills items={CATS} active={cat} hrefFor={(c) => href({ cat: c })} />
-        <Pills items={TYPE_PILLS} active={type} hrefFor={(t) => href({ type: t })} />
-        <Pills items={SORTS} active={sort} hrefFor={(s) => href({ sort: s })} />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <details className="group relative">
+            <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-lg border bg-card px-3 text-sm font-medium hover:bg-muted [&::-webkit-details-marker]:hidden">
+              {TYPE_PILLS.find((t) => t.slug === type)?.label}
+              <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+            </summary>
+            <ul className="absolute left-0 z-10 mt-1 min-w-48 overflow-hidden rounded-xl border bg-card p-1 shadow-lg">
+              {TYPE_PILLS.map((t) => (
+                <li key={t.slug}>
+                  <Link href={href({ type: t.slug })} className={`block rounded-lg px-3 py-2 text-sm hover:bg-muted ${t.slug === type ? "font-bold text-brand" : ""}`}>{t.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+          <nav aria-label="정렬" className="flex items-center gap-1 text-sm">
+            {SORTS.map((o) => (
+              <Link key={o.slug} href={href({ sort: o.slug })} className={`rounded-md px-2.5 py-1.5 ${o.slug === sort ? "bg-muted font-bold text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{o.label}</Link>
+            ))}
+          </nav>
+        </div>
       </div>
 
       {rest.length === 0 && !lead ? (

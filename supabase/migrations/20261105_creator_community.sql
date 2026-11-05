@@ -70,7 +70,9 @@ grant update (interests) on public.profiles to authenticated;
 
 -- ───────── 6. 크리에이터 지표 뷰 (기여도 계산의 원천 데이터) ─────────
 -- 조회수는 현재 "게시글 누적 조회수"이며, 중복·부정 조회 제거(유효 조회수)는 이후 단계에서 보강합니다.
-create or replace view public.creator_stats with (security_invoker = true) as
+-- 컬럼 구성이 달라진 뷰는 create or replace 로 바꿀 수 없어서(42P16) 먼저 삭제 후 다시 만듭니다.
+drop view if exists public.creator_stats;
+create view public.creator_stats with (security_invoker = true) as
 select
   pr.id,
   pr.nickname,
