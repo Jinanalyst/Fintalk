@@ -2,16 +2,17 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Flame, Trophy } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
-import { Card, Change, SampleBadge, SectionHeader } from "@/components/common/bits";
+import { Card, SectionHeader } from "@/components/common/bits";
 import { FollowButton } from "@/components/feed/interactive";
+import { TradingViewWidget } from "@/components/market/tv-widget";
 import { listPosts } from "@/lib/data/community";
+import { tvItems } from "@/lib/providers";
 import { Header } from "./header";
 import { BottomNav, SidebarNav } from "./nav";
 import {
   CREATORS,
   TICKER_SYMBOLS,
   fmtNum,
-  formatPrice,
   getAsset,
 } from "@/lib/sample-data";
 
@@ -44,20 +45,8 @@ async function RightSidebar() {
   return (
     <aside className="hidden space-y-4 xl:block" aria-label="사이드 정보">
       <Card>
-        <SectionHeader title="주요 시세" href="/market" right={<SampleBadge label="샘플" />} />
-        <ul className="mt-3 divide-y">
-          {quotes.map((a) => (
-            <li key={a.symbol}>
-              <Link href={`/market/${a.symbol}`} className="flex items-center justify-between py-2 text-sm hover:text-brand">
-                <span className="font-medium">{a.name}</span>
-                <span className="text-right">
-                  <span className="block tabular-nums">{formatPrice(a)}</span>
-                  <Change pct={a.changePct} className="text-xs" />
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <SectionHeader title="주요 시세" href="/market" />
+        <TradingViewWidget kind="market-quotes" items={tvItems(quotes)} title="주요 시세" className="mt-2 h-[430px]" />
       </Card>
 
       <Card>

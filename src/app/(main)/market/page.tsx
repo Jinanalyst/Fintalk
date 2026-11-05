@@ -4,7 +4,9 @@ import { Info } from "lucide-react";
 import { Change, PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { WatchStar } from "@/components/feed/interactive";
 import { Sparkline } from "@/components/market/charts";
+import { TradingViewWidget } from "@/components/market/tv-widget";
 import { getWatchState } from "@/lib/data/community";
+import { getCryptoQuotes, tvItems } from "@/lib/providers";
 import { ASSETS, MARKET_TABS, formatPrice, type MarketType } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
@@ -17,17 +19,23 @@ export default async function MarketPage({ searchParams }: PageProps<"/market">)
   const watch = await getWatchState();
   const m = (MARKET_TABS.some((t) => t.slug === sp.m) ? sp.m : "crypto") as MarketType;
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase() : "";
-  const list = ASSETS.filter((a) => (q ? true : a.market === m) && (!q || (a.name + a.symbol).toLowerCase().includes(q)));
-  const up = ASSETS.filter((a) => a.market === m).sort((a, b) => b.changePct - a.changePct);
+  // 암호화폐는 Upbit 실시간 시세로 덮어씁니다. 그 외 시장은 TradingView 위젯이 실시간 시세를 직접 표시합니다.
+  const crypto = await getCryptoQuotes(ASSETS.filter((a) => a.market === "crypto").map((a) => a.symbol)).catch(() => null);
+  const real = (a: (typeof ASSETS)[number]) => (crypto?.[a.symbol] ? { ...a, price: crypto[a.symbol].price, changePct: crypto[a.symbol].changePct } : a);
+  const isReal = (a: (typeof ASSETS)[number]) => !!crypto?.[a.symbol];
+  const widgetMode = !q && m !== "crypto";
+  const widgetItems = tvItems(ASSETS.filter((a) => a.market === m));
+  const list = ASSETS.map(real).filter((a) => (q ? true : a.market === m) && (!q || (a.name + a.symbol).toLowerCase().includes(q)));
+  const up = ASSETS.filter((a) => a.market === m).map(real).sort((a, b) => b.changePct - a.changePct);
 
   return (
     <div>
-      <PageTitle title="마켓" desc="종목을 검색하고 관심 종목을 등록해 보세요." right={<SampleBadge label="샘플 시세 (API 연동 전)" />} />
+      <PageTitle title="마켓" desc="종목을 검색하고 관심 종목을 등록해 보세요." right={widgetMode ? <span className="text-xs text-muted-foreground">시세 출처: TradingView</span> : !q && crypto ? <span className="text-xs text-muted-foreground">시세 출처: Upbit</span> : <SampleBadge label="샘플 시세" />} />
 
       <div className="mb-4 flex items-start gap-2 rounded-lg border bg-card p-3 text-xs text-muted-foreground">
         <Info className="mt-0.5 size-4 shrink-0 text-brand" />
         <p>
-          표시된 가격은 디자인 확인용 <b>샘플 값</b>입니다. 실제 연동 후에는 데이터 제공처의 범위와 라이선스에 따라 <b>지연 시세</b>일 수 있으며, 이 경우 화면에 명확히 표시됩니다.
+          암호화폐는 <b>Upbit</b>, 그 외 시장은 <b>TradingView</b> 에서 제공하는 시세이며 제공처 정책에 따라 <b>지연</b>될 수 있습니다. 검색 결과의 일부 값은 샘플일 수 있으며, 투자 권유가 아닙니다.
         </p>
       </div>
 
@@ -41,7 +49,7 @@ export default async function MarketPage({ searchParams }: PageProps<"/market">)
       {!q && <Pills items={MARKET_TABS} active={m} hrefFor={(s) => `/market?m=${s}`} className="mb-4" />}
       {q && <p className="mb-3 text-sm text-muted-foreground">“{q}” 검색 결과 {list.length}건 · <Link href="/market" className="text-brand">초기화</Link></p>}
 
-      {!q && up.length > 1 && (
+      {!widgetMode && !q && up.length > 1 && (
         <div className="mb-4 grid grid-cols-2 gap-2.5">
           <div className="rounded-xl border bg-card p-3">
             <p className="text-xs text-muted-foreground">상승률 1위</p>
@@ -56,6 +64,18 @@ export default async function MarketPage({ searchParams }: PageProps<"/market">)
         </div>
       )}
 
+      {widgetMode ? (
+        <div className="rounded-xl border bg-card p-3">
+          {widgetItems.length > 0 && <TradingViewWidget kind="market-quotes" items={widgetItems} title={MARKET_TABS.find((t) => t.slug === m)?.label} className="h-[560px]" />}
+          {widgetItems.length < list.length && (
+            <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-200">국내 종목·지수의 실시간 시세는 데이터 라이선스를 확보한 뒤 제공됩니다. 현재는 종목 페이지에서 차트와 커뮤니티를 이용할 수 있습니다.</p>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">종목 이름을 눌러 TradingView 에서 상세 시세를 볼 수 있고, 아래 목록에서 핀톡 종목 페이지로 이동할 수 있습니다.</p>
+          <ul className="mt-3 flex flex-wrap gap-1.5">
+            {list.map((a) => <li key={a.symbol}><Link href={`/market/${a.symbol}`} className="rounded-md bg-muted px-2 py-1 text-xs hover:text-brand">{a.name}</Link></li>)}
+          </ul>
+        </div>
+      ) : (
       <div className="overflow-hidden rounded-xl border bg-card">
         <div className="grid grid-cols-[28px_1fr_auto_auto] items-center gap-3 border-b bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground sm:grid-cols-[28px_1fr_140px_90px_100px]">
           <span />
@@ -72,7 +92,7 @@ export default async function MarketPage({ searchParams }: PageProps<"/market">)
               <WatchStar symbol={a.symbol} live={watch.live} initial={watch.set.has(a.symbol)} />
               <Link href={`/market/${a.symbol}`} className="min-w-0 hover:text-brand">
                 <p className="truncate text-sm font-semibold">{a.name}</p>
-                <p className="text-xs text-muted-foreground">{a.symbol} · {a.unit}</p>
+                <p className="text-xs text-muted-foreground">{a.symbol} · {a.unit}{isReal(ASSETS.find((x) => x.symbol === a.symbol)!) ? " · Upbit" : " · 샘플"}</p>
               </Link>
               <div className="text-right tabular-nums sm:contents">
                 <p className="text-sm font-medium sm:text-right">{formatPrice(a)}</p>
@@ -85,6 +105,7 @@ export default async function MarketPage({ searchParams }: PageProps<"/market">)
           ))}
         </ul>
       </div>
+      )}
     </div>
   );
 }

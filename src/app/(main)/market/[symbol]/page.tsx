@@ -49,7 +49,8 @@ export default async function SymbolPage({ params }: PageProps<"/market/[symbol]
   const hi = Math.max(...a.series);
   const lo = Math.min(...a.series);
   // 운영에서는 라이선스가 확인된 공급처 시세 또는 TradingView 위젯만 노출합니다. 샘플 시세는 개발 환경에서만 보입니다.
-  const showSample = !quote && !(isProd && tv);
+  const krx = !!tv?.startsWith("KRX:"); // TradingView 무료 위젯은 KRX 시세를 제공하지 않음
+  const showSample = !quote && !(isProd && tv && !krx);
   const sampleNews = !isProd && articles.length === 0 ? NEWS.filter((n) => n.tickers.includes(a.symbol)) : [];
 
   return (
@@ -83,6 +84,8 @@ export default async function SymbolPage({ params }: PageProps<"/market/[symbol]
                 <p className="text-3xl font-extrabold tabular-nums">{formatPrice(a)}<span className="ml-1 text-sm font-medium text-muted-foreground">{a.unit}</span></p>
                 <Change pct={a.changePct} icon className="text-base" />
               </div>
+            ) : krx ? (
+              <p className="mt-2 text-sm text-muted-foreground">국내 종목의 실시간 시세는 데이터 라이선스 확보 후 제공됩니다.</p>
             ) : tv ? (
               <TradingViewWidget kind="symbol-info" symbol={tv} className="mt-2 h-[190px] w-full" />
             ) : null}
@@ -96,8 +99,10 @@ export default async function SymbolPage({ params }: PageProps<"/market/[symbol]
 
       {/* 중앙: 차트 */}
       <Card className="p-3 sm:p-4">
-        {tv ? (
+        {tv && !krx ? (
           <TradingViewWidget kind="advanced-chart" symbol={tv} className="h-[420px] w-full" />
+        ) : krx && isProd ? (
+          <p className="p-6 text-center text-sm text-muted-foreground">국내 종목 차트는 데이터 라이선스 확보 후 제공됩니다.</p>
         ) : (
           <>
             <PriceChart values={a.series} up={a.changePct >= 0} />

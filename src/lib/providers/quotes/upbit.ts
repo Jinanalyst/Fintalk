@@ -13,6 +13,7 @@ export const upbit: QuoteProvider = {
     ttlMs: 5_000,
   },
   supports: (t) => t.market === "crypto",
+  // 단건 조회는 fetchQuote, 목록 화면은 아래 fetchUpbitBatch 를 사용합니다.
   async fetchQuote(t, signal) {
     const res = await fetch(`https://api.upbit.com/v1/ticker?markets=KRW-${encodeURIComponent(t.symbol)}`, { signal, cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -22,3 +23,12 @@ export const upbit: QuoteProvider = {
     return { symbol: t.symbol, price: r.trade_price, changePct: r.signed_change_rate * 100, currency: "KRW", asOf: r.timestamp };
   },
 };
+
+/** 여러 종목을 한 번의 호출로 조회합니다 (목록 화면용). */
+export async function fetchUpbitBatch(symbols: string[], signal: AbortSignal) {
+  const markets = symbols.map((s) => `KRW-${encodeURIComponent(s)}`).join(",");
+  const res = await fetch(`https://api.upbit.com/v1/ticker?markets=${markets}`, { signal, cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const rows = (await res.json()) as { market: string; trade_price: number; signed_change_rate: number; timestamp: number }[];
+  return rows.map((r) => ({ symbol: r.market.replace("KRW-", ""), price: r.trade_price, changePct: r.signed_change_rate * 100, currency: "KRW", asOf: r.timestamp }));
+}

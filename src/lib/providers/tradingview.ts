@@ -20,8 +20,8 @@ export const tradingview: ProviderMeta = {
 const TV: Record<string, string> = {
   KOSPI: "KRX:KOSPI",
   KOSDAQ: "KRX:KOSDAQ",
-  SPX: "SP:SPX",
-  NDX: "NASDAQ:NDX",
+  SPX: "FOREXCOM:SPXUSD",
+  NDX: "FOREXCOM:NSXUSD",
   USDKRW: "FX_IDC:USDKRW",
   JPYKRW: "FX_IDC:JPYKRW",
   EURKRW: "FX_IDC:EURKRW",
@@ -39,4 +39,13 @@ export function tvSymbol(a: { symbol: string; market: string }): string | null {
   if (a.market === "kr") return `KRX:${a.symbol}`;
   if (a.market === "crypto") return `UPBIT:${a.symbol}KRW`;
   return null;
+}
+
+/** 위젯에 넘길 {tv, label} 목록 (TradingView 심볼이 없는 자산은 제외) */
+export function tvItems(assets: { symbol: string; name: string; market: string }[]) {
+  return assets.flatMap((a) => {
+    const tv = tvSymbol(a);
+    // KRX(국내) 시세는 TradingView 무료 위젯에서 제공되지 않아 제외합니다. 국내 시세는 별도 라이선스 공급처가 필요합니다.
+    return tv && !tv.startsWith("KRX:") ? [{ tv, label: a.name }] : [];
+  });
 }

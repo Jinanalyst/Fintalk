@@ -101,7 +101,7 @@ const RAW_ASSETS: RawAsset[] = [
   { symbol: "SPX", name: "S&P 500", market: "index", price: 6012.45, changePct: 0.52, unit: "pt", decimals: 2 },
   { symbol: "NDX", name: "나스닥 100", market: "index", price: 21350.7, changePct: 0.91, unit: "pt", decimals: 2 },
   { symbol: "USDKRW", name: "달러/원", market: "fx", price: 1392.5, changePct: -0.21, unit: "KRW", decimals: 2 },
-  { symbol: "JPYKRW", name: "엔(100)/원", market: "fx", price: 905.3, changePct: 0.37, unit: "KRW", decimals: 2 },
+  { symbol: "JPYKRW", name: "엔/원", market: "fx", price: 9.053, changePct: 0.37, unit: "KRW", decimals: 3 },
   { symbol: "EURKRW", name: "유로/원", market: "fx", price: 1468.9, changePct: -0.12, unit: "KRW", decimals: 2 },
   { symbol: "WTI", name: "WTI 원유", market: "commodity", price: 71.84, changePct: -1.08, unit: "USD", decimals: 2 },
   { symbol: "GOLD", name: "금", market: "commodity", price: 2685.3, changePct: 0.64, unit: "USD", decimals: 2 },

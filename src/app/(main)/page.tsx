@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Flame, Zap } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
-import { Card, Change, Pills, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
+import { Card, Pills, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
 import { NewsCard, PostCard } from "@/components/feed/cards";
-import { Sparkline } from "@/components/market/charts";
+import { TradingViewWidget } from "@/components/market/tv-widget";
+import { tvItems } from "@/lib/providers";
 import { PopularCreators } from "@/components/layout/shell";
 import { SplitBar } from "@/components/market/charts";
 import { listPosts } from "@/lib/data/community";
@@ -12,7 +13,6 @@ import {
   NEWS,
   TICKER_SYMBOLS,
   TRENDING_TICKERS,
-  formatPrice,
   getAsset,
   type SortKey,
 } from "@/lib/sample-data";
@@ -52,22 +52,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       {/* 주요 시세 */}
       <section>
-        <SectionHeader title="주요 금융시장" href="/market" right={<SampleBadge label="샘플 시세" />} className="mb-2" />
-        <div className="scrollbar-none -mx-3 flex gap-2.5 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0">
-          {quotes.map((a) => (
-            <Link
-              key={a.symbol}
-              href={`/market/${a.symbol}`}
-              className="min-w-36 shrink-0 rounded-xl border bg-card p-3 shadow-xs transition-colors hover:border-brand/40 sm:min-w-0"
-            >
-              <p className="text-xs text-muted-foreground">{a.name}</p>
-              <p className="mt-0.5 text-base font-bold tabular-nums">{formatPrice(a)}</p>
-              <div className="flex items-end justify-between">
-                <Change pct={a.changePct} className="text-xs" />
-                <Sparkline values={a.series.slice(-30)} up={a.changePct >= 0} className="h-6 w-14" />
-              </div>
-            </Link>
-          ))}
+        <SectionHeader title="주요 금융시장" href="/market" className="mb-2" />
+        <div className="overflow-hidden rounded-xl border bg-card px-2 pt-1">
+          <TradingViewWidget kind="ticker-tape" items={tvItems(quotes)} className="min-h-[96px]" />
         </div>
       </section>
 
@@ -103,7 +90,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                       <span className="mr-1.5 font-bold text-brand">{i + 1}</span>
                       {a.name}
                     </span>
-                    <Change pct={a.changePct} className="shrink-0 text-xs" />
                   </Link>
                 </li>
               );

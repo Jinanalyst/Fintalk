@@ -1,12 +1,12 @@
 import { callProvider } from "./guard";
 import { coingecko } from "./quotes/coingecko";
-import { upbit } from "./quotes/upbit";
+import { fetchUpbitBatch, upbit } from "./quotes/upbit";
 import { rssProviders } from "./news/rss";
 import type { NewsArticle, Quote, QuoteProvider, QuoteTarget } from "./types";
 
 export type { NewsArticle, Quote } from "./types";
 export { isLicensed } from "./guard";
-export { tradingview, tvSymbol } from "./tradingview";
+export { tradingview, tvItems, tvSymbol } from "./tradingview";
 
 /**
  * 공급처 레지스트리: 시장별 우선순위 목록입니다. 공급처를 바꾸려면 여기만 수정하면 됩니다.
@@ -40,4 +40,12 @@ export async function getNewsFor(keywords: string[], limit = 6): Promise<NewsArt
     .filter((a) => needles.some((n) => (a.title + " " + a.summary).toLowerCase().includes(n)))
     .sort((a, b) => b.publishedAt - a.publishedAt)
     .slice(0, limit);
+}
+
+/** 암호화폐 목록 시세(Upbit 단일 호출). 실패/미허가면 null. */
+export async function getCryptoQuotes(symbols: string[]): Promise<Record<string, Quote> | null> {
+  const key = [...symbols].sort().join(",");
+  const r = await callProvider(upbit.meta, `batch:${key}`, (signal) => fetchUpbitBatch(symbols, signal));
+  if (!r.ok) return null;
+  return Object.fromEntries(r.data.map((q) => [q.symbol, { ...q, provider: upbit.meta.id, attribution: upbit.meta.attribution }]));
 }
