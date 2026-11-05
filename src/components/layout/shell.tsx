@@ -1,38 +1,18 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Flame, HelpCircle, Trophy } from "lucide-react";
+import { Flame, HelpCircle } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { Card, SectionHeader } from "@/components/common/bits";
-import { FollowButton } from "@/components/feed/interactive";
+import { getPopularCreators } from "@/lib/data/creators";
+import { PopularCreatorsView } from "./popular-creators";
 import { listPosts } from "@/lib/data/community";
 import { Header } from "./header";
 import { BottomNav, SidebarNav } from "./nav";
-import {
-  CREATORS,
-  fmtNum,
-} from "@/lib/sample-data";
 
-export function PopularCreators({ limit = 4 }: { limit?: number }) {
-  return (
-    <Card>
-      <SectionHeader title={<span className="inline-flex items-center gap-1.5"><Trophy className="size-4 text-amber-500" />인기 작성자</span>} href="/creators" />
-      <ul className="mt-3 space-y-3">
-        {CREATORS.slice(0, limit).map((c, i) => (
-          <li key={c.handle} className="flex items-center gap-2.5">
-            <span className="w-4 text-center text-sm font-bold text-muted-foreground">{i + 1}</span>
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand">
-              {c.name.slice(0, 1)}
-            </span>
-            <Link href={`/creators/${c.handle}`} className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold hover:text-brand">{c.name}</p>
-              <p className="truncate text-xs text-muted-foreground">팔로워 {fmtNum(c.followers)} · {c.focus}</p>
-            </Link>
-            <FollowButton small />
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
+/** 인기 작성자 (조회수 → 저장 → 좋아요 우선순위) */
+export async function PopularCreators({ limit = 4 }: { limit?: number }) {
+  const { items, live } = await getPopularCreators();
+  return <PopularCreatorsView items={items} live={live} limit={limit} />;
 }
 
 async function RightSidebar() {

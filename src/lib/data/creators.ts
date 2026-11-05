@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { CREATORS } from "@/lib/sample-data";
 import { contributionScore } from "@/lib/data/community";
+import type { PopularItem } from "@/components/layout/popular-creators";
 
 export type CreatorRow = {
   id: string | null; // 샘플 데이터는 null
@@ -17,6 +18,8 @@ export type CreatorRow = {
   accepted: number;
   upvotes: number;
   views: number;
+  /** 내 글이 다른 사람에게 저장된 횟수 */
+  saves: number;
   score: number;
   createdAt: string;
   live: boolean;
@@ -24,10 +27,10 @@ export type CreatorRow = {
 
 export type CreatorSort = "popular" | "new" | "followers";
 
-const COLS = "id,nickname,bio,interests,created_at,posts,insights,answers,accepted,upvotes,views,followers,following";
+const COLS = "id,nickname,bio,interests,created_at,posts,insights,answers,accepted,upvotes,views,followers,following,saves";
 type DbRow = {
   id: string; nickname: string; bio: string | null; interests: string[] | null; created_at: string;
-  posts: number; insights: number; answers: number; accepted: number; upvotes: number; views: number; followers: number; following: number;
+  posts: number; insights: number; answers: number; accepted: number; upvotes: number; views: number; followers: number; following: number; saves: number;
 };
 
 const num = (v: unknown) => Number(v ?? 0);
@@ -35,6 +38,7 @@ const num = (v: unknown) => Number(v ?? 0);
 function fromDb(r: DbRow): CreatorRow {
   const base = { posts: num(r.posts), insights: num(r.insights), answers: num(r.answers), accepted: num(r.accepted), upvotes: num(r.upvotes), views: num(r.views) };
   return {
+    saves: num(r.saves),
     id: r.id, handle: r.nickname, name: r.nickname, bio: r.bio || "", interests: r.interests ?? [],
     followers: num(r.followers), following: num(r.following), ...base, score: contributionScore(base), createdAt: r.created_at, live: true,
   };
@@ -52,7 +56,7 @@ export async function listCreators(opts: { q?: string; field?: string; sort?: Cr
     const now = Date.now();
     let list: CreatorRow[] = CREATORS.map((c, i) => ({
       id: null, handle: c.handle, name: c.name, bio: c.bio, interests: [c.focus], followers: c.followers, following: 0, posts: c.posts, insights: 0, answers: 0, accepted: 0,
-      upvotes: c.upvotes, views: c.views, score: c.upvotes, createdAt: new Date(now - (i + 1) * 864e5 * 9).toISOString(), live: false,
+      upvotes: c.upvotes, views: c.views, saves: Math.round(c.upvotes * 0.4), score: c.upvotes, createdAt: new Date(now - (i + 1) * 864e5 * 9).toISOString(), live: false,
     }));
     if (q) list = list.filter((c) => (c.name + c.handle + c.bio + c.interests.join(" ")).toLowerCase().includes(q.toLowerCase()));
     if (field) list = list.filter((c) => c.interests.some((x) => x.includes(field)));
@@ -97,4 +101,18 @@ export async function listFollowingIds(userId: string): Promise<string[]> {
   const sb = await createClient();
   const { data } = await sb.from("follows").select("followee_id").eq("follower_id", userId).limit(200);
   return (data ?? []).map((r) => r.followee_id as string);
+}
+
+/**
+ * 인기 작성자: 조회수 → 저장 수 → 좋아요 순서의 우선순위로 정렬합니다.
+ * (조회수가 같으면 저장 수, 저장 수도 같으면 좋아요로 비교) 광고 클릭 등은 반영하지 않습니다.
+ */
+export async function getPopularCreators(): Promise<{ items: PopularItem[]; live: boolean }> {
+  const { creators, live } = await listCreators({ limit: 300 });
+  const { viewerId, following } = await getFollowState(creators.map((c) => c.id ?? ""));
+  const items = [...creators]
+    .sort((a, b) => b.views - a.views || b.saves - a.saves || b.upvotes - a.upvotes)
+    .filter((c) => c.views + c.saves + c.upvotes > 0 || !live)
+    .map((c) => ({ handle: c.handle, name: c.name, id: c.id, following: c.id ? following.has(c.id) : false, mine: c.id !== null && c.id === viewerId, views: c.views, saves: c.saves, likes: c.upvotes }));
+  return { items, live };
 }
