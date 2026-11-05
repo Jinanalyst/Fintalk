@@ -164,8 +164,6 @@ export async function LiveAdmin({ tab, tabs }: { tab: string; tabs: Tab[] }) {
         })}
       </Table>
     );
-  } else if (tab === "news") {
-    body = <Later phase="Phase 3">뉴스 관리 (뉴스 API 연동 후 노출·숨김 관리)</Later>;
   } else if (tab === "notices") {
     body = <Later phase="Phase 5">공지사항 작성</Later>;
   } else if (tab === "ads") {

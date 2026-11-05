@@ -3,10 +3,11 @@
 import { useActionState } from "react";
 import { updateProfileAction, deleteAccountAction } from "@/app/actions/account";
 import type { FormState } from "@/app/actions/auth";
+import { INTEREST_OPTIONS } from "@/lib/sample-data";
 
 const field = "w-full rounded-lg border bg-card px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
 
-type P = { nickname: string; bio: string; notify_comment: boolean; notify_vote: boolean; notify_follow: boolean };
+type P = { nickname: string; bio: string; interests?: string[]; notify_comment: boolean; notify_vote: boolean; notify_follow: boolean };
 
 export function ProfileForm({ profile, email }: { profile: P; email: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(updateProfileAction, {});
@@ -31,6 +32,17 @@ export function ProfileForm({ profile, email }: { profile: P; email: string }) {
         <label className="mb-1 block text-sm font-medium" htmlFor="b">자기소개</label>
         <textarea id="b" name="bio" rows={3} maxLength={200} className={field} defaultValue={profile.bio} placeholder="간단한 소개를 적어 주세요" />
       </div>
+      <fieldset>
+        <legend className="mb-1 text-sm font-medium">관심 분야 <span className="text-xs font-normal text-muted-foreground">(최대 5개 · 크리에이터 검색에 표시됩니다)</span></legend>
+        <div className="flex flex-wrap gap-1.5">
+          {INTEREST_OPTIONS.map((f) => (
+            <label key={f} className="cursor-pointer rounded-full border px-3 py-1 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand-soft has-[:checked]:text-brand">
+              <input type="checkbox" name="interests" value={f} defaultChecked={profile.interests?.includes(f)} className="sr-only" />
+              {f}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <fieldset>
         <legend className="mb-1 text-sm font-medium">알림 설정</legend>
         <ul className="divide-y rounded-lg border">

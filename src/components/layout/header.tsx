@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Menu, PenLine, Search } from "lucide-react";
+import { Bell, Menu, PenLine, Search, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/common/theme";
@@ -46,7 +46,7 @@ export function SearchBox({ className = "" }: { className?: string }) {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="뉴스, 게시글, 종목, 작성자, 태그 검색"
+          placeholder="게시글, 종목, 작성자, 태그 검색"
           aria-label="통합 검색"
           className="h-9 w-full rounded-full border bg-muted/60 pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-brand focus:bg-background focus:ring-2 focus:ring-brand/20"
         />
@@ -79,6 +79,11 @@ export function Header() {
             </span>
           </Link>
           <ThemeToggle />
+          <Link href="/me" className="sm:hidden" aria-label="내 정보">
+            <span className="grid size-9 place-items-center rounded-md hover:bg-muted">
+              <UserRound className="size-5" />
+            </span>
+          </Link>
           <Button variant="ghost" size="icon" aria-label="알림" onClick={() => comingSoon("알림")} className="hidden sm:inline-flex">
             <Bell className="size-[18px]" />
           </Button>

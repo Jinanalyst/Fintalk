@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CornerDownRight, Trash2 } from "lucide-react";
+import { CheckCircle2, CornerDownRight, Trash2 } from "lucide-react";
 import { type Comment, creatorName } from "@/lib/sample-data";
 import { useToast } from "@/components/common/toast";
-import { addCommentAction, deleteCommentAction } from "@/app/actions/community";
+import { acceptAnswerAction, addCommentAction, deleteCommentAction } from "@/app/actions/community";
 import { ReportMenu, VoteBar, useGuard } from "./interactive";
 
 /** live=false 이면 샘플 화면(저장 없음), live=true 이면 Supabase 에 저장 */
@@ -68,7 +68,7 @@ export function CommentForm({
   );
 }
 
-function CommentItem({ c, postId, live, depth = 0 }: { c: Comment; postId?: string; live: boolean; depth?: number }) {
+function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Comment; postId?: string; live: boolean; depth?: number; canAccept?: boolean }) {
   const { comingSoon, show } = useToast();
   const guard = useGuard();
   const router = useRouter();
@@ -85,6 +85,9 @@ function CommentItem({ c, postId, live, depth = 0 }: { c: Comment; postId?: stri
             {creatorName(c.author)}
           </Link>
           <span>· {c.createdAt}</span>
+          {c.accepted && (
+            <span className="inline-flex items-center gap-1 rounded bg-up/10 px-1.5 py-0.5 text-[11px] font-semibold text-up"><CheckCircle2 className="size-3" />채택된 답변</span>
+          )}
         </div>
         <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
@@ -95,6 +98,19 @@ function CommentItem({ c, postId, live, depth = 0 }: { c: Comment; postId?: stri
               onClick={() => (live ? setReplying(!replying) : comingSoon("샘플 게시글 답글"))}
             >
               <CornerDownRight className="size-3.5" /> 답글
+            </button>
+          )}
+          {live && canAccept && !c.mine && (
+            <button
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted hover:text-up"
+              onClick={async () => {
+                if (guard(await acceptAnswerAction(postId!, c.accepted ? null : c.id))) {
+                  show(c.accepted ? "채택을 취소했습니다." : "도움이 된 답변으로 채택했습니다.");
+                  router.refresh();
+                }
+              }}
+            >
+              <CheckCircle2 className="size-3.5" /> {c.accepted ? "채택 취소" : "답변 채택"}
             </button>
           )}
           {live ? (
@@ -124,7 +140,7 @@ function CommentItem({ c, postId, live, depth = 0 }: { c: Comment; postId?: stri
       {c.replies && c.replies.length > 0 && (
         <ul>
           {c.replies.map((r) => (
-            <CommentItem key={r.id} c={r} postId={postId} live={live} depth={depth + 1} />
+            <CommentItem key={r.id} c={r} postId={postId} live={live} depth={depth + 1} canAccept={canAccept} />
           ))}
         </ul>
       )}
@@ -132,13 +148,13 @@ function CommentItem({ c, postId, live, depth = 0 }: { c: Comment; postId?: stri
   );
 }
 
-export function CommentList({ comments, postId, live = false }: { comments: Comment[]; postId?: string; live?: boolean }) {
+export function CommentList({ comments, postId, live = false, canAccept = false }: { comments: Comment[]; postId?: string; live?: boolean; canAccept?: boolean }) {
   if (comments.length === 0)
     return <p className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">첫 댓글을 남겨보세요.</p>;
   return (
     <ul className="divide-y rounded-xl border bg-card px-4">
       {comments.map((c) => (
-        <CommentItem key={c.id} c={c} postId={postId} live={live} />
+        <CommentItem key={c.id} c={c} postId={postId} live={live} canAccept={canAccept} />
       ))}
     </ul>
   );

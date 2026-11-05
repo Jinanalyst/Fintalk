@@ -5,9 +5,9 @@ import { ToastProvider } from "@/components/common/toast";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: "핀톡(FinTalk) – 시장을 읽고, 생각을 나누다", template: "%s | 핀톡" },
+  title: { default: "핀톡(FinTalk) – 투자 분석을 나누고 가치를 만드는 금융 커뮤니티", template: "%s | 핀톡" },
   description:
-    "주식·암호화폐·채권·외환·원자재·거시경제까지, 금융 뉴스와 투자자 커뮤니티를 한 곳에서. 핀톡에서 시장을 읽고 생각을 나눠보세요.",
+    "핀톡은 국내 주식, 미국 주식, 암호화폐 투자자들이 자신의 분석과 생각을 공유하고, 양질의 콘텐츠로 가치를 창출하는 금융 커뮤니티 플랫폼입니다.",
   openGraph: { siteName: "핀톡 FinTalk", locale: "ko_KR", type: "website" },
 };
 

@@ -1,10 +1,29 @@
 import Link from "next/link";
-import { ExternalLink, Eye, ImageIcon, MessageSquare, Pin, Zap } from "lucide-react";
-import type { NewsArticle } from "@/lib/providers";
-import { timeAgo } from "@/lib/time";
-import { type NewsItem, type Post, boardLabel, creatorName, newsLabel } from "@/lib/sample-data";
+import { Eye, ImageIcon, MessageSquare, Pin } from "lucide-react";
+import { type Post, boardLabel, creatorName, postTypeLabel } from "@/lib/sample-data";
 import { Tag } from "@/components/common/bits";
 import { PostActions, VoteBar } from "./interactive";
+
+/** 질문 상태: 답변 대기 / 답변 완료 / 채택 완료 */
+export function questionStatus(post: Pick<Post, "type" | "comments" | "acceptedCommentId">) {
+  if (post.type !== "question") return null;
+  if (post.acceptedCommentId) return { label: "채택 완료", cls: "bg-up/10 text-up" };
+  if (post.comments > 0) return { label: "답변 완료", cls: "bg-brand-soft text-brand" };
+  return { label: "답변 대기", cls: "bg-muted text-muted-foreground" };
+}
+
+export function PostBadges({ post }: { post: Pick<Post, "type" | "comments" | "acceptedCommentId" | "sponsored" | "draft"> }) {
+  const q = questionStatus(post);
+  const chip = "rounded px-1.5 py-0.5 text-[11px] font-semibold";
+  return (
+    <>
+      {post.type !== "general" && <span className={`${chip} bg-muted text-foreground`}>{postTypeLabel(post.type)}</span>}
+      {q && <span className={`${chip} ${q.cls}`}>{q.label}</span>}
+      {post.sponsored && <span className={`${chip} bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300`} title="협찬 또는 이해관계가 있는 콘텐츠입니다">협찬·이해관계</span>}
+      {post.draft && <span className={`${chip} bg-down/10 text-down`}>임시 저장</span>}
+    </>
+  );
+}
 
 export function PostCard({ post }: { post: Post }) {
   return (
@@ -18,6 +37,7 @@ export function PostCard({ post }: { post: Post }) {
           <Link href={`/community?cat=${post.category}`} className="font-semibold text-foreground hover:text-brand">
             {boardLabel(post.category)}
           </Link>
+          <PostBadges post={post} />
           <span>·</span>
           <Link href={`/creators/${encodeURIComponent(post.author)}`} className="hover:text-brand">
             {creatorName(post.author)}
@@ -32,7 +52,7 @@ export function PostCard({ post }: { post: Post }) {
         {(post.tickers.length > 0 || post.hasChart) && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {post.tickers.map((t) => (
-              <Tag key={t} href={`/market/${t}`}>
+              <Tag key={t} href={`/community?ticker=${t}`}>
                 ${t}
               </Tag>
             ))}
@@ -60,69 +80,6 @@ export function PostCard({ post }: { post: Post }) {
           <PostActions id={post.id} compact live={post.live} saved={post.saved} />
         </div>
       </div>
-    </article>
-  );
-}
-
-export function NewsCard({ item, compact = false }: { item: NewsItem; compact?: boolean }) {
-  return (
-    <article className="rounded-xl border bg-card p-3 shadow-xs transition-colors hover:border-brand/40 sm:p-4">
-      <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-        {item.breaking && (
-          <span className="inline-flex items-center gap-0.5 rounded bg-down/10 px-1.5 py-0.5 font-semibold text-down">
-            <Zap className="size-3" /> 속보
-          </span>
-        )}
-        <span className="font-semibold text-foreground">{newsLabel(item.category)}</span>
-        <span>·</span>
-        <span>{item.source}</span>
-        <span>·</span>
-        <span>{item.publishedAt}</span>
-      </div>
-      <Link href={`/news/${item.id}`} className="block">
-        <h3 className="text-[15px] font-semibold leading-snug sm:text-base">{item.title}</h3>
-        {!compact && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.summary}</p>}
-      </Link>
-      {item.tickers.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {item.tickers.map((t) => (
-            <Tag key={t} href={`/market/${t}`}>
-              ${t}
-            </Tag>
-          ))}
-        </div>
-      )}
-    </article>
-  );
-}
-
-/** RSS 기사 카드: 제목·짧은 요약·출처만 표시하고 원문으로 연결합니다. */
-export function ArticleCard({ item, compact = false }: { item: NewsArticle; compact?: boolean }) {
-  return (
-    <article className="rounded-xl border bg-card p-3 shadow-xs transition-colors hover:border-brand/40 sm:p-4">
-      <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-        <span className="font-semibold text-foreground">{newsLabel(item.category)}</span>
-        <span>·</span>
-        <span>{item.attribution}</span>
-        <span>·</span>
-        <span>{timeAgo(new Date(item.publishedAt).toISOString())}</span>
-      </div>
-      <a href={item.url} target="_blank" rel="noopener noreferrer nofollow" className="block">
-        <h3 className="flex items-start gap-1.5 text-[15px] font-semibold leading-snug sm:text-base">
-          {item.title}
-          <ExternalLink className="mt-1 size-3.5 shrink-0 text-muted-foreground" aria-label="원문 링크(새 창)" />
-        </h3>
-        {!compact && item.summary && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.summary}</p>}
-      </a>
-      {item.tickers.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {item.tickers.map((t) => (
-            <Tag key={t} href={`/market/${t}`}>
-              ${t}
-            </Tag>
-          ))}
-        </div>
-      )}
     </article>
   );
 }

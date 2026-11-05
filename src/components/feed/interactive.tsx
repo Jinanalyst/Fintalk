@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowBigDown, ArrowBigUp, Bookmark, Flag, Share2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/common/toast";
+import { toggleFollowAction } from "@/app/actions/follow";
 import { reportAction, toggleSaveAction, toggleWatchAction, votePostAction } from "@/app/actions/community";
 
 type Res = { ok: boolean; error?: string };
@@ -204,13 +205,27 @@ export function WatchStar({ symbol, initial = false, live = false }: { symbol: s
   );
 }
 
-export function FollowButton({ small = false }: { small?: boolean }) {
-  const [on, setOn] = useState(false);
+/** targetId 가 있으면 서버에 저장(Supabase), 없으면 샘플이라 화면 내 상태만 변경합니다. */
+export function FollowButton({ small = false, targetId, initial = false }: { small?: boolean; targetId?: string; initial?: boolean }) {
+  const [on, setOn] = useState(initial);
+  const [pending, start] = useTransition();
+  const guard = useGuard();
+  const { show } = useToast();
   return (
     <button
-      onClick={() => setOn(!on)}
+      disabled={pending}
+      aria-pressed={on}
+      onClick={() => {
+        const next = !on;
+        setOn(next);
+        if (!targetId) return;
+        start(async () => {
+          if (!guard(await toggleFollowAction(targetId, next))) setOn(!next);
+          else show(next ? "팔로우했습니다." : "팔로우를 취소했습니다.");
+        });
+      }}
       className={cn(
-        "rounded-full border px-3 font-medium transition-colors",
+        "rounded-full border px-3 font-medium transition-colors disabled:opacity-60",
         small ? "py-0.5 text-xs" : "py-1.5 text-sm",
         on ? "bg-muted text-muted-foreground" : "border-brand bg-brand text-primary-foreground hover:opacity-90",
       )}

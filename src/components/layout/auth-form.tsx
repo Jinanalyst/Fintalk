@@ -131,7 +131,7 @@ export function AuthForm({
         </div>
       </div>
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        로그인 없이도 <Link href="/news" className="text-brand">뉴스</Link>와 <Link href="/community" className="text-brand">공개 게시글</Link>을 읽을 수 있습니다.
+        로그인 없이도 <Link href="/community" className="text-brand">공개 게시글</Link>과 <Link href="/insights" className="text-brand">인사이트</Link>를 읽을 수 있습니다.
       </p>
     </div>
   );

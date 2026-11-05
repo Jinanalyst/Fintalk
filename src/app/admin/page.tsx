@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { BarChart3, Flag, Megaphone, Newspaper, Settings, Users, FileText, MessageSquare, Image as ImageIcon } from "lucide-react";
+import { BarChart3, Flag, Megaphone, Settings, Users, FileText, MessageSquare, Image as ImageIcon } from "lucide-react";
 import { Card, SectionHeader } from "@/components/common/bits";
 import { ComingSoonButton } from "@/components/feed/interactive";
 import { Sparkline } from "@/components/market/charts";
-import { ADMIN_USERS, ANNOUNCEMENTS, AD_SLOTS, NEWS, POSTS, REPORTS, boardLabel, creatorName } from "@/lib/sample-data";
+import { ADMIN_USERS, ANNOUNCEMENTS, AD_SLOTS, POSTS, REPORTS, boardLabel, creatorName } from "@/lib/sample-data";
 import { cn } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { LiveAdmin } from "./live-admin";
@@ -14,7 +14,6 @@ const TABS = [
   { k: "posts", l: "게시글", i: FileText },
   { k: "comments", l: "댓글", i: MessageSquare },
   { k: "reports", l: "신고", i: Flag },
-  { k: "news", l: "뉴스", i: Newspaper },
   { k: "notices", l: "공지사항", i: Megaphone },
   { k: "ads", l: "광고 배너", i: ImageIcon },
   { k: "settings", l: "사이트 설정", i: Settings },
@@ -123,17 +122,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                   <ComingSoonButton feature="신고 처리(숨김)" className={btn}>숨김 처리</ComingSoonButton>
                   <ComingSoonButton feature="신고 기각" className={btn}>기각</ComingSoonButton>
                 </td>
-              </tr>
-            ))}
-          </Table>
-        )}
-
-        {tab === "news" && (
-          <Table head={["제목", "출처", "카테고리", "관리"]}>
-            {NEWS.slice(0, 6).map((n) => (
-              <tr key={n.id}>
-                <td className={cn(td, "max-w-sm truncate font-medium")}>{n.title}</td><td className={td}>{n.source}</td><td className={td}>{n.category}</td>
-                <td className={td}><ComingSoonButton feature="뉴스 노출 관리" className={btn}>숨김</ComingSoonButton></td>
               </tr>
             ))}
           </Table>

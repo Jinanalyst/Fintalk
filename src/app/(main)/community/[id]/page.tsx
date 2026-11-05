@@ -5,20 +5,20 @@ import { ArrowLeft, Eye, ImageIcon } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { Card, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
 import { CommentForm, CommentList } from "@/components/feed/comments";
-import { NewsCard } from "@/components/feed/cards";
+import { PostBadges } from "@/components/feed/cards";
+import { getFollowState } from "@/lib/data/creators";
+import { RichBody, readingMinutes } from "@/components/feed/rich-body";
 import { ComingSoonButton, FollowButton, PostActions, VoteBar } from "@/components/feed/interactive";
 import { PostOwnerActions } from "@/components/feed/post-owner";
-import { Sparkline } from "@/components/market/charts";
 import { getPostDetail } from "@/lib/data/community";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
-  NEWS,
   SAMPLE_COMMENTS,
   boardLabel,
   creatorName,
   fmtNum,
-  getAsset,
+  tickerName,
   getCreator,
   getPost,
   type Comment,
@@ -56,8 +56,8 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
   }
 
   const author = live ? undefined : getCreator(post.author);
-  const relatedNews = NEWS.filter((n) => n.tickers.some((t) => post.tickers.includes(t))).slice(0, 2);
   const isMine = live && viewerId !== null && post.authorId === viewerId;
+  const followed = live && post.authorId ? (await getFollowState([post.authorId])).following.has(post.authorId) : false;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -72,8 +72,8 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
   return (
     <div className="space-y-4">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <Link href="/community" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand">
-        <ArrowLeft className="size-4" /> 커뮤니티
+      <Link href={["analysis", "strategy", "review", "resource"].includes(post.type) ? "/insights" : "/community"} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand">
+        <ArrowLeft className="size-4" /> {post.type === "question" || post.type === "general" || post.type === "discussion" ? "커뮤니티" : "인사이트"}
       </Link>
 
       <Card className="p-4 sm:p-6">
@@ -81,7 +81,9 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
           <Link href={`/community?cat=${post.category}`} className="font-semibold text-foreground hover:text-brand">
             {boardLabel(post.category)}
           </Link>
+          <PostBadges post={post} />
           <span>· {post.createdAt}</span>
+          {["analysis", "strategy", "review", "resource"].includes(post.type) && <span>· 약 {readingMinutes(post.rawBody ?? post.body.join(" "))}분</span>}
           <span className="inline-flex items-center gap-1"><Eye className="size-3.5" />{post.views.toLocaleString("ko-KR")}</span>
           {!live && <SampleBadge label="샘플 게시글" />}
         </div>
@@ -97,14 +99,10 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
               {author && <span className="block text-xs text-muted-foreground">팔로워 {fmtNum(author.followers)}</span>}
             </span>
           </Link>
-          {!live && <FollowButton />}
+          {!live ? <FollowButton /> : viewerId !== post.authorId && post.authorId ? <FollowButton targetId={post.authorId} initial={followed} /> : null}
         </div>
 
-        <div className="mt-4 space-y-3 text-[15px] leading-relaxed">
-          {post.body.map((para, i) => (
-            <p key={i} className="whitespace-pre-line break-words">{para}</p>
-          ))}
-        </div>
+        <div className="mt-4"><RichBody text={post.rawBody ?? post.body.join("\n\n")} /></div>
 
         {live && post.images && post.images.length > 0 && (
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -127,15 +125,12 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
 
         {post.tickers.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {post.tickers.map((t) => {
-              const a = getAsset(t);
-              return (
-                <Link key={t} href={`/market/${t}`} className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs hover:border-brand/40">
-                  <Tag>${t}</Tag>
-                  {a && <Sparkline values={a.series.slice(-20)} up={a.changePct >= 0} className="h-5 w-12" />}
-                </Link>
-              );
-            })}
+            {post.tickers.map((t) => (
+              <Link key={t} href={`/community?ticker=${t}`} className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs hover:border-brand/40">
+                <Tag>${t}</Tag>
+                <span className="text-muted-foreground">{tickerName(t) !== t ? tickerName(t) : "관련 토론"}</span>
+              </Link>
+            ))}
           </div>
         )}
 
@@ -157,20 +152,9 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
         <SectionHeader title={`댓글 ${live ? post.comments : post.comments}`} right={!live ? <SampleBadge label="샘플 댓글" /> : undefined} className="mb-2" />
         <CommentForm postId={post.id} live={live} />
         <div className="mt-3">
-          <CommentList comments={comments} postId={post.id} live={live} />
+          <CommentList comments={comments} postId={post.id} live={live} canAccept={live && viewerId !== null && post.authorId === viewerId && post.type === "question"} />
         </div>
       </section>
-
-      {relatedNews.length > 0 && (
-        <section>
-          <SectionHeader title="관련 뉴스" href="/news" className="mb-2" />
-          <div className="space-y-2.5">
-            {relatedNews.map((n) => (
-              <NewsCard key={n.id} item={n} compact />
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

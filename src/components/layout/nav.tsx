@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
-  BarChart3,
+  Gift,
   Home,
-  Newspaper,
+  Lightbulb,
   MessagesSquare,
-  Swords,
-  PenSquare,
-  User,
+  Users,
   Hash,
   Bookmark,
   Star,
@@ -20,11 +18,10 @@ import { BOARD_CATEGORIES } from "@/lib/sample-data";
 
 export const MAIN_NAV = [
   { href: "/", label: "홈", icon: Home },
-  { href: "/news", label: "뉴스", icon: Newspaper },
   { href: "/community", label: "커뮤니티", icon: MessagesSquare },
-  { href: "/market", label: "마켓", icon: BarChart3 },
-  { href: "/challenges", label: "챌린지", icon: Swords },
-  { href: "/creators", label: "크리에이터", icon: PenSquare },
+  { href: "/insights", label: "인사이트", icon: Lightbulb },
+  { href: "/creators", label: "크리에이터", icon: Users },
+  { href: "/rewards", label: "리워드", icon: Gift },
 ] as const;
 
 export const isActive = (pathname: string, href: string) =>
@@ -56,7 +53,7 @@ export function TopNav() {
 /** 모바일 하단 내비게이션 */
 export function BottomNav() {
   const pathname = usePathname();
-  const items = [MAIN_NAV[0], MAIN_NAV[1], MAIN_NAV[2], MAIN_NAV[3], { href: "/me", label: "MY", icon: User }];
+  const items = MAIN_NAV;
   return (
     <nav
       aria-label="하단 메뉴"

@@ -7,17 +7,17 @@ import { PostCard } from "@/components/feed/cards";
 import { FollowButton } from "@/components/feed/interactive";
 import { listPosts } from "@/lib/data/community";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
+import { getCreatorByHandle, getFollowState } from "@/lib/data/creators";
 import { CREATORS, POSTS, fmtNum, getCreator } from "@/lib/sample-data";
 
-type Profile = { name: string; handle: string; bio: string; focus: string; featured: boolean; live: boolean; stats: { l: string; v: string }[]; posts: Awaited<ReturnType<typeof listPosts>>["posts"] };
+type Profile = { id?: string; interests: string[]; name: string; handle: string; bio: string; focus: string; featured: boolean; live: boolean; stats: { l: string; v: string }[]; posts: Awaited<ReturnType<typeof listPosts>>["posts"] };
 
 async function loadProfile(raw: string): Promise<Profile | null> {
   const handle = decodeURIComponent(raw);
   const sample = getCreator(handle);
   if (sample) {
     return {
-      name: sample.name, handle: sample.handle, bio: sample.bio, focus: sample.focus, featured: !!sample.featured, live: false,
+      interests: [sample.focus], name: sample.name, handle: sample.handle, bio: sample.bio, focus: sample.focus, featured: !!sample.featured, live: false,
       stats: [
         { l: "팔로워", v: fmtNum(sample.followers) },
         { l: "게시글", v: sample.posts.toLocaleString("ko-KR") },
@@ -28,18 +28,18 @@ async function loadProfile(raw: string): Promise<Profile | null> {
     };
   }
   if (!isSupabaseConfigured) return null;
-  const sb = await createClient();
-  const { data: p } = await sb.from("profiles").select("id,nickname,bio").eq("nickname", handle).maybeSingle();
-  if (!p) return null;
+  const p = await getCreatorByHandle(handle);
+  if (!p?.id) return null;
   const { posts } = await listPosts({ authorId: p.id, sort: "new", limit: 50 });
-  const { count: followers } = await sb.from("follows").select("*", { count: "exact", head: true }).eq("followee_id", p.id);
   return {
-    name: p.nickname, handle: p.nickname, bio: p.bio || "아직 자기소개가 없습니다.", focus: "핀톡 이용자", featured: false, live: true,
+    id: p.id, interests: p.interests, name: p.name, handle: p.handle, bio: p.bio || "아직 자기소개가 없습니다.", focus: p.interests.join(" · ") || "핀톡 이용자", featured: p.accepted >= 3, live: true,
     stats: [
-      { l: "팔로워", v: fmtNum(followers ?? 0) },
-      { l: "게시글", v: posts.length.toLocaleString("ko-KR") },
-      { l: "받은 추천", v: fmtNum(posts.reduce((s, x) => s + x.upvotes, 0)) },
-      { l: "조회수", v: fmtNum(posts.reduce((s, x) => s + x.views, 0)) },
+      { l: "팔로워", v: fmtNum(p.followers) },
+      { l: "팔로잉", v: fmtNum(p.following) },
+      { l: "게시글", v: fmtNum(p.posts) },
+      { l: "인사이트", v: fmtNum(p.insights) },
+      { l: "채택 답변", v: fmtNum(p.accepted) },
+      { l: "기여도", v: fmtNum(p.score) },
     ],
     posts,
   };
@@ -60,6 +60,7 @@ export default async function CreatorProfile({ params }: PageProps<"/creators/[h
   const { handle } = await params;
   const c = await loadProfile(handle);
   if (!c) notFound();
+  const { viewerId, following } = await getFollowState(c.id ? [c.id] : []);
   return (
     <div className="space-y-4">
       <Link href="/creators" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand">
@@ -77,9 +78,9 @@ export default async function CreatorProfile({ params }: PageProps<"/creators/[h
             <p className="text-sm text-muted-foreground">@{c.handle} · {c.focus}</p>
             <p className="mt-2 text-sm">{c.bio}</p>
           </div>
-          {!c.live && <FollowButton />}
+          {(!c.live || c.id !== viewerId) && <FollowButton targetId={c.id} initial={c.id ? following.has(c.id) : false} />}
         </div>
-        <dl className="mt-4 grid grid-cols-4 gap-2 border-t pt-4 text-center">
+        <dl className="mt-4 grid grid-cols-3 gap-2 border-t pt-4 text-center sm:grid-cols-6">
           {c.stats.map((s) => (
             <div key={s.l}><dd className="text-lg font-extrabold tabular-nums">{s.v}</dd><dt className="text-xs text-muted-foreground">{s.l}</dt></div>
           ))}

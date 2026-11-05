@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/supabase/env";
-import { ASSETS, CREATORS, NEWS, POSTS } from "@/lib/sample-data";
+import { CREATORS, POSTS, TICKERS } from "@/lib/sample-data";
 
 const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const fixed = ["", "/news", "/community", "/market", "/challenges", "/creators"].map((p) => ({ url: `${base}${p}` }));
+  const fixed = ["", "/community", "/insights", "/outlook", "/rewards"].map((p) => ({ url: `${base}${p}` }));
   let postUrls = POSTS.map((p) => ({ url: `${base}/community/${p.id}` }));
 
   if (isSupabaseConfigured) {
@@ -23,9 +23,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...fixed,
-    ...NEWS.map((n) => ({ url: `${base}/news/${n.id}` })),
     ...postUrls,
-    ...ASSETS.map((a) => ({ url: `${base}/market/${a.symbol}` })),
+    ...TICKERS.map((t) => ({ url: `${base}/community?ticker=${t.symbol}` })),
     ...CREATORS.map((c) => ({ url: `${base}/creators/${c.handle}` })),
   ];
 }

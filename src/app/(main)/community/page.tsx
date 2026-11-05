@@ -4,8 +4,9 @@ import { PenLine } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
 import { PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
-import { listPosts } from "@/lib/data/community";
-import { BOARD_CATEGORIES, boardLabel, type SortKey } from "@/lib/sample-data";
+import { WatchStar } from "@/components/feed/interactive";
+import { getWatchState, listPosts } from "@/lib/data/community";
+import { BOARD_CATEGORIES, COMMUNITY_TYPES, POST_TYPES, boardLabel, tickerName, type PostType, type SortKey } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
   title: "커뮤니티",
@@ -18,33 +19,46 @@ const SORTS: { slug: SortKey; label: string }[] = [
   { slug: "comments", label: "댓글순" },
 ];
 
+const TYPE_PILLS = [{ slug: "all", label: "전체" }, ...POST_TYPES.filter((t) => COMMUNITY_TYPES.includes(t.slug)).map((t) => ({ slug: t.slug as string, label: t.label }))];
+
 export default async function CommunityPage({ searchParams }: PageProps<"/community">) {
   const sp = await searchParams;
   const cat = typeof sp.cat === "string" && BOARD_CATEGORIES.some((c) => c.slug === sp.cat) ? sp.cat : "all";
   const sort: SortKey = sp.sort === "new" || sp.sort === "comments" ? sp.sort : "hot";
-  const { posts: list, live } = await listPosts({ cat, sort });
-  const catQ = cat === "all" ? "" : `cat=${cat}&`;
+  const ticker = typeof sp.ticker === "string" && /^[0-9A-Za-z._-]{1,20}$/.test(sp.ticker) ? sp.ticker.toUpperCase() : undefined;
+  const type = TYPE_PILLS.some((t) => t.slug === sp.type && t.slug !== "all") ? (sp.type as PostType) : "all";
+  const { posts: list, live } = await listPosts({ cat, sort, ticker, types: type === "all" ? COMMUNITY_TYPES : [type] });
+  const watch = ticker ? await getWatchState().catch(() => ({ live: false, set: new Set<string>() })) : null;
+  const typeQ = type === "all" ? "" : `type=${type}&`;
+  const catQ = (cat === "all" ? "" : `cat=${cat}&`) + (ticker ? `ticker=${ticker}&` : "") + typeQ;
 
   return (
     <div>
       <PageTitle
-        title={cat === "all" ? "커뮤니티" : boardLabel(cat)}
-        desc="인기순은 추천·댓글·게시 시각을 함께 반영합니다."
+        title={ticker ? `${ticker} ${tickerName(ticker) !== ticker ? tickerName(ticker) : ""} 토론` : cat === "all" ? "커뮤니티" : boardLabel(cat)}
+        desc={ticker ? "이 종목에 대한 투자자들의 분석과 생각입니다." : "인기순은 추천·댓글·게시 시각을 함께 반영합니다."}
         right={
           <Link
-            href="/community/write"
+            href={`/community/write?${ticker ? `ticker=${ticker}&` : ""}${type === "all" ? "" : `type=${type}`}`}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <PenLine className="size-4" /> 글쓰기
           </Link>
         }
       />
+      {ticker && watch && (
+        <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+          <WatchStar symbol={ticker} live={watch.live} initial={watch.set.has(ticker)} /> 관심 종목에 추가
+          <Link href="/community" className="ml-auto text-xs text-brand hover:underline">전체 보기</Link>
+        </div>
+      )}
       {!live && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <SampleBadge label="샘플 게시글 (Supabase 미연결)" />
         </div>
       )}
-      <Pills items={BOARD_CATEGORIES} active={cat} hrefFor={(c) => (c === "all" ? `/community?sort=${sort}` : `/community?cat=${c}&sort=${sort}`)} className="mb-3 lg:hidden" />
+      <Pills items={BOARD_CATEGORIES} active={cat} hrefFor={(c) => `/community?${c === "all" ? "" : `cat=${c}&`}${ticker ? `ticker=${ticker}&` : ""}${typeQ}sort=${sort}`} className="mb-3 lg:hidden" />
+      <Pills items={TYPE_PILLS} active={type} hrefFor={(t) => `/community?${cat === "all" ? "" : `cat=${cat}&`}${ticker ? `ticker=${ticker}&` : ""}${t === "all" ? "" : `type=${t}&`}sort=${sort}`} className="mb-3" />
       <Pills items={SORTS} active={sort} hrefFor={(s) => `/community?${catQ}sort=${s}`} className="mb-4" />
 
       {list.length === 0 ? (

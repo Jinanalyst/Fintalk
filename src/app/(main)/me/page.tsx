@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bookmark, FileText, Settings, Star } from "lucide-react";
-import { Card, Change, SampleBadge } from "@/components/common/bits";
+import { Bookmark, FileText, PencilLine, Settings, Star } from "lucide-react";
+import { Card, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
 import { DeleteAccountButton, ProfileForm } from "@/components/layout/profile-form";
-import { getCurrentUser, listPosts, listSavedPosts, listWatchSymbols } from "@/lib/data/community";
+import { getCurrentUser, listDrafts, listPosts, listSavedPosts, listWatchSymbols } from "@/lib/data/community";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { ASSETS, POSTS, formatPrice, getAsset } from "@/lib/sample-data";
+import { POSTS, tickerName } from "@/lib/sample-data";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 const TABS = [
   { k: "posts", l: "내 게시글", i: FileText },
+  { k: "drafts", l: "임시 저장", i: PencilLine },
   { k: "saved", l: "저장한 글", i: Bookmark },
   { k: "watchlist", l: "관심 종목", i: Star },
   { k: "settings", l: "설정", i: Settings },
@@ -38,10 +39,11 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
   }
 
   const myPosts = live ? (await listPosts({ authorId: me!.id, sort: "new", limit: 50 })).posts : POSTS.slice(0, 2);
+  const drafts = live ? await listDrafts(me!.id) : [];
   const saved = live ? await listSavedPosts(me!.id) : POSTS.slice(2, 4);
   const watch = live
-    ? (await listWatchSymbols(me!.id)).map((s) => ({ symbol: s, asset: getAsset(s) }))
-    : ASSETS.filter((a) => ["BTC", "005930", "NVDA", "KOSPI"].includes(a.symbol)).map((a) => ({ symbol: a.symbol, asset: a }));
+    ? await listWatchSymbols(me!.id)
+    : ["BTC", "005930", "NVDA"];
 
   return (
     <div className="space-y-4">
@@ -84,6 +86,18 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
         </div>
       )}
 
+      {tab === "drafts" && (
+        <div className="space-y-2.5">
+          {drafts.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">임시 저장한 글이 없습니다. 글쓰기 화면의 “임시 저장”으로 보관할 수 있습니다.</p>}
+          {drafts.map((p) => (
+            <div key={p.id} className="space-y-1">
+              <PostCard post={p} />
+              <Link href={`/community/${p.id}/edit`} className="inline-block text-sm font-medium text-brand hover:underline">이어서 쓰기 ›</Link>
+            </div>
+          ))}
+        </div>
+      )}
+
       {tab === "saved" && (
         <div className="space-y-2.5">
           {saved.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">저장한 게시글이 없습니다. 게시글의 “저장” 버튼으로 담아 보세요.</p>}
@@ -93,13 +107,13 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
 
       {tab === "watchlist" && (
         <Card className="p-0">
-          {watch.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">마켓에서 ★ 를 눌러 관심 종목을 추가해 보세요.</p>}
+          {watch.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">종목 토론 화면에서 ★ 를 눌러 관심 종목을 추가해 보세요.</p>}
           <ul className="divide-y">
-            {watch.map(({ symbol, asset: a }) => (
+            {watch.map((symbol) => (
               <li key={symbol}>
-                <Link href={`/market/${symbol}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
-                  <span><span className="block text-sm font-semibold">{a?.name ?? symbol}</span><span className="text-xs text-muted-foreground">{symbol}</span></span>
-                  {a && <span className="text-right text-sm tabular-nums">{formatPrice(a)}<br /><Change pct={a.changePct} className="text-xs" /></span>}
+                <Link href={`/community?ticker=${symbol}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
+                  <span><span className="block text-sm font-semibold">{tickerName(symbol)}</span><span className="text-xs text-muted-foreground">${symbol}</span></span>
+                  <span className="text-xs text-brand">토론 보기 ›</span>
                 </Link>
               </li>
             ))}

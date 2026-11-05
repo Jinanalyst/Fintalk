@@ -7,7 +7,8 @@ import { UUID_RE } from "@/lib/data/community";
 
 export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
-const CATS = ["free", "kr-stock", "us-stock", "crypto", "macro", "strategy", "qna"];
+const CATS = ["kr-stock", "us-stock", "crypto", "macro", "trading", "beginner", "free", "strategy", "qna"]; // strategy/qna 는 기존 글 호환용
+const TYPES = ["general", "question", "discussion", "analysis", "strategy", "review", "resource"];
 
 async function authed(): Promise<
   { error: string; sb?: undefined; user?: undefined } | { error?: undefined; sb: Awaited<ReturnType<typeof createClient>>; user: { id: string } }
@@ -32,10 +33,11 @@ function cleanImages(urls: string[], userId: string) {
   return urls.filter((u) => typeof u === "string" && u.startsWith(prefix)).slice(0, 5);
 }
 
-type PostInput = { category: string; title: string; body: string; tickers: string[]; images: string[] };
+type PostInput = { category: string; type: string; title: string; body: string; tickers: string[]; images: string[]; sponsored?: boolean; draft?: boolean };
 
 function validate(i: PostInput) {
-  if (!CATS.includes(i.category)) return "게시판을 선택해 주세요.";
+  if (!CATS.includes(i.category)) return "카테고리를 선택해 주세요.";
+  if (!TYPES.includes(i.type)) return "게시글 유형을 선택해 주세요.";
   const t = i.title.trim();
   const b = i.body.trim();
   if (t.length < 2 || t.length > 100) return "제목은 2~100자로 입력해 주세요.";
@@ -53,6 +55,9 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
     .insert({
       author_id: a.user.id,
       category_slug: input.category,
+      post_type: input.type,
+      is_sponsored: !!input.sponsored,
+      status: input.draft ? "draft" : "published",
       title: input.title.trim(),
       body: input.body.trim(),
       tickers: cleanTickers(input.tickers),
@@ -62,6 +67,7 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
     .single();
   if (error || !data) return fail(dbMsg(error?.message ?? ""));
   revalidatePath("/community");
+  revalidatePath("/insights");
   revalidatePath("/");
   return { ok: true, id: data.id };
 }
@@ -76,6 +82,9 @@ export async function updatePostAction(id: string, input: PostInput): Promise<Re
     .from("posts")
     .update({
       category_slug: input.category,
+      post_type: input.type,
+      is_sponsored: !!input.sponsored,
+      status: input.draft ? "draft" : "published",
       title: input.title.trim(),
       body: input.body.trim(),
       tickers: cleanTickers(input.tickers),
@@ -147,6 +156,18 @@ export async function addCommentAction(postId: string, parentId: string | null, 
   const { error } = await a.sb.from("comments").insert({ post_id: postId, parent_id: parentId, author_id: a.user.id, body: text });
   if (error) return fail(dbMsg(error.message));
   revalidatePath(`/community/${postId}`);
+  return { ok: true };
+}
+
+/** 질문 작성자가 도움이 된 답변을 채택합니다. commentId=null 이면 채택 취소. */
+export async function acceptAnswerAction(postId: string, commentId: string | null): Promise<Result> {
+  const a = await authed();
+  if (a.error !== undefined) return fail(a.error);
+  if (!UUID_RE.test(postId) || (commentId && !UUID_RE.test(commentId))) return fail("잘못된 요청입니다.");
+  const { error } = await a.sb.rpc("accept_answer", { p_post: postId, p_comment: commentId });
+  if (error) return fail(dbMsg(error.message));
+  revalidatePath(`/community/${postId}`);
+  revalidatePath("/community");
   return { ok: true };
 }
 

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { Change, PageTitle, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
-import { NewsCard, PostCard } from "@/components/feed/cards";
+import { PageTitle, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
+import { PostCard } from "@/components/feed/cards";
 import { listPosts } from "@/lib/data/community";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { ASSETS, CREATORS, NEWS, POSTS, fmtNum, formatPrice } from "@/lib/sample-data";
+import { CREATORS, MARKET_LABELS, POSTS, TICKERS, fmtNum } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
   title: "검색",
@@ -19,11 +19,10 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
   const lq = q.toLowerCase();
   const has = (s: string) => s.toLowerCase().includes(lq);
 
-  const news = q ? NEWS.filter((n) => has(n.title + n.summary + n.tickers.join(" "))) : [];
   const { posts: foundPosts, live } = q ? await listPosts({ q, sort: "new", limit: 30 }) : { posts: [], live: false };
   const tagPosts = q && live && /^[0-9A-Za-z._-]{1,20}$/.test(q) ? (await listPosts({ ticker: q, sort: "new", limit: 30 })).posts : [];
   const posts = Array.from(new Map([...foundPosts, ...tagPosts].map((p) => [p.id, p])).values());
-  const assets = q ? ASSETS.filter((a) => has(a.name + a.symbol)) : [];
+  const assets = q ? TICKERS.filter((a) => has(a.name + a.symbol)) : [];
   let creators: { handle: string; name: string; followers?: number; bio: string }[] = q && !isSupabaseConfigured ? CREATORS.filter((c) => has(c.name + c.handle + c.bio)) : [];
   if (q && isSupabaseConfigured) {
     const safe = q.replace(/[%_,()]/g, " ").trim();
@@ -31,12 +30,12 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
     const { data } = safe ? await sb.from("profiles").select("nickname,bio").ilike("nickname", `%${safe}%`).limit(20) : { data: [] };
     creators = (data ?? []).map((p) => ({ handle: p.nickname, name: p.nickname, bio: p.bio }));
   }
-  const tags = q ? Array.from(new Set([...NEWS.flatMap((n) => n.tickers), ...(live ? posts : POSTS).flatMap((p) => p.tickers)])).filter(has) : [];
-  const total = news.length + posts.length + assets.length + creators.length;
+  const tags = q ? Array.from(new Set([...TICKERS.map((t) => t.symbol), ...(live ? posts : POSTS).flatMap((p) => p.tickers)])).filter(has) : [];
+  const total = posts.length + assets.length + creators.length;
 
   return (
     <div className="space-y-5">
-      <PageTitle title="통합 검색" desc="뉴스 · 게시글 · 종목 · 작성자 · 태그를 한 번에 검색합니다." right={<SampleBadge label="뉴스·종목은 샘플 데이터" />} />
+      <PageTitle title="통합 검색" desc="게시글 · 종목 · 작성자 · 태그를 한 번에 검색합니다." right={!live ? <SampleBadge label="샘플 게시글" /> : undefined} />
       <form action="/search" role="search">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -55,20 +54,13 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           <ul className="divide-y rounded-xl border bg-card">
             {assets.map((a) => (
               <li key={a.symbol}>
-                <Link href={`/market/${a.symbol}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
+                <Link href={`/community?ticker=${a.symbol}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
                   <span><span className="block text-sm font-semibold">{a.name}</span><span className="text-xs text-muted-foreground">{a.symbol}</span></span>
-                  <span className="text-right text-sm tabular-nums">{formatPrice(a)} <Change pct={a.changePct} className="ml-1 text-xs" /></span>
+                  <span className="text-xs text-muted-foreground">{MARKET_LABELS[a.market]} · 토론 보기 ›</span>
                 </Link>
               </li>
             ))}
           </ul>
-        </section>
-      )}
-
-      {news.length > 0 && (
-        <section>
-          <SectionHeader title={`뉴스 ${news.length}`} className="mb-2" />
-          <div className="space-y-2.5">{news.map((n) => <NewsCard key={n.id} item={n} compact />)}</div>
         </section>
       )}
 

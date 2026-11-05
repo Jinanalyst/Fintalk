@@ -17,7 +17,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
       <h1 className="mb-4 text-xl font-bold sm:text-2xl">글 수정</h1>
       <WriteForm
         live
-        initial={{ id: p.id, category: p.category, title: p.title, body: p.rawBody ?? "", tickers: p.tickers, images: p.images ?? [] }}
+        initial={{ id: p.id, category: p.category, type: p.type, sponsored: !!p.sponsored, draft: !!p.draft, title: p.title, body: p.rawBody ?? "", tickers: p.tickers, images: p.images ?? [] }}
       />
     </div>
   );

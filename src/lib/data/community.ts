@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { ageMinutes, timeAgo } from "@/lib/time";
-import { POSTS, hotScore, sortPosts, type Comment, type Post, type SortKey } from "@/lib/sample-data";
+import { POSTS, hotScore, isPostType, sortPosts, type Comment, type Post, type PostType, type SortKey } from "@/lib/sample-data";
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -18,11 +18,15 @@ type PostRow = {
   upvotes: number;
   downvotes: number;
   comment_count: number;
+  post_type: string;
+  accepted_comment_id: string | null;
+  is_sponsored: boolean;
+  status: string;
   created_at: string;
   author: { nickname: string } | { nickname: string }[] | null;
 };
 
-const SELECT = "id,author_id,category_slug,title,body,tickers,image_urls,pinned,views,upvotes,downvotes,comment_count,created_at,author:profiles(nickname)";
+const SELECT = "id,author_id,category_slug,title,body,tickers,image_urls,pinned,views,upvotes,downvotes,comment_count,post_type,accepted_comment_id,is_sponsored,status,created_at,author:profiles(nickname)";
 
 function nick(a: PostRow["author"]) {
   return (Array.isArray(a) ? a[0]?.nickname : a?.nickname) ?? "알 수 없음";
@@ -44,6 +48,10 @@ export function mapPost(r: PostRow): Post {
     views: r.views,
     tickers: r.tickers,
     images: r.image_urls,
+    type: isPostType(r.post_type) ? r.post_type : "general",
+    acceptedCommentId: r.accepted_comment_id,
+    sponsored: r.is_sponsored,
+    draft: r.status === "draft",
     hasChart: r.image_urls.length > 0,
     pinned: r.pinned,
     ageMin: ageMinutes(r.created_at),
@@ -54,10 +62,10 @@ export function mapPost(r: PostRow): Post {
 export type PostList = { posts: Post[]; live: boolean };
 
 /** 게시글 목록. Supabase 미설정 시 샘플 데이터를 반환합니다. */
-export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: number; authorId?: string; q?: string; ticker?: string } = {}): Promise<PostList> {
-  const { cat = "all", sort = "hot", limit = 50, authorId, q, ticker } = opts;
+export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: number; authorId?: string; q?: string; ticker?: string; types?: PostType[] } = {}): Promise<PostList> {
+  const { cat = "all", sort = "hot", limit = 50, authorId, q, ticker, types } = opts;
   if (!isSupabaseConfigured) {
-    let list = POSTS.filter((p) => (cat === "all" || p.category === cat) && (!ticker || p.tickers.includes(ticker.toUpperCase())));
+    let list = POSTS.filter((p) => (cat === "all" || p.category === cat) && (!ticker || p.tickers.includes(ticker.toUpperCase())) && (!types || types.includes(p.type)));
     if (q) list = list.filter((p) => (p.title + p.body.join(" ") + p.tickers.join(" ")).toLowerCase().includes(q.toLowerCase()));
     return { posts: sortPosts(list, sort).slice(0, limit), live: false };
   }
@@ -65,6 +73,7 @@ export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: nu
   let query = sb.from("posts").select(SELECT).eq("status", "published").order("created_at", { ascending: false }).limit(200);
   if (cat !== "all") query = query.eq("category_slug", cat);
   if (authorId) query = query.eq("author_id", authorId);
+  if (types?.length) query = query.in("post_type", types);
   if (ticker) query = query.contains("tickers", [ticker.toUpperCase()]);
   if (q) {
     const safe = q.replace(/[%_,()]/g, " ").trim();
@@ -103,12 +112,39 @@ export async function listCommentPreviews(postIds: string[], perPost = 2): Promi
   return out;
 }
 
+/** 내 임시 저장 글 (작성자 본인만 조회 가능 — RLS) */
+export async function listDrafts(userId: string): Promise<Post[]> {
+  if (!isSupabaseConfigured) return [];
+  const sb = await createClient();
+  const { data } = await sb.from("posts").select(SELECT).eq("author_id", userId).eq("status", "draft").order("updated_at", { ascending: false }).limit(50);
+  return ((data ?? []) as unknown as PostRow[]).map(mapPost);
+}
+
+export type MyStats = { posts: number; insights: number; answers: number; accepted: number; upvotes: number; views: number; followers: number; following: number };
+
+/**
+ * 기여도 지표. 조회수는 게시글 누적 조회수이며 부정·중복 조회 제거(유효 조회수)는 이후 단계에서 보강합니다.
+ * 광고 클릭 수는 어떤 지표에도 포함하지 않습니다.
+ */
+export async function getMyStats(userId: string): Promise<MyStats | null> {
+  if (!isSupabaseConfigured) return null;
+  const sb = await createClient();
+  const { data, error } = await sb.from("creator_stats").select("posts,insights,answers,accepted,upvotes,views,followers,following").eq("id", userId).maybeSingle();
+  if (error || !data) return null;
+  const n = (v: unknown) => Number(v ?? 0);
+  return { posts: n(data.posts), insights: n(data.insights), answers: n(data.answers), accepted: n(data.accepted), upvotes: n(data.upvotes), views: n(data.views), followers: n(data.followers), following: n(data.following) };
+}
+
+/** 기여도 점수: 단순 조회·추천보다 실제 도움(채택 답변, 인사이트)에 더 높은 가중치 */
+export const contributionScore = (s: Pick<MyStats, "posts" | "insights" | "answers" | "accepted" | "upvotes" | "views">) =>
+  s.posts * 2 + s.insights * 5 + s.answers * 2 + s.accepted * 15 + s.upvotes + Math.floor(s.views / 50);
+
 export async function getCurrentUser() {
   if (!isSupabaseConfigured) return null;
   const sb = await createClient();
   const { data } = await sb.auth.getUser();
   if (!data.user) return null;
-  const { data: profile } = await sb.from("profiles").select("id,nickname,bio,avatar_url,role,status,notify_comment,notify_vote,notify_follow,created_at").eq("id", data.user.id).single();
+  const { data: profile } = await sb.from("profiles").select("id,nickname,bio,interests,avatar_url,role,status,notify_comment,notify_vote,notify_follow,created_at").eq("id", data.user.id).single();
   return profile ? { ...profile, email: data.user.email ?? "" } : null;
 }
 
@@ -144,7 +180,7 @@ export async function getPostDetail(id: string): Promise<DetailResult> {
   type CRow = { id: string; parent_id: string | null; author_id: string; body: string; created_at: string; author: { nickname: string } | { nickname: string }[] | null };
   const map = new Map<string, Comment & { parent: string | null }>();
   for (const r of (rows ?? []) as unknown as CRow[]) {
-    map.set(r.id, { id: r.id, author: nick(r.author), body: r.body, createdAt: timeAgo(r.created_at), mine: r.author_id === viewerId, parent: r.parent_id, replies: [] });
+    map.set(r.id, { id: r.id, author: nick(r.author), body: r.body, createdAt: timeAgo(r.created_at), mine: r.author_id === viewerId, accepted: r.id === post.acceptedCommentId, parent: r.parent_id, replies: [] });
   }
   const roots: Comment[] = [];
   for (const c of map.values()) {
@@ -175,7 +211,7 @@ export async function listWatchSymbols(userId: string): Promise<string[]> {
   return (data ?? []).map((r) => r.symbol as string);
 }
 
-/** 마켓 화면용: 관심 종목 별표 초기 상태 */
+/** 종목 토론 화면용: 관심 종목 별표 초기 상태 */
 export async function getWatchState(): Promise<{ live: boolean; set: Set<string> }> {
   if (!isSupabaseConfigured) return { live: false, set: new Set() };
   const sb = await createClient();

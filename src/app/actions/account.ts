@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { FormState } from "./auth";
+import { INTEREST_OPTIONS } from "@/lib/sample-data";
 
 export async function updateProfileAction(_: FormState, form: FormData): Promise<FormState> {
   if (!isSupabaseConfigured) return { error: "서버에 Supabase 환경변수가 설정되지 않았습니다." };
@@ -16,11 +17,15 @@ export async function updateProfileAction(_: FormState, form: FormData): Promise
   const bio = String(form.get("bio") ?? "").trim().slice(0, 200);
   if (!/^[0-9A-Za-z가-힣_]{2,14}$/.test(nickname)) return { error: "닉네임은 한글/영문/숫자/밑줄 2~14자로 입력해 주세요." };
 
+  const interests = Array.from(new Set(form.getAll("interests").map(String).filter((v) => INTEREST_OPTIONS.includes(v))));
+  if (interests.length > 5) return { error: "관심 분야는 최대 5개까지 선택할 수 있습니다." };
+
   const { error } = await sb
     .from("profiles")
     .update({
       nickname,
       bio,
+      interests,
       notify_comment: form.get("notify_comment") === "on",
       notify_vote: form.get("notify_vote") === "on",
       notify_follow: form.get("notify_follow") === "on",
