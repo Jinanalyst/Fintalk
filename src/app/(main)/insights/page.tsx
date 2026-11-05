@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, PenLine } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
-import { Card, PageTitle, Pills, SampleBadge, SectionHeader } from "@/components/common/bits";
+import { PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
 import { listPosts } from "@/lib/data/community";
-import { CREATORS, INSIGHT_TYPES, POST_TYPES, fmtNum, type Category, type PostType } from "@/lib/sample-data";
+import { INSIGHT_TYPES, POST_TYPES, type Category, type PostType } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
   title: "인사이트",
-  description: "국내 주식, 미국 주식, 암호화폐 투자자들이 쓴 양질의 분석 콘텐츠와 인기 분석가를 만나보세요.",
+  description: "국내 주식, 미국 주식, 암호화폐 투자자들이 쓴 양질의 분석 콘텐츠를 만나보세요.",
 };
 
 const CATS: Category[] = [
@@ -29,10 +29,9 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
   const type = TYPE_PILLS.some((t) => t.slug === sp.type && t.slug !== "all") ? (sp.type as PostType) : "all";
   const { posts: list, live } = await listPosts({ cat, sort: "hot", limit: 20, types: type === "all" ? INSIGHT_TYPES : [type] });
   const typeQ = type === "all" ? "" : `type=${type}`;
-  const analysts = [...CREATORS].sort((a, b) => b.upvotes - a.upvotes).slice(0, 5);
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+    <div className="min-w-0">
       <div className="min-w-0">
         <PageTitle
           title="인사이트"
@@ -63,26 +62,9 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
         )}
       </div>
 
-      <aside className="space-y-4" aria-label="인기 분석가">
-        <Card>
-          <SectionHeader title={<span className="inline-flex items-center gap-1.5"><Award className="size-4 text-amber-500" />인기 분석가</span>} right={<SampleBadge label="샘플" />} />
-          <ol className="mt-3 space-y-3">
-            {analysts.map((c, i) => (
-              <li key={c.handle} className="flex items-center gap-2.5">
-                <span className="w-4 text-center text-sm font-bold text-muted-foreground">{i + 1}</span>
-                <Link href={`/creators/${c.handle}`} className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold hover:text-brand">{c.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{c.focus} · 추천 {fmtNum(c.upvotes)}</p>
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </Card>
-        <Card className="border-dashed">
-          <p className="text-sm font-semibold">내 분석도 인사이트에 올라가요</p>
-          <p className="mt-1 text-xs text-muted-foreground">근거와 함께 작성한 글이 추천을 받으면 이곳에 소개되고, <Link href="/rewards" className="text-brand underline">리워드</Link>로 연결됩니다.</p>
-        </Card>
-      </aside>
+      <p className="mt-4 rounded-lg border border-dashed bg-card p-3 text-xs text-muted-foreground">
+        근거와 함께 작성한 글이 추천을 받으면 이곳에 소개되고, <Link href="/rewards" className="text-brand underline">리워드</Link>로 연결됩니다.
+      </p>
     </div>
   );
 }
