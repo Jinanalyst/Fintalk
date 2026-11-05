@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, CornerDownRight, Trash2 } from "lucide-react";
 import { type Comment, creatorName } from "@/lib/sample-data";
 import { useToast } from "@/components/common/toast";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { acceptAnswerAction, addCommentAction, deleteCommentAction } from "@/app/actions/community";
 import { ReportMenu, VoteBar, useGuard } from "./interactive";
 
@@ -81,9 +82,7 @@ function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Com
     <li className={depth ? "ml-5 border-l pl-4 sm:ml-8" : c.accepted ? "-mx-4 rounded-xl border-2 border-up/60 bg-up/5 px-4" : ""}>
       <div className="py-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="grid size-6 place-items-center rounded-full bg-brand-soft text-[11px] font-bold text-brand">
-            {creatorName(c.author).slice(0, 1)}
-          </span>
+          <UserAvatar name={creatorName(c.author)} url={c.authorAvatar} className="size-6 text-[11px]" />
           <Link href={`/creators/${encodeURIComponent(c.author)}`} className="font-semibold text-foreground hover:text-brand">
             {creatorName(c.author)}
           </Link>

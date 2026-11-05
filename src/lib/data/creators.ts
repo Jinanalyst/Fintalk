@@ -7,6 +7,7 @@ import type { PopularItem } from "@/components/layout/popular-creators";
 export type CreatorRow = {
   id: string | null; // 샘플 데이터는 null
   handle: string;
+  avatar: string | null;
   name: string;
   bio: string;
   interests: string[];
@@ -27,9 +28,9 @@ export type CreatorRow = {
 
 export type CreatorSort = "popular" | "new" | "followers";
 
-const COLS = "id,nickname,bio,interests,created_at,posts,insights,answers,accepted,upvotes,views,followers,following,saves";
+const COLS = "id,nickname,bio,avatar_url,interests,created_at,posts,insights,answers,accepted,upvotes,views,followers,following,saves";
 type DbRow = {
-  id: string; nickname: string; bio: string | null; interests: string[] | null; created_at: string;
+  id: string; nickname: string; avatar_url: string | null; bio: string | null; interests: string[] | null; created_at: string;
   posts: number; insights: number; answers: number; accepted: number; upvotes: number; views: number; followers: number; following: number; saves: number;
 };
 
@@ -39,7 +40,7 @@ function fromDb(r: DbRow): CreatorRow {
   const base = { posts: num(r.posts), insights: num(r.insights), answers: num(r.answers), accepted: num(r.accepted), upvotes: num(r.upvotes), views: num(r.views) };
   return {
     saves: num(r.saves),
-    id: r.id, handle: r.nickname, name: r.nickname, bio: r.bio || "", interests: r.interests ?? [],
+    id: r.id, handle: r.nickname, avatar: r.avatar_url ?? null, name: r.nickname, bio: r.bio || "", interests: r.interests ?? [],
     followers: num(r.followers), following: num(r.following), ...base, score: contributionScore(base), createdAt: r.created_at, live: true,
   };
 }
@@ -56,7 +57,7 @@ export async function listCreators(opts: { q?: string; field?: string; sort?: Cr
   if (!isSupabaseConfigured) {
     const now = Date.now();
     let list: CreatorRow[] = CREATORS.map((c, i) => ({
-      id: null, handle: c.handle, name: c.name, bio: c.bio, interests: [c.focus], followers: c.followers, following: 0, posts: c.posts, insights: Math.round(c.posts * 0.3), answers: 0, accepted: Math.max(1, Math.round(c.upvotes / 2500)),
+      id: null, handle: c.handle, avatar: null, name: c.name, bio: c.bio, interests: [c.focus], followers: c.followers, following: 0, posts: c.posts, insights: Math.round(c.posts * 0.3), answers: 0, accepted: Math.max(1, Math.round(c.upvotes / 2500)),
       upvotes: c.upvotes, views: c.views, saves: Math.round(c.upvotes * 0.4), score: c.upvotes, createdAt: new Date(now - (i + 1) * 864e5 * 9).toISOString(), live: false,
     }));
     if (q) list = list.filter((c) => (c.name + c.handle + c.bio + c.interests.join(" ")).toLowerCase().includes(q.toLowerCase()));

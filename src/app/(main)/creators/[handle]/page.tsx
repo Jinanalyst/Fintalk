@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Award } from "lucide-react";
 import { Card, SampleBadge, SectionHeader } from "@/components/common/bits";
@@ -10,7 +11,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { getCreatorByHandle, getFollowState } from "@/lib/data/creators";
 import { CREATORS, POSTS, fmtNum, getCreator } from "@/lib/sample-data";
 
-type Profile = { id?: string; interests: string[]; name: string; handle: string; bio: string; focus: string; featured: boolean; live: boolean; stats: { l: string; v: string }[]; posts: Awaited<ReturnType<typeof listPosts>>["posts"] };
+type Profile = { id?: string; avatar?: string | null; interests: string[]; name: string; handle: string; bio: string; focus: string; featured: boolean; live: boolean; stats: { l: string; v: string }[]; posts: Awaited<ReturnType<typeof listPosts>>["posts"] };
 
 async function loadProfile(raw: string): Promise<Profile | null> {
   const handle = decodeURIComponent(raw);
@@ -32,7 +33,7 @@ async function loadProfile(raw: string): Promise<Profile | null> {
   if (!p?.id) return null;
   const { posts } = await listPosts({ authorId: p.id, sort: "new", limit: 50 });
   return {
-    id: p.id, interests: p.interests, name: p.name, handle: p.handle, bio: p.bio || "아직 자기소개가 없습니다.", focus: p.interests.join(" · ") || "핀톡 이용자", featured: p.accepted >= 3, live: true,
+    id: p.id, avatar: p.avatar, interests: p.interests, name: p.name, handle: p.handle, bio: p.bio || "아직 자기소개가 없습니다.", focus: p.interests.join(" · ") || "핀톡 이용자", featured: p.accepted >= 3, live: true,
     stats: [
       { l: "팔로워", v: fmtNum(p.followers) },
       { l: "팔로잉", v: fmtNum(p.following) },
@@ -68,7 +69,7 @@ export default async function CreatorProfile({ params }: PageProps<"/creators/[h
       </Link>
       <Card className="p-5">
         <div className="flex items-start gap-4">
-          <span className="grid size-16 shrink-0 place-items-center rounded-full bg-brand-soft text-2xl font-bold text-brand">{c.name.slice(0, 1)}</span>
+          <UserAvatar name={c.name} url={c.avatar} className="size-16 text-2xl" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-bold">{c.name}</h1>

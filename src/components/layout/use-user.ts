@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
-export type ViewUser = { id: string; nickname: string; role: string } | null;
+export type ViewUser = { id: string; nickname: string; role: string; avatar_url: string | null } | null;
 
 /** undefined = 확인 중, null = 비로그인 */
 export function useUser(): ViewUser | undefined {
@@ -16,8 +16,8 @@ export function useUser(): ViewUser | undefined {
     let alive = true;
     const load = async (id: string | undefined) => {
       if (!id) return alive && setUser(null);
-      const { data } = await sb.from("profiles").select("nickname,role").eq("id", id).maybeSingle();
-      if (alive) setUser(data ? { id, nickname: data.nickname, role: data.role } : null);
+      const { data } = await sb.from("profiles").select("nickname,role,avatar_url").eq("id", id).maybeSingle();
+      if (alive) setUser(data ? { id, nickname: data.nickname, role: data.role, avatar_url: data.avatar_url ?? null } : null);
     };
     sb.auth.getUser().then(({ data }) => load(data.user?.id));
     const { data: sub } = sb.auth.onAuthStateChange((_e, session) => {

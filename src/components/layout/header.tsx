@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { LogoMark } from "@/components/common/logo-mark";
 import { ThemeToggle } from "@/components/common/theme";
-import { useToast } from "@/components/common/toast";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { NotificationBell } from "./notification-bell";
 import { SidebarNav, TopNav } from "./nav";
 import { useUser } from "./use-user";
 import { signOutAction } from "@/app/actions/auth";
@@ -51,7 +52,6 @@ export function SearchBox({ className = "" }: { className?: string }) {
 
 export function Header() {
   const [open, setOpen] = useState(false);
-  const { comingSoon } = useToast();
   const user = useUser();
   return (
     <header className="sticky top-0 z-40 border-b bg-card/90 backdrop-blur">
@@ -78,9 +78,13 @@ export function Header() {
               <UserRound className="size-5" />
             </span>
           </Link>
-          <Button variant="ghost" size="icon" aria-label="알림" onClick={() => comingSoon("알림")} className="hidden sm:inline-flex">
-            <Bell className="size-[18px]" />
-          </Button>
+          {user ? (
+            <NotificationBell userId={user.id} />
+          ) : (
+            <Link href="/login" aria-label="알림 (로그인 필요)" className="hidden sm:block">
+              <span className="grid size-9 place-items-center rounded-md hover:bg-muted"><Bell className="size-[18px]" /></span>
+            </Link>
+          )}
           <Link href="/community/write" className="hidden sm:block">
             <Button size="lg" className="gap-1.5 bg-brand px-3 text-primary-foreground hover:bg-brand/90">
               <PenLine className="size-4" /> 글쓰기
@@ -93,8 +97,9 @@ export function Header() {
                   <Button variant="ghost" size="lg">관리자</Button>
                 </Link>
               )}
-              <Link href="/me" className="hidden max-w-28 truncate rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted sm:block">
-                {user.nickname}
+              <Link href="/me" className="hidden max-w-36 items-center gap-1.5 truncate rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted sm:flex">
+                <UserAvatar name={user.nickname} url={user.avatar_url} className="size-6 text-xs" />
+                <span className="truncate">{user.nickname}</span>
               </Link>
               <form action={signOutAction}>
                 <Button variant="outline" size="lg" type="submit">로그아웃</Button>

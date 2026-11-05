@@ -124,6 +124,7 @@ export type Post = {
   // ── Supabase 연동 시에만 채워지는 필드 ──
   live?: boolean;
   authorId?: string;
+  authorAvatar?: string | null;
   images?: string[];
   myVote?: 0 | 1 | -1;
   saved?: boolean;
@@ -176,6 +177,7 @@ export type Comment = {
   createdAt: string;
   upvotes?: number;
   mine?: boolean;
+  authorAvatar?: string | null;
   /** 질문 작성자가 채택한 답변 */
   accepted?: boolean;
   replies?: Comment[];

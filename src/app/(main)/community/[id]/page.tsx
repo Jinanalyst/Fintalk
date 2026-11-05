@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Eye, ImageIcon } from "lucide-react";
 import { AdSlot } from "@/components/common/ad-slot";
@@ -94,9 +95,7 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
 
         <div className="mt-3 flex items-center justify-between gap-2 border-b pb-3">
           <Link href={`/creators/${encodeURIComponent(post.author)}`} className="flex items-center gap-2">
-            <span className="grid size-9 place-items-center rounded-full bg-brand-soft font-bold text-brand">
-              {creatorName(post.author).slice(0, 1)}
-            </span>
+            <UserAvatar name={creatorName(post.author)} url={post.authorAvatar} className="size-9 text-base" />
             <span>
               <span className="block text-sm font-semibold">{creatorName(post.author)}</span>
               {author && <span className="block text-xs text-muted-foreground">팔로워 {fmtNum(author.followers)}</span>}

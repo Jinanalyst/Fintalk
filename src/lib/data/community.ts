@@ -23,10 +23,14 @@ type PostRow = {
   is_sponsored: boolean;
   status: string;
   created_at: string;
-  author: { nickname: string } | { nickname: string }[] | null;
+  author: { nickname: string; avatar_url?: string | null } | { nickname: string; avatar_url?: string | null }[] | null;
 };
 
-const SELECT = "id,author_id,category_slug,title,body,tickers,image_urls,pinned,views,upvotes,downvotes,comment_count,post_type,accepted_comment_id,is_sponsored,status,created_at,author:profiles(nickname)";
+const SELECT = "id,author_id,category_slug,title,body,tickers,image_urls,pinned,views,upvotes,downvotes,comment_count,post_type,accepted_comment_id,is_sponsored,status,created_at,author:profiles(nickname,avatar_url)";
+
+function avatarOf(a: PostRow["author"]) {
+  return (Array.isArray(a) ? a[0]?.avatar_url : a?.avatar_url) ?? null;
+}
 
 function nick(a: PostRow["author"]) {
   return (Array.isArray(a) ? a[0]?.nickname : a?.nickname) ?? "알 수 없음";
@@ -41,6 +45,7 @@ export function mapPost(r: PostRow): Post {
     category: r.category_slug,
     author: nick(r.author),
     authorId: r.author_id,
+    authorAvatar: avatarOf(r.author),
     createdAt: timeAgo(r.created_at),
     upvotes: r.upvotes,
     downvotes: r.downvotes,
@@ -100,7 +105,7 @@ export async function listCommentPreviews(postIds: string[], perPost = 2): Promi
   const sb = await createClient();
   const { data } = await sb
     .from("comments")
-    .select("id,post_id,body,created_at,author:profiles(nickname)")
+    .select("id,post_id,body,created_at,author:profiles(nickname,avatar_url)")
     .in("post_id", ids)
     .eq("status", "published")
     .order("created_at", { ascending: false })
@@ -201,7 +206,7 @@ export async function getPostDetail(id: string): Promise<DetailResult> {
 
   const { data: rows } = await sb
     .from("comments")
-    .select("id,parent_id,author_id,body,created_at,author:profiles(nickname)")
+    .select("id,parent_id,author_id,body,created_at,author:profiles(nickname,avatar_url)")
     .eq("post_id", id)
     .eq("status", "published")
     .order("created_at", { ascending: true })
@@ -210,7 +215,7 @@ export async function getPostDetail(id: string): Promise<DetailResult> {
   type CRow = { id: string; parent_id: string | null; author_id: string; body: string; created_at: string; author: { nickname: string } | { nickname: string }[] | null };
   const map = new Map<string, Comment & { parent: string | null }>();
   for (const r of (rows ?? []) as unknown as CRow[]) {
-    map.set(r.id, { id: r.id, author: nick(r.author), body: r.body, createdAt: timeAgo(r.created_at), mine: r.author_id === viewerId, accepted: r.id === post.acceptedCommentId, parent: r.parent_id, replies: [] });
+    map.set(r.id, { id: r.id, author: nick(r.author), body: r.body, createdAt: timeAgo(r.created_at), authorAvatar: avatarOf(r.author), mine: r.author_id === viewerId, accepted: r.id === post.acceptedCommentId, parent: r.parent_id, replies: [] });
   }
   const roots: Comment[] = [];
   for (const c of map.values()) {

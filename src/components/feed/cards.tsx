@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { Eye, ImageIcon, MessageSquare, Pin } from "lucide-react";
 import { type Post, boardLabel, creatorName, postTypeLabel } from "@/lib/sample-data";
 import { Tag } from "@/components/common/bits";
@@ -107,7 +108,7 @@ export function InsightCard({ post, featured = false }: { post: Post; featured?:
       )}
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 text-xs text-muted-foreground">
         <Link href={`/creators/${encodeURIComponent(post.author)}`} className="inline-flex items-center gap-1.5 font-semibold text-foreground hover:text-brand">
-          <span className="grid size-6 place-items-center rounded-full bg-brand-soft text-[11px] font-bold text-brand">{creatorName(post.author).slice(0, 1)}</span>
+          <UserAvatar name={creatorName(post.author)} url={post.authorAvatar} className="size-6 text-[11px]" />
           {creatorName(post.author)}
         </Link>
         <span className="ml-auto inline-flex items-center gap-1"><MessageSquare className="size-3.5" />{post.comments}</span>

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Bookmark, FileText, PencilLine, Settings, Star } from "lucide-react";
 import { Card, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
-import { DeleteAccountButton, ProfileForm } from "@/components/layout/profile-form";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { AvatarUploader, DeleteAccountButton, ProfileForm } from "@/components/layout/profile-form";
 import { getCurrentUser, listDrafts, listPosts, listSavedPosts, listWatchSymbols } from "@/lib/data/community";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { POSTS, tickerName } from "@/lib/sample-data";
@@ -49,9 +50,7 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
     <div className="space-y-4">
       <Card className="p-5">
         <div className="flex items-center gap-4">
-          <span className="grid size-16 place-items-center rounded-full bg-brand-soft text-2xl font-bold text-brand">
-            {(me?.nickname ?? "핀").slice(0, 1)}
-          </span>
+          <UserAvatar name={me?.nickname ?? "핀"} url={me?.avatar_url} className="size-16 text-2xl" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-xl font-bold">{me?.nickname ?? "핀톡 방문자"}</h1>
@@ -126,8 +125,9 @@ export default async function MePage({ searchParams }: PageProps<"/me">) {
           {live ? (
             <Card>
               <h2 className="mb-3 text-base font-bold">프로필 · 알림</h2>
+              <div className="mb-4"><AvatarUploader userId={me!.id} nickname={me!.nickname} url={me!.avatar_url ?? null} /></div>
               <ProfileForm profile={me!} email={me!.email} />
-              <p className="mt-3 text-xs text-muted-foreground">프로필 이미지 업로드는 이후 단계에서 제공됩니다. 비밀번호 변경은 <Link href="/forgot-password" className="text-brand underline">재설정 메일</Link>로 진행하세요.</p>
+              <p className="mt-3 text-xs text-muted-foreground">비밀번호 변경은 <Link href="/forgot-password" className="text-brand underline">재설정 메일</Link>로 진행하세요.</p>
             </Card>
           ) : (
             <Card><p className="text-sm text-muted-foreground">Supabase 환경변수를 설정하면 프로필과 알림 설정을 저장할 수 있습니다.</p></Card>
