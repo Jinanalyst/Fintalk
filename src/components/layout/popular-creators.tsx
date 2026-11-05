@@ -1,9 +1,10 @@
+import { UserAvatar } from "@/components/common/user-avatar";
 import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { Card, SampleBadge } from "@/components/common/bits";
 import { FollowButton } from "@/components/feed/interactive";
 
-export type PopularItem = { handle: string; name: string; id: string | null; following: boolean; mine: boolean; views: number; saves: number; likes: number };
+export type PopularItem = { handle: string; avatar?: string | null; name: string; id: string | null; following: boolean; mine: boolean; views: number; saves: number; likes: number };
 
 const fmt = (n: number) => (n >= 10000 ? `${(n / 10000).toFixed(1)}만` : n.toLocaleString("ko-KR"));
 
@@ -24,7 +25,7 @@ export function PopularCreatorsView({ items, live, limit }: { items: PopularItem
         {items.slice(0, limit).map((c, i) => (
           <li key={c.handle} className="flex items-center gap-2.5">
             <span className="w-4 text-center text-sm font-bold text-muted-foreground">{i + 1}</span>
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft text-sm font-bold text-brand">{c.name.slice(0, 1)}</span>
+            <UserAvatar name={c.name} url={c.avatar} className="text-sm" />
             <Link href={`/creators/${encodeURIComponent(c.handle)}`} className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold hover:text-brand">{c.name}</p>
               <p className="truncate text-xs text-muted-foreground">조회 {fmt(c.views)} · 저장 {fmt(c.saves)} · 좋아요 {fmt(c.likes)}</p>

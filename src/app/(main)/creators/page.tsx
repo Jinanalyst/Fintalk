@@ -1,3 +1,4 @@
+import { UserAvatar } from "@/components/common/user-avatar";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Gift, Search } from "lucide-react";
@@ -19,8 +20,8 @@ const SORTS: { slug: CreatorSort; label: string }[] = [
 
 const FIELDS = [{ slug: "all", label: "전체 분야" }, ...INTEREST_OPTIONS.map((f) => ({ slug: f, label: f }))];
 
-const Avatar = ({ name, size = "size-11", tone = "bg-brand-soft text-brand" }: { name: string; size?: string; tone?: string }) => (
-  <span className={`grid ${size} shrink-0 place-items-center rounded-full text-lg font-bold ${tone}`}>{name.slice(0, 1)}</span>
+const Avatar = ({ name, url, size = "size-11", tone = "bg-brand-soft text-brand" }: { name: string; url?: string | null; size?: string; tone?: string }) => (
+  <UserAvatar name={name} url={url} className={`${size} text-lg ${tone}`} />
 );
 
 export default async function CreatorsPage({ searchParams }: PageProps<"/creators">) {
@@ -87,7 +88,7 @@ export default async function CreatorsPage({ searchParams }: PageProps<"/creator
             {featured.map((c) => (
               <article key={c.handle} className="flex flex-col gap-3 rounded-2xl border bg-card p-5 shadow-xs">
                 <div className="flex items-center gap-3">
-                  <Avatar name={c.name} size="size-14" tone="bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300" />
+                  <Avatar name={c.name} url={c.avatar} size="size-14" tone="bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300" />
                   <div className="min-w-0 flex-1">
                     <Link href={`/creators/${encodeURIComponent(c.handle)}`} className="block truncate text-base font-extrabold hover:text-brand">{c.name}</Link>
                     <p className="truncate text-xs text-muted-foreground">{c.interests.join(" · ") || "관심 분야 미설정"}</p>
@@ -118,7 +119,7 @@ export default async function CreatorsPage({ searchParams }: PageProps<"/creator
             {creators.map((c, i) => (
               <li key={c.handle} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4">
                 <span className={`w-6 text-center text-lg font-extrabold ${i < 3 && sort === "popular" ? "text-brand" : "text-muted-foreground"}`}>{i + 1}</span>
-                <Avatar name={c.name} />
+                <Avatar name={c.name} url={c.avatar} />
                 <Link href={`/creators/${encodeURIComponent(c.handle)}`} className="min-w-0 flex-1 basis-40">
                   <p className="truncate font-bold hover:text-brand">{c.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{c.interests.join(" · ") || "관심 분야 미설정"}{c.bio && ` — ${c.bio}`}</p>
@@ -142,7 +143,7 @@ export default async function CreatorsPage({ searchParams }: PageProps<"/creator
           <div className="grid gap-3 sm:grid-cols-2">
             {newbies.map((c) => (
               <div key={c.handle} className="flex items-center gap-3 rounded-2xl border border-dashed bg-card p-4">
-                <Avatar name={c.name} size="size-10" tone="bg-up/10 text-up" />
+                <Avatar name={c.name} url={c.avatar} size="size-10" tone="bg-up/10 text-up" />
                 <Link href={`/creators/${encodeURIComponent(c.handle)}`} className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold hover:text-brand">{c.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{c.interests.join(" · ") || "관심 분야 미설정"}</p>

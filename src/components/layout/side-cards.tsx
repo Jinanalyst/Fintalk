@@ -1,3 +1,4 @@
+import { UserAvatar } from "@/components/common/user-avatar";
 import Link from "next/link";
 import { Award } from "lucide-react";
 import { SampleBadge } from "@/components/common/bits";
@@ -56,7 +57,7 @@ export async function TopHelpersCard() {
         {items.map((c, i) => (
           <li key={c.handle} className="flex items-center gap-2.5">
             <span className="w-4 text-center text-sm font-bold text-brand">{i + 1}</span>
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-amber-100 text-sm font-bold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{c.name.slice(0, 1)}</span>
+            <UserAvatar name={c.name} url={c.avatar} className="bg-amber-100 text-sm text-amber-800 dark:bg-amber-400/15 dark:text-amber-300" />
             <Link href={`/creators/${encodeURIComponent(c.handle)}`} className="min-w-0 flex-1 truncate text-sm font-semibold hover:text-brand">{c.name}</Link>
             <span className="text-xs font-bold text-amber-700 dark:text-amber-300">채택 {c.accepted}</span>
           </li>

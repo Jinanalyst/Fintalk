@@ -115,7 +115,7 @@ export async function getPopularCreators(): Promise<{ items: PopularItem[]; live
   const items = [...creators]
     .sort((a, b) => b.views - a.views || b.saves - a.saves || b.upvotes - a.upvotes)
     .filter((c) => c.views + c.saves + c.upvotes > 0 || !live)
-    .map((c) => ({ handle: c.handle, name: c.name, id: c.id, following: c.id ? following.has(c.id) : false, mine: c.id !== null && c.id === viewerId, views: c.views, saves: c.saves, likes: c.upvotes }));
+    .map((c) => ({ handle: c.handle, avatar: c.avatar, name: c.name, id: c.id, following: c.id ? following.has(c.id) : false, mine: c.id !== null && c.id === viewerId, views: c.views, saves: c.saves, likes: c.upvotes }));
   return { items, live };
 }
 
