@@ -85,7 +85,7 @@ export async function LiveAdmin({ tab, tabs }: { tab: string; tabs: Tab[] }) {
       </Table>
     );
   } else if (tab === "posts") {
-    const { data } = await sb.from("posts").select("id,title,status,upvotes,comment_count,created_at,author:profiles(nickname)").order("created_at", { ascending: false }).limit(100);
+    const { data } = await sb.from("posts").select("id,title,status,upvotes,comment_count,created_at,author:profiles!author_id(nickname)").order("created_at", { ascending: false }).limit(100);
     body = (
       <Table head={["제목", "작성자", "추천/댓글", "상태", "관리"]} empty={!data?.length}>
         {(data ?? []).map((p) => {
@@ -109,7 +109,7 @@ export async function LiveAdmin({ tab, tabs }: { tab: string; tabs: Tab[] }) {
       </Table>
     );
   } else if (tab === "comments") {
-    const { data } = await sb.from("comments").select("id,post_id,body,status,created_at,author:profiles(nickname)").order("created_at", { ascending: false }).limit(100);
+    const { data } = await sb.from("comments").select("id,post_id,body,status,created_at,author:profiles!author_id(nickname)").order("created_at", { ascending: false }).limit(100);
     body = (
       <Table head={["댓글", "작성자", "게시글", "상태", "관리"]} empty={!data?.length}>
         {(data ?? []).map((c) => {
@@ -133,7 +133,7 @@ export async function LiveAdmin({ tab, tabs }: { tab: string; tabs: Tab[] }) {
       </Table>
     );
   } else if (tab === "reports") {
-    const { data } = await sb.from("reports").select("id,target_type,target_id,reason,status,created_at,reporter:profiles(nickname)").order("created_at", { ascending: false }).limit(100);
+    const { data } = await sb.from("reports").select("id,target_type,target_id,reason,status,created_at,reporter:profiles!reporter_id(nickname)").order("created_at", { ascending: false }).limit(100);
     body = (
       <Table head={["대상", "사유", "신고자", "상태", "처리"]} empty={!data?.length}>
         {(data ?? []).map((r) => {

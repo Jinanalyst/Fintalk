@@ -26,7 +26,7 @@ type PostRow = {
   author: { nickname: string; avatar_url?: string | null } | { nickname: string; avatar_url?: string | null }[] | null;
 };
 
-const SELECT = "id,author_id,category_slug,title,body,tickers,image_urls,pinned,views,upvotes,downvotes,comment_count,post_type,accepted_comment_id,is_sponsored,status,created_at,author:profiles(nickname,avatar_url)";
+const SELECT = "id,author_id,category_slug,title,body,tickers,image_urls,pinned,views,upvotes,downvotes,comment_count,post_type,accepted_comment_id,is_sponsored,status,created_at,author:profiles!author_id(nickname,avatar_url)";
 
 function avatarOf(a: PostRow["author"]) {
   return (Array.isArray(a) ? a[0]?.avatar_url : a?.avatar_url) ?? null;
@@ -105,7 +105,7 @@ export async function listCommentPreviews(postIds: string[], perPost = 2): Promi
   const sb = await createClient();
   const { data } = await sb
     .from("comments")
-    .select("id,post_id,body,created_at,author:profiles(nickname,avatar_url)")
+    .select("id,post_id,body,created_at,author:profiles!author_id(nickname,avatar_url)")
     .in("post_id", ids)
     .eq("status", "published")
     .order("created_at", { ascending: false })
@@ -207,7 +207,7 @@ export async function getPostDetail(id: string): Promise<DetailResult> {
 
   const { data: rows } = await sb
     .from("comments")
-    .select("id,parent_id,author_id,body,created_at,author:profiles(nickname,avatar_url)")
+    .select("id,parent_id,author_id,body,created_at,author:profiles!author_id(nickname,avatar_url)")
     .eq("post_id", id)
     .eq("status", "published")
     .order("created_at", { ascending: true })
