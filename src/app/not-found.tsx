@@ -1,15 +1,11 @@
-import Link from "next/link";
 import { MainShell } from "@/components/layout/shell";
+import { NotFoundCard } from "@/components/common/not-found-card";
 
+// 라우트 그룹 밖(알 수 없는 주소)에서만 사용됩니다. 그룹 안에서는 이미 레이아웃이 감싸므로 셸을 중복하지 않습니다.
 export default function NotFound() {
   return (
     <MainShell>
-      <div className="rounded-xl border bg-card p-12 text-center">
-        <p className="text-4xl font-extrabold text-brand">404</p>
-        <h1 className="mt-2 text-lg font-bold">페이지를 찾을 수 없습니다</h1>
-        <p className="mt-1 text-sm text-muted-foreground">주소가 잘못되었거나 삭제된 콘텐츠일 수 있습니다.</p>
-        <Link href="/" className="mt-4 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground">홈으로</Link>
-      </div>
+      <NotFoundCard />
     </MainShell>
   );
 }

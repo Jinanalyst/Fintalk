@@ -190,6 +190,7 @@ export async function getPostDetail(id: string): Promise<DetailResult> {
   if (!UUID_RE.test(id)) return null;
   const sb = await createClient();
   const { data, error } = await sb.from("posts").select(SELECT).eq("id", id).maybeSingle();
+  if (error) console.error("[getPostDetail]", id, error.message);
   if (error || !data) return null;
   const post = mapPost(data as unknown as PostRow);
 
