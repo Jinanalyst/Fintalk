@@ -51,7 +51,7 @@ export default async function CreatorsPage({ searchParams }: PageProps<"/creator
   };
 
   const follow = (c: CreatorRow, small = true) =>
-    c.id !== viewerId ? <FollowButton small={small} targetId={c.id ?? undefined} initial={c.id ? following.has(c.id) : false} /> : null;
+    c.id !== viewerId ? <FollowButton small={small} targetId={c.id ?? undefined} initial={c.id ? following.has(c.id) : false} /> : <span className="rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">내 프로필</span>;
 
   return (
     <div className="space-y-6">
