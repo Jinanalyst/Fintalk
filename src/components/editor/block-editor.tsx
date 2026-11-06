@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Film, Heading2, Heading3, ImagePlus, List, ListOrdered, Loader2, Minus, Pilcrow, Plus, Quote, X } from "lucide-react";
+import { Film, Heading2, Heading3, ImagePlus, List, ListOrdered, Loader2, Minus, Pilcrow, Plus, Quote, Star, X } from "lucide-react";
 import { MAX_MEDIA, imageLine, mediaOf, videoLine } from "@/lib/media-md";
 
 /**
@@ -10,7 +10,7 @@ import { MAX_MEDIA, imageLine, mediaOf, videoLine } from "@/lib/media-md";
  * - `/` 로 블록 메뉴, `## `·`- `·`1. `·`> `·`---` 마크다운 단축 입력, 붙여넣기·드래그로 사진/동영상 삽입.
  */
 type T = "p" | "h2" | "h3" | "ul" | "ol" | "quote" | "hr" | "image" | "video";
-type B = { id: string; t: T; text: string; url?: string; preview?: string; up?: boolean };
+type B = { id: string; t: T; text: string; url?: string; preview?: string; up?: boolean; cover?: boolean };
 
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 export const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
@@ -34,7 +34,7 @@ function parseMd(src: string): B[] {
     const line = raw.trimEnd();
     if (!line.trim()) { flush(); continue; }
     const m = mediaOf(line);
-    if (m) { flush(); out.push({ id: uid(), t: m.kind, text: "", url: m.url }); continue; }
+    if (m) { flush(); out.push({ id: uid(), t: m.kind, text: "", url: m.url, cover: m.cover }); continue; }
     if (/^---+$/.test(line.trim())) { flush(); out.push(mk("hr")); continue; }
     let t: T | null = null;
     let text = line;
@@ -61,7 +61,7 @@ function serialize(bs: B[]) {
     let line: string;
     if (isMedia(b)) {
       if (b.up || !b.url) continue;
-      line = b.t === "image" ? imageLine(b.url) : videoLine(b.url);
+      line = b.t === "image" ? imageLine(b.url, b.cover) : videoLine(b.url);
     } else if (b.t === "hr") line = "---";
     else {
       if (!b.text.trim()) continue;
@@ -158,6 +158,8 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
     onBusy?.(safe.some((b) => b.up));
   };
   const patch = (id: string, p: Partial<B>) => commit(ref.current.map((b) => (b.id === id ? { ...b, ...p } : b)));
+  /** 대표 사진은 글당 하나: 지정하면 기존 대표는 해제, 다시 누르면 해제(첫 사진이 자동 썸네일) */
+  const toggleCover = (id: string) => commit(ref.current.map((b) => (b.t === "image" ? { ...b, cover: b.id === id ? !b.cover : false } : b)));
   const focus = (id: string, pos: "start" | "end" | number = "end") => {
     pf.current = { id, pos };
     setTick((n) => n + 1);
@@ -409,6 +411,8 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
   const hasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes("Files");
 
   const lastBlock = blocks[blocks.length - 1];
+  // 대표를 지정하지 않으면 첫 이미지가 자동으로 썸네일이 됩니다.
+  const autoCoverId = blocks.some((x) => x.cover) ? null : blocks.find((x) => x.t === "image" && !x.up)?.id ?? null;
 
   return (
     <div
@@ -477,6 +481,18 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
                   <div className="absolute inset-0 flex items-center justify-center gap-2 bg-background/70 text-sm font-medium">
                     <Loader2 className="size-4 animate-spin" /> 업로드 중…
                   </div>
+                )}
+                {b.t === "image" && !b.up && (
+                  <button
+                    type="button"
+                    aria-pressed={!!b.cover}
+                    title={b.cover ? "대표 사진 해제" : "대표 사진(썸네일)으로 지정"}
+                    onClick={() => toggleCover(b.id)}
+                    className={`absolute left-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${b.cover || autoCoverId === b.id ? "bg-brand text-white opacity-100" : "bg-foreground/80 text-background hover:bg-foreground sm:opacity-0 sm:group-hover/media:opacity-100 sm:group-focus/media:opacity-100"}`}
+                  >
+                    <Star className={`size-3.5 ${b.cover || autoCoverId === b.id ? "fill-current" : ""}`} />
+                    {b.cover ? "대표 사진" : autoCoverId === b.id ? "대표 사진 (자동)" : "대표로 지정"}
+                  </button>
                 )}
                 <button type="button" aria-label="삭제" onClick={() => removeBlock(b.id)} className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background opacity-100 hover:bg-foreground sm:opacity-0 sm:group-hover/media:opacity-100 sm:group-focus/media:opacity-100">
                   <X className="size-4" />

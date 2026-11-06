@@ -48,9 +48,15 @@ export function PostCard({ post }: { post: Post }) {
           <span>·</span>
           <span>{post.createdAt}</span>
         </div>
-        <Link href={`/community/${post.id}`} className="block">
-          <h3 className="text-[15px] font-semibold leading-snug sm:text-base">{post.title}</h3>
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{post.body[0]}</p>
+        <Link href={`/community/${post.id}`} className="flex items-start gap-3">
+          <span className="block min-w-0 flex-1">
+            <h3 className="text-[15px] font-semibold leading-snug sm:text-base">{post.title}</h3>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{post.body[0]}</p>
+          </span>
+          {post.thumbnail && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={post.thumbnail} alt="" loading="lazy" className="size-16 shrink-0 rounded-lg border object-cover sm:size-20" />
+          )}
         </Link>
         {(post.tickers.length > 0 || post.hasChart) && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -98,6 +104,12 @@ export function InsightCard({ post, featured = false }: { post: Post; featured?:
         <span>{boardLabel(post.category)}</span>
         <span>· 읽는 시간 {mins}분</span>
       </div>
+      {post.thumbnail && (
+        <Link href={`/community/${post.id}`} tabIndex={-1} aria-hidden className="block overflow-hidden rounded-xl border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={post.thumbnail} alt="" loading="lazy" className={`w-full object-cover ${featured ? "aspect-[16/8]" : "aspect-[16/9]"}`} />
+        </Link>
+      )}
       <Link href={`/community/${post.id}`} className="block">
         <h3 className={`font-extrabold leading-snug tracking-tight ${featured ? "text-xl sm:text-2xl" : "text-base sm:text-lg"}`}>{post.title}</h3>
         <p className={`mt-1.5 text-sm leading-relaxed text-muted-foreground ${featured ? "line-clamp-3" : "line-clamp-2"}`}>{post.body[0]}</p>

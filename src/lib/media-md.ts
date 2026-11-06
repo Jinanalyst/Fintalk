@@ -7,13 +7,16 @@ export const VIDEO_LINE = /^@\[video\]\((https?:\/\/[^\s)]+)\)$/;
 
 export const MAX_MEDIA = 20;
 
-export const imageLine = (url: string) => `![이미지](${url})`;
+/** 대표(썸네일) 이미지는 대체 텍스트를 "대표"로 표시합니다: `![대표](https://…)` */
+export const COVER_ALT = "대표";
+
+export const imageLine = (url: string, cover = false) => `![${cover ? COVER_ALT : "이미지"}](${url})`;
 export const videoLine = (url: string) => `@[video](${url})`;
 
-export function mediaOf(line: string): { kind: "image" | "video"; url: string } | null {
+export function mediaOf(line: string): { kind: "image" | "video"; url: string; cover?: boolean } | null {
   const t = line.trim();
   const i = IMAGE_LINE.exec(t);
-  if (i) return { kind: "image", url: i[2] };
+  if (i) return { kind: "image", url: i[2], cover: i[1] === COVER_ALT };
   const v = VIDEO_LINE.exec(t);
   if (v) return { kind: "video", url: v[1] };
   return null;
@@ -27,6 +30,18 @@ export function imageUrlsOf(body: string) {
     if (m?.kind === "image") out.push(m.url);
   }
   return out;
+}
+
+/** 목록 카드 썸네일: 대표로 지정한 이미지, 없으면 본문 첫 이미지, 없으면 이전 방식 첨부 이미지 */
+export function thumbnailOf(body: string, legacy: string[] = []): string | null {
+  let first: string | null = null;
+  for (const l of body.split("\n")) {
+    const m = mediaOf(l);
+    if (m?.kind !== "image") continue;
+    if (m.cover) return m.url;
+    first ??= m.url;
+  }
+  return first ?? legacy[0] ?? null;
 }
 
 /** 목록 카드 요약용: 미디어 줄과 마크다운 기호를 제거한 문단 목록 */

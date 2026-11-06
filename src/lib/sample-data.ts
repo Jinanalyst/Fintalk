@@ -126,6 +126,8 @@ export type Post = {
   authorId?: string;
   authorAvatar?: string | null;
   images?: string[];
+  /** 목록 카드 썸네일 (대표 지정 이미지 → 본문 첫 이미지) */
+  thumbnail?: string | null;
   myVote?: 0 | 1 | -1;
   saved?: boolean;
   rawBody?: string;

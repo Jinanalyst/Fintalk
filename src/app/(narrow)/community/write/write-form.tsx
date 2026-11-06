@@ -28,7 +28,7 @@ export function WriteForm({ live, initial, prefillTickers, prefillType }: { live
   const [preview, setPreview] = useState(false);
   const [title, setTitle] = useState(initial?.title ?? "");
   // 예전 방식(본문 밖 첨부)으로 올린 이미지는 본문 맨 아래에 이미지 블록으로 옮겨 보여줍니다.
-  const [body, setBody] = useState(() => (initial ? [initial.body, ...initial.images.filter((u) => !initial.body.includes(u)).map(imageLine)].filter(Boolean).join("\n\n") : ""));
+  const [body, setBody] = useState(() => (initial ? [initial.body, ...initial.images.filter((u) => !initial.body.includes(u)).map((u) => imageLine(u))].filter(Boolean).join("\n\n") : ""));
   const [editorKey, setEditorKey] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [tags, setTags] = useState<string[]>(initial?.tickers ?? prefillTickers ?? []);
