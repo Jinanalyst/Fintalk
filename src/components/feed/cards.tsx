@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { LiveViews } from "@/components/feed/live-views";
 import { UserAvatar } from "@/components/common/user-avatar";
-import { Eye, ImageIcon, MessageSquare, Pin } from "lucide-react";
-import { type Post, boardLabel, creatorName, postTypeLabel } from "@/lib/sample-data";
+import { Eye, ImageIcon, MessageSquare, Pin, Sparkles } from "lucide-react";
+import { INSIGHT_TYPES, type Post, boardLabel, creatorName, postTypeLabel } from "@/lib/sample-data";
 import { Tag } from "@/components/common/bits";
 import { PostActions, VoteBar } from "./interactive";
 import { readingMinutes } from "./rich-body";
@@ -35,6 +35,14 @@ export function PostCard({ post }: { post: Post }) {
         <VoteBar up={post.upvotes} down={post.downvotes} vertical postId={post.live ? post.id : undefined} initial={post.myVote} />
       </div>
       <div className="min-w-0 flex-1">
+        {INSIGHT_TYPES.includes(post.type) && (
+          <p className="mb-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg bg-brand-soft px-2.5 py-1.5 text-xs text-brand">
+            <Sparkles className="size-3.5" />
+            <Link href={`/creators/${encodeURIComponent(post.author)}`} className="font-bold hover:underline">{creatorName(post.author)}</Link>
+            님이 새 인사이트를 올렸어요
+            <Link href={`/community/${post.id}`} className="ml-auto font-semibold hover:underline">읽어보기 →</Link>
+          </p>
+        )}
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           {post.pinned && <Pin className="size-3.5 text-brand" aria-label="고정" />}
           <Link href={`/community?cat=${post.category}`} className="font-semibold text-foreground hover:text-brand">

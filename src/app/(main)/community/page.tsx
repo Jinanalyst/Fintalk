@@ -6,7 +6,7 @@ import { PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
 import { WatchStar } from "@/components/feed/interactive";
 import { getWatchState, listPosts } from "@/lib/data/community";
-import { BOARD_CATEGORIES, COMMUNITY_TYPES, POST_TYPES, boardLabel, tickerName, type PostType, type SortKey } from "@/lib/sample-data";
+import { BOARD_CATEGORIES, POST_TYPES, boardLabel, tickerName, type PostType, type SortKey } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
   title: "커뮤니티",
@@ -19,7 +19,8 @@ const SORTS: { slug: SortKey; label: string }[] = [
   { slug: "comments", label: "댓글순" },
 ];
 
-const TYPE_PILLS = [{ slug: "all", label: "전체" }, ...POST_TYPES.filter((t) => COMMUNITY_TYPES.includes(t.slug)).map((t) => ({ slug: t.slug as string, label: t.label }))];
+// 인사이트 글도 커뮤니티 피드에 함께 올라옵니다 (SNS 타임라인처럼)
+const TYPE_PILLS = [{ slug: "all", label: "전체" }, ...POST_TYPES.map((t) => ({ slug: t.slug as string, label: t.label }))];
 
 export default async function CommunityPage({ searchParams }: PageProps<"/community">) {
   const sp = await searchParams;
@@ -27,7 +28,7 @@ export default async function CommunityPage({ searchParams }: PageProps<"/commun
   const sort: SortKey = sp.sort === "new" || sp.sort === "comments" ? sp.sort : "hot";
   const ticker = typeof sp.ticker === "string" && /^[0-9A-Za-z._-]{1,20}$/.test(sp.ticker) ? sp.ticker.toUpperCase() : undefined;
   const type = TYPE_PILLS.some((t) => t.slug === sp.type && t.slug !== "all") ? (sp.type as PostType) : "all";
-  const { posts: list, live } = await listPosts({ cat, sort, ticker, types: type === "all" ? COMMUNITY_TYPES : [type] });
+  const { posts: list, live } = await listPosts({ cat, sort, ticker, types: type === "all" ? undefined : [type] });
   const watch = ticker ? await getWatchState().catch(() => ({ live: false, set: new Set<string>() })) : null;
   const typeQ = type === "all" ? "" : `type=${type}&`;
   const catQ = (cat === "all" ? "" : `cat=${cat}&`) + (ticker ? `ticker=${ticker}&` : "") + typeQ;
