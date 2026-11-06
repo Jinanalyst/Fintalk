@@ -1,4 +1,6 @@
 import { Fragment } from "react";
+import { mediaOf } from "@/lib/media-md";
+import { SUPABASE_URL } from "@/lib/supabase/env";
 
 /**
  * 인사이트용 가벼운 마크다운 렌더러. HTML 은 해석하지 않고 React 요소로만 만들기 때문에 XSS 위험이 없습니다.
@@ -11,7 +13,10 @@ function inline(text: string) {
   );
 }
 
-type Block = { k: "h2" | "h3" | "quote" | "hr" | "ul" | "ol" | "p"; lines: string[] };
+type Block = { k: "h2" | "h3" | "quote" | "hr" | "ul" | "ol" | "p" | "image" | "video"; lines: string[] };
+
+// 우리 저장소에 올린 미디어만 표시 (외부 추적 이미지·임의 URL 차단)
+const trusted = (u: string) => !!SUPABASE_URL && u.startsWith(`${SUPABASE_URL}/storage/v1/object/public/`);
 
 function parse(src: string): Block[] {
   const blocks: Block[] = [];
@@ -20,6 +25,8 @@ function parse(src: string): Block[] {
     if (!line.trim()) { blocks.push({ k: "p", lines: [] }); continue; } // 문단 구분 표시
     let k: Block["k"] = "p";
     let text = line;
+    const media = mediaOf(line);
+    if (media) { if (trusted(media.url)) blocks.push({ k: media.kind, lines: [media.url] }); continue; }
     if (/^---+$/.test(line.trim())) { blocks.push({ k: "hr", lines: [] }); continue; }
     if (line.startsWith("### ")) { k = "h3"; text = line.slice(4); }
     else if (line.startsWith("## ")) { k = "h2"; text = line.slice(3); }
@@ -40,6 +47,9 @@ export function RichBody({ text }: { text: string }) {
         switch (b.k) {
           case "h2": return <h2 key={i} className="pt-2 text-lg font-bold">{inline(b.lines[0])}</h2>;
           case "h3": return <h3 key={i} className="pt-1 text-base font-bold">{inline(b.lines[0])}</h3>;
+          // eslint-disable-next-line @next/next/no-img-element
+          case "image": return <img key={i} src={b.lines[0]} alt="첨부 이미지" loading="lazy" className="mx-auto max-h-[80vh] w-full rounded-lg border object-contain" />;
+          case "video": return <video key={i} src={b.lines[0]} controls playsInline preload="metadata" className="mx-auto max-h-[80vh] w-full rounded-lg border bg-black" />;
           case "hr": return <hr key={i} className="my-4" />;
           case "quote": return <blockquote key={i} className="border-l-4 border-brand/40 pl-3 text-muted-foreground">{b.lines.map((l, j) => <p key={j}>{inline(l)}</p>)}</blockquote>;
           case "ul": return <ul key={i} className="list-disc space-y-1 pl-5">{b.lines.map((l, j) => <li key={j}>{inline(l)}</li>)}</ul>;

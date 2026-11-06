@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { ageMinutes, timeAgo } from "@/lib/time";
+import { plainParagraphs } from "@/lib/media-md";
 import { POSTS, hotScore, isPostType, sortPosts, type Comment, type Post, type PostType, type SortKey } from "@/lib/sample-data";
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,7 +41,7 @@ export function mapPost(r: PostRow): Post {
   return {
     id: r.id,
     title: r.title,
-    body: r.body.split(/\n{2,}/),
+    body: plainParagraphs(r.body),
     rawBody: r.body,
     category: r.category_slug,
     author: nick(r.author),

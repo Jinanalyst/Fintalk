@@ -57,6 +57,9 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
   const isMine = live && viewerId !== null && post.authorId === viewerId;
   const followed = live && post.authorId ? (await getFollowState([post.authorId])).following.has(post.authorId) : false;
 
+  // 예전 방식(본문 밖 첨부)으로 올린 이미지만 하단 갤러리로 표시. 본문에 삽입된 이미지는 본문에서 보입니다.
+  const legacyImages = (post.images ?? []).filter((u) => !(post.rawBody ?? "").includes(u));
+
   const isQuestion = post.type === "question";
   const similar = isQuestion ? (await listPosts({ cat: post.category, types: ["question"], sort: "hot", limit: 6 })).posts.filter((p) => p.id !== post.id).slice(0, 3) : [];
 
@@ -103,9 +106,9 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
 
         <div className="mt-4"><RichBody text={post.rawBody ?? post.body.join("\n\n")} /></div>
 
-        {live && post.images && post.images.length > 0 && (
+        {live && legacyImages.length > 0 && (
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {post.images.map((u) => (
+            {legacyImages.map((u) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img key={u} src={u} alt="첨부 이미지" loading="lazy" className="w-full rounded-lg border object-contain" />
             ))}

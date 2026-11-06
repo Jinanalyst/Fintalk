@@ -13,7 +13,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   if (!detail || detail.post.authorId !== me.id) notFound();
   const p = detail.post;
   return (
-    <div>
+    <div className="sm:relative sm:left-1/2 sm:w-[min(56rem,calc(100vw-2rem))] sm:-translate-x-1/2">
       <h1 className="mb-4 text-xl font-bold sm:text-2xl">글 수정</h1>
       <WriteForm
         live

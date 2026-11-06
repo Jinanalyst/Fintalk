@@ -22,7 +22,7 @@ export default async function WritePage({ searchParams }: PageProps<"/community/
     }
   }
   return (
-    <div>
+    <div className="sm:relative sm:left-1/2 sm:w-[min(56rem,calc(100vw-2rem))] sm:-translate-x-1/2">
       <h1 className="text-xl font-bold sm:text-2xl">{type && ["analysis", "strategy", "review", "resource"].includes(type) ? "인사이트 쓰기" : "글쓰기"}</h1>
       <p className="mb-4 mt-1 text-sm text-muted-foreground">
         {isSupabaseConfigured ? "서로 존중하는 토론 문화를 만들어 주세요." : "Supabase 환경변수가 없어 미리보기 모드입니다. 등록되지 않습니다."}

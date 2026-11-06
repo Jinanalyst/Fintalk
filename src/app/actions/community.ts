@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SUPABASE_URL, isSupabaseConfigured } from "@/lib/supabase/env";
 import { UUID_RE } from "@/lib/data/community";
+import { imageUrlsOf, sanitizeMedia } from "@/lib/media-md";
 
 export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -27,13 +28,10 @@ function cleanTickers(input: string[]) {
   return Array.from(new Set(input.map((t) => t.trim().replace(/^\$/, "").toUpperCase()).filter((t) => /^[0-9A-Z._-]{1,20}$/.test(t)))).slice(0, 5);
 }
 
-/** 업로드된 이미지가 내 폴더의 post-images 버킷 URL 인지 검증 */
-function cleanImages(urls: string[], userId: string) {
-  const prefix = `${SUPABASE_URL}/storage/v1/object/public/post-images/${userId}/`;
-  return urls.filter((u) => typeof u === "string" && u.startsWith(prefix)).slice(0, 5);
-}
+/** 본문 속 이미지·동영상은 내 폴더의 post-images 버킷 주소만 허용 */
+const mediaPrefix = (userId: string) => `${SUPABASE_URL}/storage/v1/object/public/post-images/${userId}/`;
 
-type PostInput = { category: string; type: string; title: string; body: string; tickers: string[]; images: string[]; sponsored?: boolean; draft?: boolean };
+type PostInput = { category: string; type: string; title: string; body: string; tickers: string[]; sponsored?: boolean; draft?: boolean };
 
 function validate(i: PostInput) {
   if (!CATS.includes(i.category)) return "카테고리를 선택해 주세요.";
@@ -50,6 +48,7 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
   if (a.error !== undefined) return fail(a.error);
   const err = validate(input);
   if (err) return fail(err);
+  const body = sanitizeMedia(input.body, mediaPrefix(a.user.id)).trim();
   const { data, error } = await a.sb
     .from("posts")
     .insert({
@@ -59,9 +58,9 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
       is_sponsored: !!input.sponsored,
       status: input.draft ? "draft" : "published",
       title: input.title.trim(),
-      body: input.body.trim(),
+      body,
       tickers: cleanTickers(input.tickers),
-      image_urls: cleanImages(input.images, a.user.id),
+      image_urls: imageUrlsOf(body),
     })
     .select("id")
     .single();
@@ -78,6 +77,7 @@ export async function updatePostAction(id: string, input: PostInput): Promise<Re
   if (!UUID_RE.test(id)) return fail("잘못된 요청입니다.");
   const err = validate(input);
   if (err) return fail(err);
+  const body = sanitizeMedia(input.body, mediaPrefix(a.user.id)).trim();
   const { data, error } = await a.sb
     .from("posts")
     .update({
@@ -86,9 +86,9 @@ export async function updatePostAction(id: string, input: PostInput): Promise<Re
       is_sponsored: !!input.sponsored,
       status: input.draft ? "draft" : "published",
       title: input.title.trim(),
-      body: input.body.trim(),
+      body,
       tickers: cleanTickers(input.tickers),
-      image_urls: cleanImages(input.images, a.user.id),
+      image_urls: imageUrlsOf(body),
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

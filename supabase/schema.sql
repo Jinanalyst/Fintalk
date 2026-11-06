@@ -351,7 +351,7 @@ create policy "reports_read"   on public.reports for select to authenticated
 
 -- ───────── 4. 스토리지 (게시글 이미지) ─────────
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('post-images', 'post-images', true, 5242880, array['image/png','image/jpeg','image/webp','image/gif'])
+values ('post-images', 'post-images', true, 52428800, array['image/png','image/jpeg','image/webp','image/gif','video/mp4','video/webm','video/quicktime'])
 on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "post_images_read"   on storage.objects;
