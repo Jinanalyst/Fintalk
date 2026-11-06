@@ -6,6 +6,7 @@ import { INSIGHT_TYPES, type Post, boardLabel, creatorName, postTypeLabel } from
 import { Tag } from "@/components/common/bits";
 import { PostActions, VoteBar } from "./interactive";
 import { readingMinutes } from "./rich-body";
+import { formatKst } from "@/lib/time";
 
 /** 질문 상태: 답변 대기 / 답변 완료 / 채택 완료 */
 export function questionStatus(post: Pick<Post, "type" | "comments" | "acceptedCommentId">) {
@@ -15,7 +16,7 @@ export function questionStatus(post: Pick<Post, "type" | "comments" | "acceptedC
   return { label: "답변 대기", cls: "bg-muted text-muted-foreground" };
 }
 
-export function PostBadges({ post }: { post: Pick<Post, "type" | "comments" | "acceptedCommentId" | "sponsored" | "draft"> }) {
+export function PostBadges({ post }: { post: Pick<Post, "type" | "comments" | "acceptedCommentId" | "sponsored" | "draft" | "scheduledFor"> }) {
   const q = questionStatus(post);
   const chip = "rounded px-1.5 py-0.5 text-[11px] font-semibold";
   return (
@@ -24,6 +25,7 @@ export function PostBadges({ post }: { post: Pick<Post, "type" | "comments" | "a
       {q && <span className={`${chip} ${q.cls}`}>{q.label}</span>}
       {post.sponsored && <span className={`${chip} bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300`} title="협찬 또는 이해관계가 있는 콘텐츠입니다">협찬·이해관계</span>}
       {post.draft && <span className={`${chip} bg-down/10 text-down`}>임시 저장</span>}
+      {post.scheduledFor && <span className={`${chip} bg-brand-soft text-brand`}>{formatKst(post.scheduledFor)} 공개 예정</span>}
     </>
   );
 }

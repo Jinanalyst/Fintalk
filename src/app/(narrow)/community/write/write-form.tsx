@@ -12,7 +12,10 @@ import { createClient } from "@/lib/supabase/client";
 import { createPostAction, updatePostAction } from "@/app/actions/community";
 import { useGuard } from "@/components/feed/interactive";
 
-type Initial = { id: string; category: string; type: PostType; sponsored: boolean; draft: boolean; title: string; body: string; tickers: string[]; images: string[] };
+type Initial = { id: string; category: string; type: PostType; sponsored: boolean; draft: boolean; scheduledFor?: string | null; title: string; body: string; tickers: string[]; images: string[] };
+
+/** ISO → <input type="datetime-local"> 값 (브라우저 현지 시간) */
+const toLocalInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
 const AUTOSAVE_KEY = "fintalk:write-draft";
 
@@ -34,6 +37,10 @@ export function WriteForm({ live, initial, prefillTickers, prefillType }: { live
   const [tags, setTags] = useState<string[]>(initial?.tickers ?? prefillTickers ?? []);
   const [tagInput, setTagInput] = useState("");
   const [busy, setBusy] = useState(false);
+  // 예약 발행: 아직 공개되지 않은 글(새 글 · 임시 저장 · 예약 글)만 시각을 정할 수 있습니다.
+  const canSchedule = !initial || initial.draft || !!initial.scheduledFor;
+  const [scheduled, setScheduled] = useState(!!initial?.scheduledFor);
+  const [when, setWhen] = useState(() => (initial?.scheduledFor ? toLocalInput(new Date(initial.scheduledFor)) : ""));
 
   const addTag = () => {
     const t = tagInput.trim().replace(/^\$/, "").toUpperCase();
@@ -81,6 +88,14 @@ export function WriteForm({ live, initial, prefillTickers, prefillType }: { live
     if (!live) return comingSoon("게시글 등록 (Supabase 환경변수 필요)");
     if (uploading) return show("이미지·동영상 업로드가 끝난 뒤에 등록할 수 있습니다.");
     if (body.trim().length < 2) return show("본문을 입력해 주세요.");
+    let publishAt: string | null = null;
+    if (!asDraft && canSchedule && scheduled) {
+      const t = new Date(when).getTime();
+      if (!when || Number.isNaN(t)) return show("예약 공개 시각을 선택해 주세요.");
+      if (t < Date.now() + 60_000) return show("예약 시각은 현재보다 1분 이상 뒤여야 합니다.");
+      if (t > Date.now() + 90 * 86400_000) return show("예약은 최대 90일 뒤까지 가능합니다.");
+      publishAt = new Date(t).toISOString();
+    }
     setBusy(true);
     try {
       const sb = createClient();
@@ -89,12 +104,12 @@ export function WriteForm({ live, initial, prefillTickers, prefillType }: { live
         guard({ ok: false, error: "login" });
         return;
       }
-      const payload = { category, type, title, body, tickers: tags, sponsored, draft: asDraft };
+      const payload = { category, type, title, body, tickers: tags, sponsored, draft: asDraft, publishAt };
       const r = initial ? await updatePostAction(initial.id, payload) : await createPostAction(payload);
       if (guard(r) && r.ok) {
         clearAutosave();
-        show(asDraft ? "임시 저장했습니다." : initial ? "수정했습니다." : "게시글을 등록했습니다.");
-        router.push(asDraft ? "/me?tab=drafts" : `/community/${"id" in r ? r.id : initial?.id}`);
+        show(asDraft ? "임시 저장했습니다." : publishAt ? "예약했습니다. 정해진 시각에 자동으로 공개됩니다." : initial ? "수정했습니다." : "게시글을 등록했습니다.");
+        router.push(asDraft ? "/me?tab=drafts" : publishAt ? "/me?tab=scheduled" : `/community/${"id" in r ? r.id : initial?.id}`);
         router.refresh();
       }
     } finally {
@@ -173,7 +188,7 @@ export function WriteForm({ live, initial, prefillTickers, prefillType }: { live
           </div>
         )}
         <p className="mt-1 flex justify-between text-xs text-muted-foreground">
-          <span>/ 로 블록 추가 · ## 제목 · - 목록 · &gt; 인용 · Ctrl+B 굵게 · Ctrl+K 링크</span>
+          <span>/ 로 블록 추가 · 유튜브 주소는 한 줄에 붙여넣기 · ## 제목 · - 목록 · &gt; 인용 · Ctrl+B 굵게 · Ctrl+K 링크</span>
           <span>{plainParagraphs(body).join("").replace(/\s/g, "").length.toLocaleString("ko-KR")}자 · 약 {readingMinutes(plainParagraphs(body).join(" "))}분</span>
         </p>
       </div>
@@ -208,11 +223,46 @@ export function WriteForm({ live, initial, prefillTickers, prefillType }: { live
         </span>
       </label>
 
+      {canSchedule && (
+        <div className="rounded-lg bg-muted/60 p-3 text-sm">
+          <p className="mb-1.5 font-medium">공개 시점</p>
+          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="공개 시점">
+            {[{ v: false, l: "지금 바로" }, { v: true, l: "예약 발행" }].map((o) => (
+              <button
+                key={String(o.v)}
+                type="button"
+                role="radio"
+                aria-checked={scheduled === o.v}
+                onClick={() => {
+                  setScheduled(o.v);
+                  if (o.v && !when) setWhen(toLocalInput(new Date(Date.now() + 3600_000 - (Date.now() % 600_000)))); // 약 1시간 뒤(10분 단위)
+                }}
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${scheduled === o.v ? "border-brand bg-brand-soft text-brand" : "bg-card text-muted-foreground hover:bg-muted"}`}
+              >
+                {o.l}
+              </button>
+            ))}
+          </div>
+          {scheduled && (
+            <div className="mt-2.5">
+              <input
+                type="datetime-local"
+                aria-label="공개 시각"
+                value={when}
+                onChange={(e) => setWhen(e.target.value)}
+                className={`${field} sm:w-auto`}
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">정해진 시각에 자동으로 공개됩니다. 그 전에는 나만 볼 수 있고, “마이페이지 › 예약 발행”에서 수정·취소할 수 있어요. (내 기기 시간 기준, 최대 90일 뒤까지)</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
         <button type="button" onClick={() => router.back()} className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted">취소</button>
         <button type="button" disabled={busy || uploading || title.trim().length < 2 || body.trim().length < 2} onClick={(e) => submit(e, true)} className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50">임시 저장</button>
         <button type="submit" disabled={busy || uploading} className="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
-          {busy ? "저장 중…" : initial && !initial.draft ? "수정 완료" : "등록"}
+          {busy ? "저장 중…" : canSchedule && scheduled ? "예약 등록" : initial && !initial.draft && !initial.scheduledFor ? "수정 완료" : "등록"}
         </button>
       </div>
     </form>

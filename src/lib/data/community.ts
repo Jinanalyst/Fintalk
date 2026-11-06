@@ -59,6 +59,7 @@ export function mapPost(r: PostRow): Post {
     acceptedCommentId: r.accepted_comment_id,
     sponsored: r.is_sponsored,
     draft: r.status === "draft",
+    scheduledFor: r.status === "published" && new Date(r.created_at).getTime() > Date.now() ? r.created_at : null,
     hasChart: r.image_urls.length > 0,
     pinned: r.pinned,
     ageMin: ageMinutes(r.created_at),
@@ -78,7 +79,7 @@ export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: nu
     return { posts: sortPosts(list, sort).slice(0, limit), live: false };
   }
   const sb = await createClient();
-  let query = sb.from("posts").select(SELECT).eq("status", "published").order("created_at", { ascending: false }).limit(200);
+  let query = sb.from("posts").select(SELECT).eq("status", "published").lte("created_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(200);
   if (cat !== "all") query = query.eq("category_slug", cat);
   if (authorId) query = query.eq("author_id", authorId);
   if (authorIds) query = query.in("author_id", authorIds);
@@ -237,6 +238,7 @@ export async function listSavedPosts(userId: string): Promise<Post[]> {
     .select(`created_at, post:posts!inner(${SELECT})`)
     .eq("user_id", userId)
     .eq("post.status", "published")
+    .lte("post.created_at", new Date().toISOString())
     .order("created_at", { ascending: false })
     .limit(50);
   type Row = { post: PostRow | PostRow[] };
@@ -256,4 +258,12 @@ export async function getWatchState(): Promise<{ live: boolean; set: Set<string>
   const { data } = await sb.auth.getUser();
   if (!data.user) return { live: true, set: new Set() };
   return { live: true, set: new Set(await listWatchSymbols(data.user.id)) };
+}
+
+/** 내 예약 발행 글 (공개 시각이 아직 오지 않은 글, 가까운 순) */
+export async function listScheduled(userId: string): Promise<Post[]> {
+  if (!isSupabaseConfigured) return [];
+  const sb = await createClient();
+  const { data } = await sb.from("posts").select(SELECT).eq("author_id", userId).eq("status", "published").gt("created_at", new Date().toISOString()).order("created_at", { ascending: true }).limit(50);
+  return ((data ?? []) as unknown as PostRow[]).map(mapPost);
 }

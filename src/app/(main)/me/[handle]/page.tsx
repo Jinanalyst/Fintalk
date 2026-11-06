@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bookmark, FileText, PencilLine, Settings, Star } from "lucide-react";
+import { Bookmark, CalendarClock, FileText, PencilLine, Settings, Star } from "lucide-react";
 import { Card, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { AvatarUploader, DeleteAccountButton, ProfileForm } from "@/components/layout/profile-form";
-import { getCurrentUser, listDrafts, listPosts, listSavedPosts, listWatchSymbols } from "@/lib/data/community";
+import { getCurrentUser, listDrafts, listPosts, listSavedPosts, listScheduled, listWatchSymbols } from "@/lib/data/community";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { POSTS, tickerName } from "@/lib/sample-data";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 const TABS = [
   { k: "posts", l: "내 게시글", i: FileText },
   { k: "drafts", l: "임시 저장", i: PencilLine },
+  { k: "scheduled", l: "예약 발행", i: CalendarClock },
   { k: "saved", l: "저장한 글", i: Bookmark },
   { k: "watchlist", l: "관심 종목", i: Star },
   { k: "settings", l: "설정", i: Settings },
@@ -51,6 +52,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
 
   const myPosts = live ? (await listPosts({ authorId: me!.id, sort: "new", limit: 50 })).posts : POSTS.slice(0, 2);
   const drafts = live ? await listDrafts(me!.id) : [];
+  const scheduled = live ? await listScheduled(me!.id) : [];
   const saved = live ? await listSavedPosts(me!.id) : POSTS.slice(2, 4);
   const watch = live
     ? await listWatchSymbols(me!.id)
@@ -102,6 +104,18 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
             <div key={p.id} className="space-y-1">
               <PostCard post={p} />
               <Link href={`/community/${p.id}/edit`} className="inline-block text-sm font-medium text-brand hover:underline">이어서 쓰기 ›</Link>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "scheduled" && (
+        <div className="space-y-2.5">
+          {scheduled.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">예약한 글이 없습니다. 글쓰기 화면에서 “예약 발행”을 선택해 공개 시각을 정할 수 있습니다.</p>}
+          {scheduled.map((p) => (
+            <div key={p.id} className="space-y-1">
+              <PostCard post={p} />
+              <Link href={`/community/${p.id}/edit`} className="inline-block text-sm font-medium text-brand hover:underline">예약 수정·취소 ›</Link>
             </div>
           ))}
         </div>

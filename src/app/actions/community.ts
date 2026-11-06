@@ -31,7 +31,19 @@ function cleanTickers(input: string[]) {
 /** 본문 속 이미지·동영상은 내 폴더의 post-images 버킷 주소만 허용 */
 const mediaPrefix = (userId: string) => `${SUPABASE_URL}/storage/v1/object/public/post-images/${userId}/`;
 
-type PostInput = { category: string; type: string; title: string; body: string; tickers: string[]; sponsored?: boolean; draft?: boolean };
+type PostInput = { category: string; type: string; title: string; body: string; tickers: string[]; sponsored?: boolean; draft?: boolean; publishAt?: string | null };
+
+const MAX_AHEAD_DAYS = 90;
+
+/** 예약 시각 검사: 지금부터 1분 뒤 ~ 90일 뒤. 값이 없으면 null(즉시 발행) */
+function parsePublishAt(v?: string | null): { at: string | null; error?: string } {
+  if (!v) return { at: null };
+  const t = new Date(v).getTime();
+  if (Number.isNaN(t)) return { at: null, error: "예약 시각이 올바르지 않습니다." };
+  if (t < Date.now() + 60_000) return { at: null, error: "예약 시각은 현재보다 1분 이상 뒤여야 합니다." };
+  if (t > Date.now() + MAX_AHEAD_DAYS * 86400_000) return { at: null, error: `예약은 최대 ${MAX_AHEAD_DAYS}일 뒤까지 가능합니다.` };
+  return { at: new Date(t).toISOString() };
+}
 
 function validate(i: PostInput) {
   if (!CATS.includes(i.category)) return "카테고리를 선택해 주세요.";
@@ -49,6 +61,8 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
   const err = validate(input);
   if (err) return fail(err);
   const body = sanitizeMedia(input.body, mediaPrefix(a.user.id)).trim();
+  const sched = input.draft ? { at: null } : parsePublishAt(input.publishAt);
+  if (sched.error) return fail(sched.error);
   const { data, error } = await a.sb
     .from("posts")
     .insert({
@@ -61,6 +75,7 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
       body,
       tickers: cleanTickers(input.tickers),
       image_urls: imageUrlsOf(body),
+      ...(sched.at ? { created_at: sched.at } : {}),
     })
     .select("id")
     .single();
@@ -77,6 +92,12 @@ export async function updatePostAction(id: string, input: PostInput): Promise<Re
   if (!UUID_RE.test(id)) return fail("잘못된 요청입니다.");
   const err = validate(input);
   if (err) return fail(err);
+  // 아직 공개 전(임시 저장/예약)인 글만 공개 시각을 바꿀 수 있습니다. 이미 공개된 글의 시각은 그대로 둡니다.
+  const { data: cur } = await a.sb.from("posts").select("status,created_at").eq("id", id).eq("author_id", a.user.id).maybeSingle();
+  const notYetLive = !!cur && (cur.status === "draft" || new Date(cur.created_at).getTime() > Date.now());
+  const sched = input.draft || !notYetLive ? { at: null } : parsePublishAt(input.publishAt);
+  if (sched.error) return fail(sched.error);
+  const publishTime = input.draft || !notYetLive ? {} : { created_at: sched.at ?? new Date().toISOString() };
   const body = sanitizeMedia(input.body, mediaPrefix(a.user.id)).trim();
   const { data, error } = await a.sb
     .from("posts")
@@ -89,6 +110,7 @@ export async function updatePostAction(id: string, input: PostInput): Promise<Re
       body,
       tickers: cleanTickers(input.tickers),
       image_urls: imageUrlsOf(body),
+      ...publishTime,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

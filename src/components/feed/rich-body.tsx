@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { mediaOf } from "@/lib/media-md";
+import { mediaOf, youtubeIdOf, youtubeStartOf } from "@/lib/media-md";
 import { SUPABASE_URL } from "@/lib/supabase/env";
 
 /**
@@ -26,7 +26,7 @@ function inline(text: string) {
   });
 }
 
-type Block = { k: "h2" | "h3" | "quote" | "hr" | "ul" | "ol" | "p" | "image" | "video"; lines: string[] };
+type Block = { k: "h2" | "h3" | "quote" | "hr" | "ul" | "ol" | "p" | "image" | "video" | "youtube"; lines: string[] };
 
 // 우리 저장소에 올린 미디어만 표시 (외부 추적 이미지·임의 URL 차단)
 const trusted = (u: string) => !!SUPABASE_URL && u.startsWith(`${SUPABASE_URL}/storage/v1/object/public/`);
@@ -40,6 +40,8 @@ function parse(src: string): Block[] {
     let text = line;
     const media = mediaOf(line);
     if (media) { if (trusted(media.url)) blocks.push({ k: media.kind, lines: [media.url] }); continue; }
+    const yt = youtubeIdOf(line);
+    if (yt) { blocks.push({ k: "youtube", lines: [yt, String(youtubeStartOf(line))] }); continue; }
     if (/^---+$/.test(line.trim())) { blocks.push({ k: "hr", lines: [] }); continue; }
     if (line.startsWith("### ")) { k = "h3"; text = line.slice(4); }
     else if (line.startsWith("## ")) { k = "h2"; text = line.slice(3); }
@@ -63,6 +65,19 @@ export function RichBody({ text }: { text: string }) {
           // eslint-disable-next-line @next/next/no-img-element
           case "image": return <img key={i} src={b.lines[0]} alt="첨부 이미지" loading="lazy" className="mx-auto max-h-[80vh] w-full rounded-lg border object-contain" />;
           case "video": return <video key={i} src={b.lines[0]} controls playsInline preload="metadata" className="mx-auto max-h-[80vh] w-full rounded-lg border bg-black" />;
+          case "youtube": return (
+            <div key={i} className="mx-auto aspect-video w-full overflow-hidden rounded-lg border bg-black">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${b.lines[0]}${Number(b.lines[1]) ? `?start=${b.lines[1]}` : ""}`}
+                title="YouTube 동영상"
+                loading="lazy"
+                allow="encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="size-full"
+              />
+            </div>
+          );
           case "hr": return <hr key={i} className="my-4" />;
           case "quote": return <blockquote key={i} className="border-l-4 border-brand/40 pl-3 text-muted-foreground">{b.lines.map((l, j) => <p key={j}>{inline(l)}</p>)}</blockquote>;
           case "ul": return <ul key={i} className="list-disc space-y-1 pl-5">{b.lines.map((l, j) => <li key={j}>{inline(l)}</li>)}</ul>;

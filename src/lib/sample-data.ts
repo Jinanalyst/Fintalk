@@ -117,6 +117,8 @@ export type Post = {
   /** 협찬·이해관계 표시 */
   sponsored?: boolean;
   draft?: boolean;
+  /** 예약 발행: 공개 예정 시각 (ISO). 이미 공개된 글은 없음 */
+  scheduledFor?: string | null;
   hasChart?: boolean;
   pinned?: boolean;
   /** 정렬용 숫자 (낮을수록 최근) */

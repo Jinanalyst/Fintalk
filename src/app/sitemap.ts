@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
       // 쿠키가 필요 없는 공개 조회 (RLS 상 게시된 글만 보임)
       const sb = createClient(SUPABASE_URL!, SUPABASE_KEY!);
-      const { data } = await sb.from("posts").select("id,updated_at").eq("status", "published").order("created_at", { ascending: false }).limit(5000);
+      const { data } = await sb.from("posts").select("id,updated_at").eq("status", "published").lte("created_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(5000);
       postUrls = (data ?? []).map((p) => ({ url: `${base}/community/${p.id}`, lastModified: p.updated_at }));
     } catch {
       // 조회 실패 시 게시글 항목 없이 사이트맵 생성

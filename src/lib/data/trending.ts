@@ -33,6 +33,7 @@ export async function getTrendingTickers(limit = 6): Promise<{ items: TrendingTi
     .select("tickers,comment_count,views,upvotes,created_at")
     .eq("status", "published")
     .gte("created_at", since)
+    .lte("created_at", new Date().toISOString())
     .limit(500);
   if (error) {
     console.error("[getTrendingTickers]", error.message);
