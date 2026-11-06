@@ -173,7 +173,7 @@ export function WriteForm({ live, initial, prefillTickers, prefillType }: { live
           </div>
         )}
         <p className="mt-1 flex justify-between text-xs text-muted-foreground">
-          <span>/ 로 블록 추가 · ## 제목 · - 목록 · &gt; 인용 · Ctrl+B 굵게</span>
+          <span>/ 로 블록 추가 · ## 제목 · - 목록 · &gt; 인용 · Ctrl+B 굵게 · Ctrl+K 링크</span>
           <span>{plainParagraphs(body).join("").replace(/\s/g, "").length.toLocaleString("ko-KR")}자 · 약 {readingMinutes(plainParagraphs(body).join(" "))}분</span>
         </p>
       </div>

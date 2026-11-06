@@ -4,13 +4,26 @@ import { SUPABASE_URL } from "@/lib/supabase/env";
 
 /**
  * 인사이트용 가벼운 마크다운 렌더러. HTML 은 해석하지 않고 React 요소로만 만들기 때문에 XSS 위험이 없습니다.
- * 지원: `## 소제목`, `### 소소제목`, `- 목록`, `1. 번호 목록`, `> 인용`, `---` 구분선, `**굵게**`.
+ * 지원: `## 소제목`, `### 소소제목`, `- 목록`, `1. 번호 목록`, `> 인용`, `---` 구분선, `**굵게**`, `[글자](https://…)` 링크와 본문 속 URL 자동 링크.
  * 마커가 없는 일반 글은 기존과 동일하게 문단으로 표시됩니다.
  */
+const TOKEN = /(\*\*[^*\n]+\*\*|\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s<]+)/g;
+const linkCls = "text-brand underline underline-offset-2 break-all hover:opacity-80";
+const A = (href: string, label: string, key: number) => (
+  <a key={key} href={href} target="_blank" rel="noopener noreferrer nofollow ugc" className={linkCls}>{label}</a>
+);
+
 function inline(text: string) {
-  return text.split(/(\*\*[^*\n]+\*\*)/g).map((t, i) =>
-    t.startsWith("**") && t.endsWith("**") && t.length > 4 ? <strong key={i}>{t.slice(2, -2)}</strong> : <Fragment key={i}>{t}</Fragment>,
-  );
+  return text.split(TOKEN).map((t, i) => {
+    if (t.startsWith("**") && t.endsWith("**") && t.length > 4) return <strong key={i}>{t.slice(2, -2)}</strong>;
+    const md = /^\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)$/.exec(t);
+    if (md) return A(md[2], md[1], i);
+    if (/^https?:\/\//.test(t)) {
+      const url = t.replace(/[.,;:!?)\]]+$/, ""); // 문장 끝 구두점은 링크에서 제외
+      return <Fragment key={i}>{A(url, url, 0)}{t.slice(url.length)}</Fragment>;
+    }
+    return <Fragment key={i}>{t}</Fragment>;
+  });
 }
 
 type Block = { k: "h2" | "h3" | "quote" | "hr" | "ul" | "ol" | "p" | "image" | "video"; lines: string[] };

@@ -311,6 +311,17 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
       return;
     }
 
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      const url = window.prompt("링크 주소 (https://…)", "https://")?.trim();
+      if (!url || !/^https?:\/\/\S+$/.test(url)) { if (url) notify("http:// 또는 https:// 로 시작하는 주소를 입력해 주세요."); return; }
+      const label = b.text.slice(s, en) || "링크";
+      const md = `[${label}](${url})`;
+      patch(b.id, { text: b.text.slice(0, s) + md + b.text.slice(en) });
+      focus(b.id, s + md.length);
+      return;
+    }
+
     if (e.key === "Enter") {
       if (e.shiftKey) { if (b.t !== "p") e.preventDefault(); return; }
       e.preventDefault();
@@ -367,6 +378,18 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
       return;
     }
     const t = e.target;
+    // 글자를 선택한 상태에서 URL 을 붙여넣으면 링크로 만들기
+    if (t instanceof HTMLTextAreaElement && /^https?:\/\/\S+$/.test(text.trim()) && t.selectionStart !== t.selectionEnd) {
+      const cb = ref.current.find((x) => x.id === active);
+      if (cb) {
+        e.preventDefault();
+        const a = t.selectionStart;
+        const md = `[${cb.text.slice(a, t.selectionEnd)}](${text.trim()})`;
+        patch(cb.id, { text: cb.text.slice(0, a) + md + cb.text.slice(t.selectionEnd) });
+        focus(cb.id, a + md.length);
+        return;
+      }
+    }
     if (!(t instanceof HTMLTextAreaElement) || !text.includes("\n")) return;
     const b = ref.current.find((x) => x.id === active);
     if (!b) return;
