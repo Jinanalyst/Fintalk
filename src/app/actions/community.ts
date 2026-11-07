@@ -22,7 +22,14 @@ async function authed(): Promise<
 }
 
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });
-const dbMsg = (m: string) => (/P0001|1시간에/.test(m) ? m.replace(/^.*?(게시글|댓글)/, "$1") : "요청을 처리하지 못했습니다. 권한 또는 입력값을 확인해 주세요.");
+const dbMsg = (m: string, code?: string) => {
+  if (/P0001|1시간에/.test(m) || code === "P0001") return m.replace(/^.*?(게시글|댓글|이용이|질문|채택)/, "$1");
+  console.error("[community] db error:", code, m);
+  const detail = ` (오류 ${code ?? "?"}: ${m.slice(0, 120)})`;
+  if (code === "23503") return "선택한 카테고리를 찾을 수 없습니다." + detail;
+  if (code === "42501" || /row-level security/i.test(m)) return "글을 작성할 권한이 없습니다. 다시 로그인해 주세요." + detail;
+  return "요청을 처리하지 못했습니다." + detail;
+};
 
 function cleanTickers(input: string[]) {
   return Array.from(new Set(input.map((t) => t.trim().replace(/^\$/, "").toUpperCase()).filter((t) => /^[0-9A-Z._-]{1,20}$/.test(t)))).slice(0, 5);
@@ -79,7 +86,7 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
     })
     .select("id")
     .single();
-  if (error || !data) return fail(dbMsg(error?.message ?? ""));
+  if (error || !data) return fail(dbMsg(error?.message ?? "no row returned", error?.code));
   revalidatePath("/community");
   revalidatePath("/insights");
   revalidatePath("/");
