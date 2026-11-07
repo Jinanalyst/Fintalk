@@ -81,7 +81,7 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
       title: input.title.trim(),
       body,
       tickers: cleanTickers(input.tickers),
-      image_urls: imageUrlsOf(body),
+      image_urls: imageUrlsOf(body).slice(0, 5),
       ...(sched.at ? { created_at: sched.at } : {}),
     })
     .select("id")
@@ -116,7 +116,7 @@ export async function updatePostAction(id: string, input: PostInput): Promise<Re
       title: input.title.trim(),
       body,
       tickers: cleanTickers(input.tickers),
-      image_urls: imageUrlsOf(body),
+      image_urls: imageUrlsOf(body).slice(0, 5),
       ...publishTime,
       updated_at: new Date().toISOString(),
     })
