@@ -39,7 +39,7 @@ function parse(src: string): Block[] {
     let k: Block["k"] = "p";
     let text = line;
     const media = mediaOf(line);
-    if (media) { if (trusted(media.url)) blocks.push({ k: media.kind, lines: [media.url] }); continue; }
+    if (media) { if (trusted(media.url)) blocks.push({ k: media.kind, lines: [media.url, String(media.width ?? 100)] }); continue; }
     const yt = youtubeIdOf(line);
     if (yt) { blocks.push({ k: "youtube", lines: [yt, String(youtubeStartOf(line))] }); continue; }
     if (/^---+$/.test(line.trim())) { blocks.push({ k: "hr", lines: [] }); continue; }
@@ -63,7 +63,7 @@ export function RichBody({ text }: { text: string }) {
           case "h2": return <h2 key={i} className="pt-2 text-lg font-bold">{inline(b.lines[0])}</h2>;
           case "h3": return <h3 key={i} className="pt-1 text-base font-bold">{inline(b.lines[0])}</h3>;
           // eslint-disable-next-line @next/next/no-img-element
-          case "image": return <img key={i} src={b.lines[0]} alt="첨부 이미지" loading="lazy" className="mx-auto max-h-[80vh] w-full rounded-lg border object-contain" />;
+          case "image": return <img key={i} src={b.lines[0]} alt="첨부 이미지" loading="lazy" style={Number(b.lines[1]) < 100 ? { width: `${b.lines[1]}%` } : undefined} className="mx-auto max-h-[80vh] w-full rounded-lg border object-contain" />;
           case "video": return <video key={i} src={b.lines[0]} controls playsInline preload="metadata" className="mx-auto max-h-[80vh] w-full rounded-lg border bg-black" />;
           case "youtube": return (
             <div key={i} className="mx-auto aspect-video w-full overflow-hidden rounded-lg border bg-black">

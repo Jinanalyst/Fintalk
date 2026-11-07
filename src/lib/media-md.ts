@@ -5,7 +5,7 @@
 export const IMAGE_LINE = /^!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)$/;
 export const VIDEO_LINE = /^@\[video\]\((https?:\/\/[^\s)]+)\)$/;
 
-export const MAX_MEDIA = 20;
+export const MAX_MEDIA = 100; // DB posts_image_urls_check(마이그레이션 20261110)과 같게 유지
 
 /**
  * 유튜브 링크: 한 줄에 주소만 붙여 넣으면 본문에서 영상 플레이어로 바뀝니다.
@@ -39,13 +39,21 @@ export function youtubeStartOf(line: string): number {
 /** 대표(썸네일) 이미지는 대체 텍스트를 "대표"로 표시합니다: `![대표](https://…)` */
 export const COVER_ALT = "대표";
 
-export const imageLine = (url: string, cover = false) => `![${cover ? COVER_ALT : "이미지"}](${url})`;
+/** 이미지 표시 너비(%). 대체 텍스트 뒤에 `|60` 으로 저장합니다: `![이미지|60](https://…)`. 100 이면 생략. */
+export const MIN_IMG_W = 20;
+
+export const imageLine = (url: string, cover = false, width?: number) =>
+  `![${cover ? COVER_ALT : "이미지"}${width && width < 100 ? `|${Math.round(width)}` : ""}](${url})`;
 export const videoLine = (url: string) => `@[video](${url})`;
 
-export function mediaOf(line: string): { kind: "image" | "video"; url: string; cover?: boolean } | null {
+export function mediaOf(line: string): { kind: "image" | "video"; url: string; cover?: boolean; width?: number } | null {
   const t = line.trim();
   const i = IMAGE_LINE.exec(t);
-  if (i) return { kind: "image", url: i[2], cover: i[1] === COVER_ALT };
+  if (i) {
+    const [alt, w] = i[1].split("|");
+    const n = Number(w);
+    return { kind: "image", url: i[2], cover: alt === COVER_ALT, width: w && n >= MIN_IMG_W && n < 100 ? Math.round(n) : undefined };
+  }
   const v = VIDEO_LINE.exec(t);
   if (v) return { kind: "video", url: v[1] };
   return null;

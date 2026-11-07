@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Film, Heading2, Heading3, ImagePlus, List, ListOrdered, Loader2, Minus, Pilcrow, Plus, Quote, Star, X } from "lucide-react";
-import { MAX_MEDIA, imageLine, mediaOf, videoLine } from "@/lib/media-md";
+import { ChevronDown, ChevronUp, Film, GripVertical, Heading2, Heading3, ImagePlus, List, ListOrdered, Loader2, Minus, Pilcrow, Plus, Quote, Star, X } from "lucide-react";
+import { MAX_MEDIA, MIN_IMG_W, imageLine, mediaOf, videoLine } from "@/lib/media-md";
 
 /**
  * 노션 스타일 블록 에디터.
@@ -10,7 +10,7 @@ import { MAX_MEDIA, imageLine, mediaOf, videoLine } from "@/lib/media-md";
  * - `/` 로 블록 메뉴, `## `·`- `·`1. `·`> `·`---` 마크다운 단축 입력, 붙여넣기·드래그로 사진/동영상 삽입.
  */
 type T = "p" | "h2" | "h3" | "ul" | "ol" | "quote" | "hr" | "image" | "video";
-type B = { id: string; t: T; text: string; url?: string; preview?: string; up?: boolean; cover?: boolean };
+type B = { id: string; t: T; text: string; url?: string; preview?: string; up?: boolean; cover?: boolean; w?: number };
 
 export const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 export const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
@@ -34,7 +34,7 @@ function parseMd(src: string): B[] {
     const line = raw.trimEnd();
     if (!line.trim()) { flush(); continue; }
     const m = mediaOf(line);
-    if (m) { flush(); out.push({ id: uid(), t: m.kind, text: "", url: m.url, cover: m.cover }); continue; }
+    if (m) { flush(); out.push({ id: uid(), t: m.kind, text: "", url: m.url, cover: m.cover, w: m.width }); continue; }
     if (/^---+$/.test(line.trim())) { flush(); out.push(mk("hr")); continue; }
     let t: T | null = null;
     let text = line;
@@ -61,7 +61,7 @@ function serialize(bs: B[]) {
     let line: string;
     if (isMedia(b)) {
       if (b.up || !b.url) continue;
-      line = b.t === "image" ? imageLine(b.url, b.cover) : videoLine(b.url);
+      line = b.t === "image" ? imageLine(b.url, b.cover, b.w) : videoLine(b.url);
     } else if (b.t === "hr") line = "---";
     else {
       if (!b.text.trim()) continue;
@@ -128,6 +128,39 @@ function Area({ value, onValue, onKeyDown, onFocus, onBlur, reg, className, plac
   );
 }
 
+/** 이미지 좌/우 가장자리를 끌어서 너비(%)를 조절하는 손잡이. 가운데 정렬이라 한쪽을 끌면 양쪽이 같이 변합니다. 더블클릭하면 원래 크기. */
+function ResizeHandle({ side, width, onWidth }: { side: "left" | "right"; width: number; onWidth: (w: number, done: boolean) => void }) {
+  const st = useRef<{ x: number; w: number; full: number } | null>(null);
+  const calc = (e: React.PointerEvent) => {
+    const s = st.current!;
+    const dx = (e.clientX - s.x) * (side === "right" ? 1 : -1);
+    const w = Math.round((s.w + ((dx * 2) / s.full) * 100) / 5) * 5;
+    return Math.max(MIN_IMG_W, Math.min(100, w));
+  };
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="이미지 크기 조절 (끌어서 조절, 더블클릭하면 원래 크기)"
+      title="끌어서 크기 조절 · 더블클릭하면 원래 크기"
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const full = e.currentTarget.closest<HTMLElement>("[data-media-outer]")?.clientWidth || 1;
+        st.current = { x: e.clientX, w: width, full };
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => { if (st.current) onWidth(calc(e), false); }}
+      onPointerUp={(e) => { if (st.current) { const w = calc(e); st.current = null; onWidth(w, true); } }}
+      onPointerCancel={() => { st.current = null; }}
+      onDoubleClick={() => onWidth(100, true)}
+      className={`absolute top-1/2 z-10 flex h-14 w-4 -translate-y-1/2 cursor-ew-resize touch-none items-center justify-center ${side === "left" ? "left-1" : "right-1"}`}
+    >
+      <span className="h-10 w-1.5 rounded-full border border-background bg-foreground/80 shadow" />
+    </div>
+  );
+}
+
 type Props = {
   initial: string;
   onChange: (md: string) => void;
@@ -144,6 +177,8 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
   const [menuIdx, setMenuIdx] = useState(0);
   const [menuOff, setMenuOff] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [over, setOver] = useState<{ id: string; after: boolean } | null>(null);
   const [, setTick] = useState(0);
   const els = useRef(new Map<string, HTMLElement>());
   const pf = useRef<{ id: string; pos: "start" | "end" | number } | null>(null);
@@ -178,6 +213,30 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
     commit(cur.filter((b) => b.id !== id));
     if (prev) focus(prev.id, "end");
     else if (next) focus(next.id, "start");
+  };
+
+  /** 블록 순서 바꾸기: 위/아래로 한 칸 */
+  const moveBy = (id: string, dir: -1 | 1, pos: "start" | "end" | number = "end") => {
+    const cur = ref.current;
+    const i = cur.findIndex((b) => b.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= cur.length) return;
+    const next = [...cur];
+    [next[i], next[j]] = [next[j], next[i]];
+    commit(withTail(next));
+    focus(id, pos);
+  };
+  /** 끌어다 놓기: target 블록의 앞/뒤로 이동 */
+  const moveTo = (id: string, targetId: string, after: boolean) => {
+    if (id === targetId) return;
+    const cur = ref.current;
+    const moving = cur.find((b) => b.id === id);
+    if (!moving) return;
+    const rest = cur.filter((b) => b.id !== id);
+    const at = rest.findIndex((b) => b.id === targetId);
+    if (at < 0) return;
+    rest.splice(after ? at + 1 : at, 0, moving);
+    commit(withTail(rest));
   };
 
   useLayoutEffect(() => {
@@ -356,6 +415,12 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
       return;
     }
 
+    if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      e.preventDefault();
+      moveBy(b.id, e.key === "ArrowUp" ? -1 : 1, s);
+      return;
+    }
+
     if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === "ArrowUp" && s === en && (s === 0 || oneLine(el)) && i > 0) { e.preventDefault(); focus(cur[i - 1].id, "end"); }
     if (e.key === "ArrowDown" && s === en && (s === el.value.length || oneLine(el)) && i < cur.length - 1) { e.preventDefault(); focus(cur[i + 1].id, "start"); }
@@ -364,7 +429,8 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
   function onNavKey(e: React.KeyboardEvent<HTMLElement>, b: B, i: number) {
     if (e.target !== e.currentTarget) return;
     const cur = ref.current;
-    if (e.key === "Backspace" || e.key === "Delete") { e.preventDefault(); removeBlock(b.id); }
+    if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) { e.preventDefault(); moveBy(b.id, e.key === "ArrowUp" ? -1 : 1); }
+    else if (e.key === "Backspace" || e.key === "Delete") { e.preventDefault(); removeBlock(b.id); }
     else if (e.key === "Enter") { e.preventDefault(); const p = mk("p"); insertAfter(b.id, [p]); focus(p.id, "start"); }
     else if (e.key === "ArrowUp" && i > 0) { e.preventDefault(); focus(cur[i - 1].id, "end"); }
     else if (e.key === "ArrowDown" && i < cur.length - 1) { e.preventDefault(); focus(cur[i + 1].id, "start"); }
@@ -469,14 +535,24 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
             );
           } else {
             const src = b.url ?? b.preview;
+            const w = b.t === "image" ? (b.w ?? 100) : 100;
+            const resizable = b.t === "image" && !b.up;
             content = (
-              <div ref={reg} tabIndex={0} onFocus={() => setActive(b.id)} onBlur={() => setActive((a) => (a === b.id ? null : a))} onKeyDown={(e) => onNavKey(e, b, i)} className="group/media relative my-1 overflow-hidden rounded-lg border outline-none focus:ring-2 focus:ring-brand/50">
+              <div ref={reg} data-media-outer tabIndex={0} onFocus={() => setActive(b.id)} onBlur={() => setActive((a) => (a === b.id ? null : a))} onKeyDown={(e) => onNavKey(e, b, i)} className="my-1 rounded-lg outline-none focus:ring-2 focus:ring-brand/50">
+              <div style={{ width: `${w}%` }} className="group/media relative mx-auto overflow-hidden rounded-lg border">
                 {b.t === "image" ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={src} alt="첨부 이미지" draggable={false} className="mx-auto max-h-[70vh] w-full object-contain" />
                 ) : (
                   <video src={src} controls={!b.up} playsInline preload="metadata" className="mx-auto max-h-[70vh] w-full bg-black" />
                 )}
+                {resizable && <ResizeHandle side="left" width={w} onWidth={(nw) => patch(b.id, { w: nw >= 100 ? undefined : nw })} />}
+                {resizable && <ResizeHandle side="right" width={w} onWidth={(nw) => patch(b.id, { w: nw >= 100 ? undefined : nw })} />}
+                {resizable && w < 100 && <span className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-foreground/80 px-2 py-0.5 text-xs font-medium text-background">{w}%</span>}
+                <div className="absolute bottom-2 right-2 flex flex-col gap-1 sm:hidden">
+                  <button type="button" aria-label="위로 이동" onClick={() => moveBy(b.id, -1)} className="rounded-full bg-foreground/80 p-1 text-background"><ChevronUp className="size-4" /></button>
+                  <button type="button" aria-label="아래로 이동" onClick={() => moveBy(b.id, 1)} className="rounded-full bg-foreground/80 p-1 text-background"><ChevronDown className="size-4" /></button>
+                </div>
                 {b.up && (
                   <div className="absolute inset-0 flex items-center justify-center gap-2 bg-background/70 text-sm font-medium">
                     <Loader2 className="size-4 animate-spin" /> 업로드 중…
@@ -498,11 +574,51 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
                   <X className="size-4" />
                 </button>
               </div>
+              </div>
             );
           }
 
           return (
-            <div key={b.id} className="group relative pl-7">
+            <div
+              key={b.id}
+              className={`group relative pl-12 ${dragId === b.id ? "opacity-40" : ""}`}
+              onDragOver={(e) => {
+                if (!dragId || hasFiles(e)) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                const r = e.currentTarget.getBoundingClientRect();
+                const after = e.clientY > r.top + r.height / 2;
+                setOver((o) => (o && o.id === b.id && o.after === after ? o : { id: b.id, after }));
+              }}
+              onDrop={(e) => {
+                if (!dragId || hasFiles(e)) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const r = e.currentTarget.getBoundingClientRect();
+                moveTo(dragId, b.id, e.clientY > r.top + r.height / 2);
+                setDragId(null);
+                setOver(null);
+              }}
+            >
+              {over && over.id === b.id && dragId && dragId !== b.id && <div aria-hidden className={`pointer-events-none absolute inset-x-0 z-20 h-0.5 rounded bg-brand ${over.after ? "-bottom-0.5" : "-top-0.5"}`} />}
+              <button
+                type="button"
+                tabIndex={-1}
+                draggable
+                aria-label="끌어서 순서 바꾸기"
+                title="끌어서 순서 바꾸기 (Alt+↑/↓ 로도 이동)"
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("application/x-fintalk-block", b.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  const row = e.currentTarget.parentElement;
+                  if (row) e.dataTransfer.setDragImage(row, 16, 16);
+                  setDragId(b.id);
+                }}
+                onDragEnd={() => { setDragId(null); setOver(null); }}
+                className={`absolute left-6 top-0.5 cursor-grab rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground active:cursor-grabbing ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              >
+                <GripVertical className="size-4" />
+              </button>
               <button
                 type="button"
                 tabIndex={-1}
@@ -520,7 +636,7 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
               </button>
               {content}
               {isActive && items.length > 0 && ab?.id === b.id && (
-                <div role="listbox" aria-label="블록 선택" className="absolute left-7 top-full z-30 mt-1 w-64 max-w-[calc(100%-1.75rem)] rounded-lg border bg-card p-1 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+                <div role="listbox" aria-label="블록 선택" className="absolute left-12 top-full z-30 mt-1 w-64 max-w-[calc(100%-3rem)] rounded-lg border bg-card p-1 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
                   <p className="px-2 py-1 text-xs text-muted-foreground">블록 추가</p>
                   {items.map((it, k) => (
                     <button key={it.k} type="button" role="option" aria-selected={k === sel} onMouseEnter={() => setMenuIdx(k)} onClick={() => pick(b.id, it)} className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left ${k === sel ? "bg-muted" : ""}`}>
@@ -554,7 +670,7 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => openPicker("video", active ?? lastBlock.id)} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium hover:bg-muted hover:text-foreground">
           <Film className="size-3.5" /> 동영상
         </button>
-        <span>붙여넣기·끌어다 놓기도 가능 · 이미지 5MB / 동영상 50MB · 최대 {MAX_MEDIA}개</span>
+        <span>왼쪽 ⋮⋮ 를 끌어 순서 변경 · 이미지 양옆을 끌어 크기 조절 · 붙여넣기·끌어다 놓기도 가능 · 이미지 5MB / 동영상 50MB · 최대 {MAX_MEDIA}개</span>
       </div>
     </div>
   );
