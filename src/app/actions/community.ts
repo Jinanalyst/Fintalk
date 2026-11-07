@@ -41,6 +41,7 @@ const mediaPrefix = (userId: string) => `${SUPABASE_URL}/storage/v1/object/publi
 type PostInput = { category: string; type: string; title: string; body: string; tickers: string[]; sponsored?: boolean; draft?: boolean; publishAt?: string | null };
 
 const MAX_AHEAD_DAYS = 90;
+const MAX_IMAGES = 100; // DB posts_image_urls_check 와 같게 유지 (마이그레이션 20261110)
 
 /** 예약 시각 검사: 지금부터 1분 뒤 ~ 90일 뒤. 값이 없으면 null(즉시 발행) */
 function parsePublishAt(v?: string | null): { at: string | null; error?: string } {
@@ -81,7 +82,7 @@ export async function createPostAction(input: PostInput): Promise<Result<{ id: s
       title: input.title.trim(),
       body,
       tickers: cleanTickers(input.tickers),
-      image_urls: imageUrlsOf(body).slice(0, 5),
+      image_urls: imageUrlsOf(body).slice(0, MAX_IMAGES),
       ...(sched.at ? { created_at: sched.at } : {}),
     })
     .select("id")
@@ -116,7 +117,7 @@ export async function updatePostAction(id: string, input: PostInput): Promise<Re
       title: input.title.trim(),
       body,
       tickers: cleanTickers(input.tickers),
-      image_urls: imageUrlsOf(body).slice(0, 5),
+      image_urls: imageUrlsOf(body).slice(0, MAX_IMAGES),
       ...publishTime,
       updated_at: new Date().toISOString(),
     })

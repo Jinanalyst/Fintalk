@@ -31,7 +31,7 @@ create table if not exists public.posts (
   title         text not null check (char_length(title) between 2 and 100),
   body          text not null check (char_length(body) between 2 and 20000),
   tickers       text[] not null default '{}' check (cardinality(tickers) <= 5),
-  image_urls    text[] not null default '{}' check (cardinality(image_urls) <= 5),
+  image_urls    text[] not null default '{}' check (cardinality(image_urls) <= 100),
   status        text not null default 'published' check (status in ('published','hidden')),
   pinned        boolean not null default false,
   views         int not null default 0,
