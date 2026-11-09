@@ -101,7 +101,7 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {rest.map((p, i) => (
+          {rest.map((p) => (
             <div key={p.id} className="contents">
               <InsightCard post={p} />
             </div>

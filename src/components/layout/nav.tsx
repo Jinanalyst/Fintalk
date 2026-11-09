@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  CandlestickChart,
   Gift,
   Home,
   Lightbulb,
@@ -21,6 +22,7 @@ export const MAIN_NAV = [
   { href: "/community", label: "커뮤니티", icon: MessagesSquare },
   { href: "/insights", label: "인사이트", icon: Lightbulb },
   { href: "/creators", label: "크리에이터", icon: Users },
+  { href: "/trade", label: "모의투자", icon: CandlestickChart },
   { href: "/rewards", label: "리워드", icon: Gift },
 ] as const;
 

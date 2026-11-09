@@ -90,7 +90,7 @@ export default async function CommunityPage({ searchParams }: PageProps<"/commun
         </div>
       ) : (
         <div className="space-y-2.5">
-          {list.map((p, i) => (
+          {list.map((p) => (
             <div key={p.id} className="contents">
               <PostCard post={p} />
             </div>

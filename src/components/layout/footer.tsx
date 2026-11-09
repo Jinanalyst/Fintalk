@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/community", label: "커뮤니티" },
   { href: "/insights", label: "인사이트" },
   { href: "/creators", label: "크리에이터" },
+  { href: "/trade", label: "모의투자" },
   { href: "/rewards", label: "리워드" },
 ];
 
