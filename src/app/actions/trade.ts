@@ -74,6 +74,23 @@ export async function placeOrderAction(input: {
   return { ok: true, status: data === "open" ? "open" : "filled" };
 }
 
+/** 리듀스 온리 주문: 반대 방향 포지션을 줄이기만 합니다. (롱=숏 줄이기, 숏=롱 줄이기) */
+export async function reduceOnlyAction(input: { symbol: string; side: string; sizeUsdt: number; limitPrice?: number | null }): Promise<Result<{ status: "filled" | "open" }>> {
+  const sb = await authed();
+  if (!sb) return fail("로그인이 필요합니다.");
+  if (!isSymbol(input.symbol)) return fail("지원하지 않는 종목입니다.");
+  if (input.side !== "long" && input.side !== "short") return fail("방향이 올바르지 않습니다.");
+  const size = Number(input.sizeUsdt);
+  const limit = num(input.limitPrice);
+  if (!(Number.isFinite(size) && size > 0)) return fail("주문 규모를 입력해 주세요.");
+  if (limit !== null && !(Number.isFinite(limit) && limit > 0)) return fail("가격이 올바르지 않습니다.");
+  await refreshPrices(sb);
+  const { data, error } = await sb.rpc("paper_reduce_only", { p_symbol: input.symbol, p_side: input.side, p_size_usdt: size, p_limit: limit });
+  if (error) return fail(dbMsg(error.message, error.code));
+  revalidatePath("/trade");
+  return { ok: true, status: data === "open" ? "open" : "filled" };
+}
+
 /** 시장가 청산. pct 는 1~100 (부분 청산) */
 export async function closePositionAction(id: string, pct = 100): Promise<Result> {
   const sb = await authed();

@@ -9,7 +9,7 @@ import { Card } from "@/components/common/bits";
 import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
 import { createShareAction } from "@/app/actions/share";
-import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
+import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, reduceOnlyAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
 import { FEE_RATE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, unrealizedPnl, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
@@ -149,7 +149,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           <OrderBook symbol={symbol} mark={mark} onPick={(price) => setPicked({ price, n: (picked?.n ?? 0) + 1 })} />
         </div>
 
-        <OrderForm symbol={symbol} mark={mark} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
+        <OrderForm symbol={symbol} mark={mark} positions={symPositions} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
       </div>
 
       {/* 포지션 / 주문 / 내역 */}
@@ -220,12 +220,13 @@ function Stat({ title, value, tone }: { title: string; value: string; tone?: str
 
 type Run = (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg?: string) => void;
 
-function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { symbol: string; mark?: number; balance: number; loggedIn: boolean; pending: boolean; run: Run; picked: { price: number; n: number } | null }) {
+function OrderForm({ symbol, mark, positions, balance, loggedIn, pending, run, picked }: { symbol: string; mark?: number; positions: Position[]; balance: number; loggedIn: boolean; pending: boolean; run: Run; picked: { price: number; n: number } | null }) {
   const [type, setType] = useState<"market" | "limit">("market");
   const [size, setSize] = useState("");
   const [lev, setLev] = useState(10);
   const [limit, setLimit] = useState("");
   const [tpsl, setTpsl] = useState(false);
+  const [reduce, setReduce] = useState(false); // 리듀스 온리: 반대 방향 포지션만 줄임
   const [tp, setTp] = useState("");
   const [sl, setSl] = useState("");
   const [tpMode, setTpMode] = useState<"price" | "usd" | "pct">("price");
@@ -239,7 +240,10 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
   }
 
   const power = balance * lev; // 거래 가능 규모
-  const maxSize = Math.floor((power / (1 + FEE_RATE * lev)) * 100) / 100; // 수수료까지 감안한 최대 주문 규모
+  // 리듀스 온리일 때 줄일 수 있는 최대 규모 = 반대 방향 포지션의 현재 가치 (롱 주문→숏, 숏 주문→롱)
+  const notional = (side: Side) => positions.filter((p) => p.side === side).reduce((a, p) => a + p.qty * (mark ?? p.entry_price), 0);
+  const reduceMax = Math.max(notional("short"), notional("long"));
+  const maxSize = reduce ? Math.floor(reduceMax * 100) / 100 : Math.floor((power / (1 + FEE_RATE * lev)) * 100) / 100; // 수수료까지 감안한 최대 주문 규모
   const sizeN = Number(size) || 0;
   const pct = maxSize > 0 ? Math.min(100, (sizeN / maxSize) * 100) : 0;
   const setPct = (p: number) => setSize(p === 0 ? "" : String(Math.floor(((maxSize * p) / 100) * 100) / 100));
@@ -262,6 +266,13 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
   };
 
   const submit = (side: Side) => {
+    if (reduce) {
+      run(
+        () => reduceOnlyAction({ symbol, side, sizeUsdt: sizeN, limitPrice: type === "limit" ? Number(limit) : null }),
+        type === "limit" ? "리듀스 온리 지정가 청산 주문을 등록했습니다." : "포지션을 줄였습니다.",
+      );
+      return;
+    }
     const tpP = tpsl ? calcTpSl("tp", side) : null;
     const slP = tpsl ? calcTpSl("sl", side) : null;
     if (tpsl && ((tp && tpP === null) || (sl && slP === null))) {
@@ -274,7 +285,9 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
     );
   };
 
-  const disabled = pending || !loggedIn || sizeN < 10 || (type === "limit" && !(Number(limit) > 0));
+  const disabled = pending || !loggedIn || sizeN < (reduce ? 0.01 : 10) || (type === "limit" && !(Number(limit) > 0));
+  // 리듀스 온리: 줄일 포지션이 없는 쪽 버튼은 비활성화
+  const noTarget = (side: Side) => reduce && notional(side === "long" ? "short" : "long") <= 0;
   const dash = (v: string) => (refPrice > 0 && sizeN > 0 ? v : "N/A");
 
   return (
@@ -295,10 +308,10 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
             <span className="text-muted-foreground">레버리지</span> {lev}x
           </span>
           <span className="text-xs text-muted-foreground">
-            거래 가능 규모 <span className="font-semibold tabular-nums text-foreground">${fmtUsd(power)}</span>
+            {reduce ? "줄일 수 있는 규모" : "거래 가능 규모"} <span className="font-semibold tabular-nums text-foreground">${fmtUsd(reduce ? reduceMax : power)}</span>
           </span>
         </div>
-        <LeverageSlider className="mt-2" value={lev} onChange={setLev} />
+        {!reduce && <LeverageSlider className="mt-2" value={lev} onChange={setLev} />}
       </div>
 
       {type === "limit" && (
@@ -336,12 +349,23 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
         ))}
       </div>
 
+      {/* 리듀스 온리 */}
+      <label className="flex cursor-pointer items-center gap-2 text-sm" title="새 포지션을 열지 않고, 반대 방향 포지션을 줄이기만 합니다.">
+        <input type="checkbox" checked={reduce} onChange={(e) => { setReduce(e.target.checked); setSize(""); }} className="size-4 accent-foreground" />
+        <span className="underline decoration-dashed underline-offset-4">리듀스 온리</span>
+      </label>
+      {reduce && (
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          새 포지션 없이 기존 포지션만 줄입니다. <b className="text-up">롱(매수)</b>은 숏을, <b className="text-down">숏(매도)</b>은 롱을 줄여요. 시장가는 바로 청산되고, 지정가는 청산 주문으로 걸립니다.
+        </p>
+      )}
+
       {/* TP/SL */}
-      <label className="flex cursor-pointer items-center gap-2 text-sm">
+      {!reduce && <label className="flex cursor-pointer items-center gap-2 text-sm">
         <input type="checkbox" checked={tpsl} onChange={(e) => setTpsl(e.target.checked)} className="size-4 accent-foreground" />
         <span className="underline decoration-dashed underline-offset-4">익절 / 손절</span>
-      </label>
-      {tpsl && (
+      </label>}
+      {tpsl && !reduce && (
         <div className="space-y-2">
           <div className="grid grid-cols-3 gap-1 rounded-lg border bg-muted/40 p-1 text-xs font-medium">
             {(
@@ -387,6 +411,13 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
       )}
 
       {/* 요약 */}
+      {reduce ? (
+        <dl className="space-y-1.5 border-t pt-3 text-xs">
+          <Row k="줄일 규모" v={`${fmtUsd(Math.min(sizeN, reduceMax))}`} bold />
+          <Row k="수수료 (청산)" v={`${fmtUsd(Math.min(sizeN, reduceMax) * FEE_RATE)}`} />
+          <Row k="보유 숏 / 롱" v={`${fmtUsd(notional("short"))} / ${fmtUsd(notional("long"))}`} />
+        </dl>
+      ) : (
       <dl className="space-y-1.5 border-t pt-3 text-xs">
         <Row k="필요 증거금" v={`${fmtUsd(margin)} USDT`} />
         <Row k="수수료" v={`$${fmtUsd(fee)} / ${(FEE_RATE * 100).toFixed(2)}%`} />
@@ -401,13 +432,14 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
           </dd>
         </div>
       </dl>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
-        <Button className="h-10 bg-up text-white hover:bg-up/90" disabled={disabled} onClick={() => submit("long")}>
-          롱 (매수)
+        <Button className="h-10 bg-up text-white hover:bg-up/90" disabled={disabled || noTarget("long")} onClick={() => submit("long")}>
+          {reduce ? "매수 (숏 줄이기)" : "롱 (매수)"}
         </Button>
-        <Button className="h-10 bg-down text-white hover:bg-down/90" disabled={disabled} onClick={() => submit("short")}>
-          숏 (매도)
+        <Button className="h-10 bg-down text-white hover:bg-down/90" disabled={disabled || noTarget("short")} onClick={() => submit("short")}>
+          {reduce ? "매도 (롱 줄이기)" : "숏 (매도)"}
         </Button>
       </div>
       {!loggedIn && <p className="text-center text-xs text-muted-foreground">주문하려면 로그인이 필요합니다.</p>}
