@@ -9,8 +9,14 @@ export const SYMBOLS = [
   { symbol: "DOGEUSDT", label: "DOGE", name: "도지코인" },
 ] as const;
 
-export type TradeSymbol = (typeof SYMBOLS)[number]["symbol"];
-export const isSymbol = (s: string): s is TradeSymbol => SYMBOLS.some((x) => x.symbol === s);
+export type TradeSymbol = string;
+
+/** 거래 가능한 종목: 바이낸스 USDT-M 무기한 선물(예: BTCUSDT, 1000PEPEUSDT). 만기물(BTCUSDT_250627)은 제외합니다. */
+const SYMBOL_RE = /^[A-Z0-9]{1,20}USDT$/;
+export const isSymbol = (s: string): boolean => SYMBOL_RE.test(s);
+
+/** 표시용 이름: 목록에 있으면 짧은 이름, 아니면 USDT 를 뗀 코드 (예: ADAUSDT → ADA) */
+export const symbolLabel = (s: string) => SYMBOLS.find((x) => x.symbol === s)?.label ?? s.replace(/USDT$/, "");
 
 export const FEE_RATE = 0.0004;
 export const START_BALANCE = 10000;
@@ -81,9 +87,13 @@ export const REASON_LABEL: Record<ClosedTrade["reason"], string> = {
   limit: "지정가 청산",
 };
 
-/** 가격 자릿수: 큰 값은 소수 2자리, 작은 값은 더 길게 */
+/** 가격 자릿수: 큰 값은 소수 2자리, 작은 값(밈코인 등)은 유효숫자가 보이도록 더 길게 */
+export function pricePrecision(n: number) {
+  return n >= 1000 ? 2 : n >= 10 ? 3 : n >= 1 ? 4 : n >= 0.1 ? 5 : n >= 0.01 ? 6 : n >= 0.001 ? 7 : 8;
+}
+
 export function fmtPrice(n: number) {
-  const d = n >= 1000 ? 2 : n >= 10 ? 3 : n >= 1 ? 4 : 5;
+  const d = pricePrecision(n);
   return n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
@@ -99,8 +109,11 @@ export async function fetchPrices(): Promise<Record<string, number> | null> {
       if (!res.ok) continue;
       const rows = (await res.json()) as { symbol: string; price: string }[];
       const out: Record<string, number> = {};
-      for (const r of rows) if (isSymbol(r.symbol)) out[r.symbol] = Number(r.price);
-      if (Object.keys(out).length === SYMBOLS.length) return out;
+      for (const r of rows) {
+        const p = Number(r.price);
+        if (isSymbol(r.symbol) && p > 0) out[r.symbol] = p;
+      }
+      if (out.BTCUSDT && Object.keys(out).length >= SYMBOLS.length) return out;
     } catch {
       /* 다음 주소 시도 */
     }

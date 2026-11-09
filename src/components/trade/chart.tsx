@@ -23,7 +23,7 @@ import {
 import { AlignJustify, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
-import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
+import { FEE_RATE, fmtPrice, fmtUsd, pricePrecision, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
 
@@ -798,6 +798,9 @@ export function PriceChart({
       s.setData(data.map((x) => ({ time: x.time as UTCTimestamp, value: x.close })));
       m = s;
     }
+    // 저가 코인(소수점 6~8자리)도 가격축에 제대로 보이도록 자릿수를 현재가에 맞춥니다.
+    const prec = pricePrecision(data[data.length - 1].close);
+    m.applyOptions({ priceFormat: { type: "price", precision: prec, minMove: 10 ** -prec } });
     main.current = m;
     markersApi.current = createSeriesMarkers(m as ISeriesApi<SeriesType, Time>, []);
     applyMarkers();

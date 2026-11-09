@@ -4,14 +4,14 @@ import dynamic from "next/dynamic";
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RotateCcw, Share2, X } from "lucide-react";
+import { RotateCcw, Search, Share2, X } from "lucide-react";
 import { Card } from "@/components/common/bits";
 import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
 import { createShareAction } from "@/app/actions/share";
 import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, reduceOnlyAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
-import { FEE_RATE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, unrealizedPnl, type CloseOrder, type Position, type Side } from "@/lib/trade";
+import { FEE_RATE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, symbolLabel, unrealizedPnl, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
@@ -29,11 +29,93 @@ const PriceChart = dynamic(() => import("./chart").then((m) => m.PriceChart), {
 const inputCls = "h-9 w-full rounded-lg border bg-background px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 const pnlCls = (n: number) => (n >= 0 ? "text-up" : "text-down");
 const signed = (n: number) => `${n >= 0 ? "+" : ""}${fmtUsd(n)}`;
-const label = (s: string) => SYMBOLS.find((x) => x.symbol === s)?.label ?? s;
+const label = symbolLabel;
+
+/** 바이낸스 선물 전 종목 검색. 시세가 들어온 종목(prices)이 곧 거래 가능한 종목입니다. */
+function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Record<string, number>; onPick: (s: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const off = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", off);
+    return () => document.removeEventListener("mousedown", off);
+  }, [open]);
+
+  const all = useMemo(() => {
+    const names = new Map<string, string>(SYMBOLS.map((x) => [x.symbol, x.name]));
+    return Object.keys(prices)
+      .map((sym) => ({ sym, label: symbolLabel(sym), name: names.get(sym) ?? "" }))
+      .sort((a, b) => (names.has(b.sym) ? 1 : 0) - (names.has(a.sym) ? 1 : 0) || a.label.localeCompare(b.label));
+  }, [prices]);
+  const results = useMemo(() => {
+    const k = q.trim().toLowerCase();
+    const list = k ? all.filter((x) => x.label.toLowerCase().includes(k) || x.name.includes(k)) : all;
+    // 입력과 코드가 정확히/앞부분이 같은 종목을 위로
+    return (k ? [...list].sort((a, b) => Number(b.label.toLowerCase().startsWith(k)) - Number(a.label.toLowerCase().startsWith(k))) : list).slice(0, 60);
+  }, [all, q]);
+
+  const inDefault = SYMBOLS.some((x) => x.symbol === symbol);
+  return (
+    <div ref={box} className="relative flex items-center gap-2">
+      {!inDefault && (
+        <span className="rounded-lg border border-brand bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand">{symbolLabel(symbol)}</span>
+      )}
+      <label className="flex h-7 w-32 items-center gap-1 rounded-lg border bg-background px-2 text-xs focus-within:ring-2 focus-within:ring-ring/50">
+        <Search className="size-3.5 shrink-0 text-muted-foreground" />
+        <input
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+            if (e.key === "Enter" && results[0]) {
+              onPick(results[0].sym);
+              setQ("");
+              setOpen(false);
+            }
+          }}
+          placeholder="코인 검색"
+          aria-label="코인 검색"
+          className="w-full min-w-0 bg-transparent outline-none placeholder:text-muted-foreground"
+        />
+      </label>
+      {open && (
+        <ul className="absolute left-0 top-full z-30 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border bg-popover p-1 text-xs shadow-lg">
+          {results.length === 0 && <li className="px-2 py-3 text-center text-muted-foreground">{all.length === 0 ? "시세를 불러오는 중…" : "검색 결과가 없습니다."}</li>}
+          {results.map((x) => (
+            <li key={x.sym}>
+              <button
+                type="button"
+                onClick={() => {
+                  onPick(x.sym);
+                  setQ("");
+                  setOpen(false);
+                }}
+                className={cn("flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left hover:bg-muted", x.sym === symbol && "bg-muted")}
+              >
+                <span className="font-semibold">
+                  {x.label} <span className="font-normal text-muted-foreground">{x.name || "USDT"}</span>
+                </span>
+                <span className="tabular-nums text-muted-foreground">{fmtPrice(prices[x.sym])}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export function TradeTerminal({ data }: { data: TradeData }) {
-  const { prices, live } = usePriceFeed(data.prices);
   const [symbol, setSymbol] = useState<string>(SYMBOLS[0].symbol);
+  const { prices, live } = usePriceFeed(data.prices, symbol);
   const [tab, setTab] = useState<"positions" | "orders" | "history">("positions");
   const [chartMode, setChartMode] = useState<"lite" | "tv">("lite");
   const [picked, setPicked] = useState<{ price: number; n: number } | null>(null);
@@ -99,11 +181,12 @@ export function TradeTerminal({ data }: { data: TradeData }) {
                 {s.label}
               </button>
             ))}
+            <SymbolSearch symbol={symbol} prices={prices} onPick={setSymbol} />
             <span className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex rounded-md border p-0.5 text-[11px] font-medium">
                 {(
                   [
-                    ["lite", "포지션 표시"],
+                    ["lite", "커스텀"],
                     ["tv", "트레이딩뷰"],
                   ] as const
                 ).map(([k, t]) => (
