@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Lock } from "lucide-react";
 import { Card, SampleBadge, SectionHeader } from "@/components/common/bits";
 import { LiveRefresh } from "@/components/common/live-refresh";
-import { type MyStats, contributionLevel, contributionScore, getCurrentUser, getMyStats, listPosts } from "@/lib/data/community";
-import { listCreators } from "@/lib/data/creators";
+import { type MyStats, contributionLevel, contributionScore, getContributionRanking, getCurrentUser, getMyStats, listPosts, TRADE_CAP } from "@/lib/data/community";
+import { RankingPanel } from "@/components/common/ranking-panel";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { POSTS, fmtNum, postTypeLabel } from "@/lib/sample-data";
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /** 샘플 모드(Supabase 미연결) 미리보기용 */
-const DEMO: MyStats = { posts: 12, insights: 4, answers: 30, accepted: 6, upvotes: 140, views: 4200, followers: 38, following: 12 };
+const DEMO: MyStats & { trades: number; shared: number } = { trades: 18, shared: 3, posts: 12, insights: 4, answers: 30, accepted: 6, upvotes: 140, views: 4200, followers: 38, following: 12 };
 
 // 기여도 가중치. contributionScore() 와 같은 값이어야 합니다.
 const RULES = [
@@ -26,25 +26,29 @@ const RULES = [
   { k: "answers", label: "남긴 답변·댓글", unit: 2, hint: "1개당" },
   { k: "accepted", label: "채택된 답변", unit: 15, hint: "1개당" },
   { k: "upvotes", label: "받은 추천", unit: 1, hint: "1개당" },
+  { k: "trades", label: "청산한 모의거래 (최대 30건)", unit: 1, hint: "1건당" },
+  { k: "shared", label: "공유한 거래 카드", unit: 3, hint: "1개당" },
   { k: "views", label: "조회수", unit: 1 / 50, hint: "50회당 1점" },
 ] as const;
 
-function points(k: (typeof RULES)[number]["k"], s: MyStats) {
+type Stats = MyStats & { trades: number; shared: number };
+
+function points(k: (typeof RULES)[number]["k"], s: Stats) {
   const unit = RULES.find((r) => r.k === k)!.unit;
-  return Math.floor(s[k] * unit);
+  return Math.floor((k === "trades" ? Math.min(s.trades, TRADE_CAP) : s[k]) * unit);
 }
 
 export default async function RewardsPage() {
   const live = isSupabaseConfigured;
   const me = live ? await getCurrentUser().catch(() => null) : null;
-  const stats = me ? await getMyStats(me.id).catch(() => null) : live ? null : DEMO;
+  const baseStats = me ? await getMyStats(me.id).catch(() => null) : live ? null : DEMO;
 
-  const [{ posts: mine }, { creators }] = await Promise.all([
+  const [{ posts: mine }, ranking] = await Promise.all([
     me ? listPosts({ authorId: me.id, sort: "new", limit: 20 }) : Promise.resolve({ posts: live ? [] : POSTS.slice(0, 3), live }),
-    live && me ? listCreators({ limit: 300, sort: "popular" }) : Promise.resolve({ creators: [], live }),
+    live ? getContributionRanking().catch(() => []) : Promise.resolve([]),
   ]);
 
-  if (live && (!me || !stats)) {
+  if (live && (!me || !baseStats)) {
     return (
       <div className="space-y-5">
         <Header live={live} />
@@ -53,23 +57,19 @@ export default async function RewardsPage() {
           <p className="mt-1 text-sm text-muted-foreground">글, 답변, 채택, 추천이 어떻게 점수로 쌓이는지 확인해 보세요.</p>
           <Link href="/login?next=/rewards" className="mt-4 inline-flex h-11 items-center rounded-xl bg-brand px-6 text-sm font-bold text-primary-foreground">로그인</Link>
         </Card>
+        {ranking.length > 0 && <RankingPanel rows={ranking.slice(0, 50)} meId={null} total={ranking.length} />}
         <Guide />
         <Future />
       </div>
     );
   }
 
-  const s = stats!;
+  const myRow = me ? ranking.find((r) => r.id === me.id) : undefined;
+  const s: Stats = { ...baseStats!, trades: myRow?.trades ?? (baseStats as Stats).trades ?? 0, shared: myRow?.shared ?? (baseStats as Stats).shared ?? 0 };
   const score = contributionScore(s);
   const lv = contributionLevel(score);
 
-  // 내 순위: 크리에이터 전체의 기여도 점수 기준
-  let rank: { pos: number; total: number } | null = null;
-  if (me && creators.length > 0) {
-    const ranked = [...creators].sort((a, b) => b.score - a.score);
-    const i = ranked.findIndex((c) => c.id === me.id);
-    if (i >= 0) rank = { pos: i + 1, total: ranked.length };
-  }
+  const rank = myRow ? { pos: myRow.rank, total: ranking.length } : null;
   const week = mine.filter((p) => p.ageMin <= 7 * 24 * 60).length;
 
   // 다음 활동 제안: 아직 안 해 본 활동부터, 점수가 큰 순
@@ -108,10 +108,13 @@ export default async function RewardsPage() {
           <span>
             {rank && <>전체 {rank.pos}위 / {rank.total}명 · 상위 {Math.max(1, Math.ceil((rank.pos / rank.total) * 100))}% · </>}
             최근 7일 새 글 {week}개
+            {ranking.length > 0 && <> · <a href="#ranking" className="font-bold text-blue-300 underline-offset-2 hover:underline">순위 더보기 ›</a></>}
           </span>
         </div>
         <p className="mt-3 text-xs text-slate-400">기여도는 활동 기록이며 현금이 아닙니다. 현금 정산은 준비 중이에요.</p>
       </section>
+
+      {ranking.length > 0 ? <RankingPanel rows={ranking.slice(0, 50)} meId={me?.id ?? null} total={ranking.length} /> : null}
 
       {/* 지표 */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">

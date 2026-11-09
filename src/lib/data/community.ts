@@ -145,9 +145,51 @@ export async function getMyStats(userId: string): Promise<MyStats | null> {
   return { posts: n(data.posts), insights: n(data.insights), answers: n(data.answers), accepted: n(data.accepted), upvotes: n(data.upvotes), views: n(data.views), followers: n(data.followers), following: n(data.following) };
 }
 
+/** 트레이딩 점수: 청산한 모의거래는 최대 30건까지 1점씩, 공유한 거래 카드는 3점씩 (손익·수익률은 반영하지 않음) */
+export const TRADE_CAP = 30;
+export const tradingScore = (trades = 0, shared = 0) => Math.min(trades, TRADE_CAP) + shared * 3;
+
 /** 기여도 점수: 단순 조회·추천보다 실제 도움(채택 답변, 인사이트)에 더 높은 가중치 */
-export const contributionScore = (s: Pick<MyStats, "posts" | "insights" | "answers" | "accepted" | "upvotes" | "views">) =>
-  s.posts * 2 + s.insights * 5 + s.answers * 2 + s.accepted * 15 + s.upvotes + Math.floor(s.views / 50);
+export const contributionScore = (s: Pick<MyStats, "posts" | "insights" | "answers" | "accepted" | "upvotes" | "views"> & { trades?: number; shared?: number }) =>
+  s.posts * 2 + s.insights * 5 + s.answers * 2 + s.accepted * 15 + s.upvotes + Math.floor(s.views / 50) + tradingScore(s.trades, s.shared);
+
+export type RankRow = {
+  id: string; nickname: string; avatar: string | null; rank: number; score: number; level: string;
+  posts: number; insights: number; answers: number; accepted: number; trades: number; shared: number; weekPosts: number;
+  /** 활동별 점수 */
+  parts: { writing: number; insight: number; answer: number; trading: number; reaction: number };
+};
+
+/** 전체 기여도 순위 (점수 내림차순). 미연결이면 빈 목록. */
+export async function getContributionRanking(limit = 500): Promise<RankRow[]> {
+  if (!isSupabaseConfigured) return [];
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("contribution_ranking", { p_limit: limit });
+  if (error || !data) {
+    if (error) console.error("[contribution_ranking]", error.message);
+    return [];
+  }
+  const n = (v: unknown) => Number(v ?? 0);
+  const rows: RankRow[] = (data as Record<string, unknown>[]).map((r) => {
+    const posts = n(r.posts), insights = n(r.insights), answers = n(r.answers), accepted = n(r.accepted);
+    const upvotes = n(r.upvotes), views = n(r.views), trades = n(r.trades), shared = n(r.shared);
+    return {
+      id: String(r.id), nickname: String(r.nickname), avatar: (r.avatar_url as string | null) ?? null, rank: 0, level: "",
+      score: contributionScore({ posts, insights, answers, accepted, upvotes, views, trades, shared }),
+      posts, insights, answers, accepted, trades, shared, weekPosts: n(r.week_posts),
+      parts: {
+        writing: Math.max(0, posts - insights) * 2,
+        insight: insights * 7,
+        answer: answers * 2 + accepted * 15,
+        trading: tradingScore(trades, shared),
+        reaction: upvotes + Math.floor(views / 50),
+      },
+    };
+  });
+  rows.sort((a, b) => b.score - a.score);
+  rows.forEach((r, i) => { r.rank = i + 1; r.level = contributionLevel(r.score).cur.name; });
+  return rows;
+}
 
 /**
  * 지금 답을 기다리는 질문: 아직 답변이 없는 질문을 최신순으로. 부족하면 채택이 없는 질문으로 채웁니다.
