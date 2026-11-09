@@ -93,7 +93,13 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           </div>
           <div className="h-[420px] xl:h-[560px]">
             {chartMode === "lite" ? (
-              <PriceChart symbol={symbol} price={mark} positions={symPositions} orders={symOrders} />
+              <PriceChart symbol={symbol} price={mark} positions={symPositions}
+                orders={symOrders}
+                onTpSl={async (id, tp, sl) => {
+                  const r = await setTpSlAction(id, tp, sl);
+                  toast.show(r.ok ? "익절/손절을 수정했습니다." : r.error);
+                }}
+              />
             ) : (
               <TradingViewChart symbol={symbol} />
             )}
