@@ -105,6 +105,13 @@ export function TradeTerminal({ data }: { data: TradeData }) {
                   const r = await setTpSlAction(id, tp, sl);
                   toast.show(r.ok ? "익절/손절을 수정했습니다." : r.error);
                 }}
+                balance={data.balance}
+                loggedIn={data.loggedIn}
+                onPlaceOrder={async (o) => {
+                  const r = await placeOrderAction({ symbol, side: o.side, sizeUsdt: o.sizeUsdt, leverage: o.leverage, limitPrice: o.limitPrice, tp: o.tp, sl: o.sl });
+                  toast.show(r.ok ? (r.status === "open" ? "지정가 주문을 등록했습니다." : "주문이 체결되었습니다.") : r.error);
+                  return r.ok;
+                }}
               />
             ) : (
               <TradingViewChart symbol={symbol} />

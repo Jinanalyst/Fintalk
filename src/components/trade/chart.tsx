@@ -18,7 +18,7 @@ import {
 } from "lightweight-charts";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, EMA_COLORS, MA_COLORS, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
-import { fmtPrice, fmtUsd, unrealizedPnl, type Order, type Position } from "@/lib/trade";
+import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type Position, type Side } from "@/lib/trade";
 
 const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 const SECONDS: Record<string, number> = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400 };
@@ -70,11 +70,22 @@ type Kline = [number, string, string, string, string, string];
 type Anchor = { t: number; p: number };
 type Shape = { id: string; kind: ToolKind; a: Anchor; b: Anchor; color: string; width: number };
 type Item = { id: string; kind: ToolKind; x1: number; y1: number; x2: number; y2: number; hx1: number; hy1: number; hx2: number; hy2: number; color: string; width: number; label?: string; draft?: boolean };
-type Layout = { w: number; h: number; items: Item[] };
+/** 차트에서 바로 거는 주문(미리보기). 진입·익절·손절 선을 끌어서 정한 뒤 확정합니다. */
+type Ticket = { symbol: string; side: Side; type: "limit" | "market"; entry: number; size: number; lev: number; tp: number | null; sl: number | null };
+type Ghost = { posId: string; kind: "tp" | "sl"; price: number };
+export type TicketOrder = { side: Side; sizeUsdt: number; leverage: number; limitPrice: number | null; tp: number | null; sl: number | null };
+type Layout = {
+  w: number;
+  h: number;
+  items: Item[];
+  ticket: { ey: number; ty: number | null; sy: number | null } | null;
+  chips: { id: string; kind: "tp" | "sl"; y: number }[];
+  ghost: { y: number; kind: "tp" | "sl" } | null;
+};
 type Draft = { kind: ToolKind; a: Anchor; b: Anchor; down: boolean; sx: number; sy: number; moved: boolean };
 type Drag = { id: string; mode: "move" | "a" | "b"; sx: number; sy: number; orig: Item };
 
-const EMPTY_LAYOUT: Layout = { w: 0, h: 0, items: [] };
+const EMPTY_LAYOUT: Layout = { w: 0, h: 0, items: [], ticket: null, chips: [], ghost: null };
 const K_DRAW = "fintalk.trade.drawings.v1";
 const K_PREFS = "fintalk.trade.chartprefs.v1";
 
@@ -164,12 +175,18 @@ export function PriceChart({
   positions,
   orders,
   onTpSl,
+  balance,
+  loggedIn,
+  onPlaceOrder,
 }: {
   symbol: string;
   price?: number;
   positions: Position[];
   orders: Order[];
   onTpSl?: (id: string, tp: number | null, sl: number | null) => Promise<unknown>;
+  balance: number;
+  loggedIn: boolean;
+  onPlaceOrder?: (o: TicketOrder) => Promise<boolean>;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -215,13 +232,24 @@ export function PriceChart({
   const shapesRef = useRef<Shape[]>(shapes);
   const [selected, setSelected] = useState<string | null>(null);
   const selectedRef = useRef<string | null>(null);
-  const [tool, setTool] = useState<ToolKind | null>(null);
-  const toolRef = useRef<ToolKind | null>(null);
+  const [tool, setTool] = useState<ToolKind | "order" | null>(null);
+  const toolRef = useRef<ToolKind | "order" | null>(null);
   const [draft, setDraftState] = useState<Draft | null>(null);
   const draftRef = useRef<Draft | null>(null);
   const [layout, setLayout] = useState<Layout>(EMPTY_LAYOUT);
   const layoutRef = useRef<Layout>(EMPTY_LAYOUT);
   const dragRef = useRef<Drag | null>(null);
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const ticketRef = useRef<Ticket | null>(null);
+  const tdragRef = useRef<"entry" | "tp" | "sl" | null>(null);
+  const [ghost, setGhostState] = useState<Ghost | null>(null);
+  const ghostRef = useRef<Ghost | null>(null);
+  const priceRef = useRef<number | undefined>(price);
+  const [busy, setBusy] = useState(false);
+  const setGhost = useCallback((g: Ghost | null) => {
+    ghostRef.current = g;
+    setGhostState(g);
+  }, []);
 
   const setDraft = useCallback((d: Draft | null) => {
     draftRef.current = d;
@@ -237,6 +265,8 @@ export function PriceChart({
     shapesRef.current = shapes;
     layoutRef.current = layout;
     cfgRef.current = cfg;
+    priceRef.current = price;
+    ticketRef.current = ticket;
   });
 
   // 설정·그림 저장
@@ -320,7 +350,34 @@ export function PriceChart({
     if (d) list.push({ id: "draft", kind: d.kind, a: d.a, b: d.b, color: "#f0b90b", width: 2, draft: true });
     const w = r1(c.timeScale().width());
     const h = r1(c.panes()[0]?.getHeight() ?? 0);
-    if (!list.length) return { w, h, items: [] }; // 도형이 없어도 그리기 도구가 클릭을 받을 영역 크기는 필요
+    const ex = (() => {
+      const mark = priceRef.current;
+      const tk = ticketRef.current;
+      const yOf = (v: number | null | undefined) => {
+        if (v === null || v === undefined) return null;
+        const y = s.priceToCoordinate(v);
+        return y === null ? null : r1(y as number);
+      };
+      let ticketPx: Layout["ticket"] = null;
+      if (tk && tk.symbol === symRef.current) {
+        const ey = yOf(tk.type === "market" ? mark : tk.entry);
+        if (ey !== null) ticketPx = { ey, ty: yOf(tk.tp), sy: yOf(tk.sl) };
+      }
+      // 익절·손절이 없는 포지션에는 끌어다 놓는 칩을 보여 줍니다.
+      const chips: Layout["chips"] = [];
+      for (const pos of overlay.current.positions) {
+        if (pos.tp && pos.sl) continue;
+        const ey = yOf(pos.entry_price);
+        if (ey === null) continue;
+        const long = pos.side === "long";
+        if (!pos.tp) chips.push({ id: pos.id, kind: "tp", y: ey + (long ? -24 : 8) });
+        if (!pos.sl) chips.push({ id: pos.id, kind: "sl", y: ey + (long ? 8 : -24) });
+      }
+      const g = ghostRef.current;
+      const gy = g ? yOf(g.price) : null;
+      return { ticket: ticketPx, chips, ghost: g && gy !== null ? { y: gy, kind: g.kind } : null };
+    })();
+    if (!list.length) return { w, h, items: [], ...ex }; // 도형이 없어도 그리기 도구가 클릭을 받을 영역 크기는 필요
     const step = SECONDS[intervalRef.current];
     const items: Item[] = [];
     for (const sh of list) {
@@ -357,7 +414,7 @@ export function PriceChart({
       }
       items.push({ id: sh.id, kind: sh.kind, x1: r1(pa.x), y1: r1(pa.y), x2: r1(x2), y2: r1(y2), hx1: r1(pa.x), hy1: r1(pa.y), hx2: r1(pb.x), hy2: r1(pb.y), color, width: sh.width, label, draft: sh.draft });
     }
-    return { w, h, items };
+    return { w, h, items, ...ex };
   }, [toPx]);
 
   useEffect(() => {
@@ -539,11 +596,13 @@ export function PriceChart({
         setTool(null);
         setSelected(null);
         setSettingsOpen(false);
+        setTicket(null);
+        setGhost(null);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [updateShapes, setDraft]);
+  }, [updateShapes, setDraft, setGhost]);
 
   // 캔들 데이터 받기 (종목·주기가 바뀌면 처음부터)
   useEffect(() => {
@@ -682,6 +741,26 @@ export function PriceChart({
     const { x, y } = rel(e);
     const pt = toAnchor(x, y);
     if (!pt) return;
+    if (tool === "order") {
+      const mark = price ?? pt.p;
+      const side: Side = pt.p < mark ? "long" : "short"; // 현재가 아래면 롱(매수 지정가), 위면 숏(매도 지정가)
+      const entry = Number(pt.p.toPrecision(7));
+      const lev = 10;
+      const size = Math.max(10, Math.floor(balance * lev * 0.1 * 100) / 100);
+      const up = side === "long" ? 1 : -1;
+      setTicket({
+        symbol,
+        side,
+        type: "limit",
+        entry,
+        size,
+        lev,
+        tp: Number((entry * (1 + up * 0.02)).toPrecision(7)),
+        sl: Number((entry * (1 - up * 0.01)).toPrecision(7)),
+      });
+      setTool(null);
+      return;
+    }
     const d = draftRef.current;
     if (tool === "hline") return commit("hline", pt, pt);
     if (d) return commit(d.kind, d.a, pt); // 두 번째 클릭
@@ -689,6 +768,21 @@ export function PriceChart({
   };
 
   const onMove = (e: React.PointerEvent) => {
+    const td = tdragRef.current;
+    if (td) {
+      const a = toAnchor(0, rel(e).y);
+      if (a && a.p > 0) {
+        const v = Number(a.p.toPrecision(7));
+        setTicket((t) => (t ? { ...t, [td]: v } : t));
+      }
+      return;
+    }
+    const gh = ghostRef.current;
+    if (gh) {
+      const a = toAnchor(0, rel(e).y);
+      if (a && a.p > 0) setGhost({ ...gh, price: Number(a.p.toPrecision(7)) });
+      return;
+    }
     const g = dragRef.current;
     if (g) {
       const dx = e.clientX - g.sx;
@@ -720,6 +814,17 @@ export function PriceChart({
   };
 
   const onUp = (e: React.PointerEvent) => {
+    if (tdragRef.current) {
+      tdragRef.current = null;
+      return;
+    }
+    const gh = ghostRef.current;
+    if (gh) {
+      const pos = overlay.current.positions.find((x) => x.id === gh.posId);
+      setGhost(null);
+      if (pos) void onTpSlRef.current?.(pos.id, gh.kind === "tp" ? gh.price : pos.tp, gh.kind === "sl" ? gh.price : pos.sl);
+      return;
+    }
     if (dragRef.current) {
       dragRef.current = null;
       return;
@@ -744,11 +849,45 @@ export function PriceChart({
     dragRef.current = { id: it.id, mode, sx: e.clientX, sy: e.clientY, orig: it };
   };
 
+  const startTicketDrag = (e: React.PointerEvent, which: "entry" | "tp" | "sl") => {
+    e.stopPropagation();
+    try {
+      (e.target as Element).setPointerCapture(e.pointerId);
+    } catch {
+      /* 포인터를 잡지 못해도 svg 에서 이동 이벤트를 받으면 계속 동작 */
+    }
+    tdragRef.current = which;
+  };
+  const startGhost = (e: React.PointerEvent, posId: string, kind: "tp" | "sl") => {
+    const pos = overlay.current.positions.find((x) => x.id === posId);
+    if (!pos) return;
+    e.stopPropagation();
+    try {
+      (e.target as Element).setPointerCapture(e.pointerId);
+    } catch {
+      /* 포인터를 잡지 못해도 svg 에서 이동 이벤트를 받으면 계속 동작 */
+    }
+    setGhost({ posId, kind, price: pos.entry_price });
+  };
+  const submitTicket = async () => {
+    if (!ticket || !onPlaceOrder) return;
+    setBusy(true);
+    const ok = await onPlaceOrder({ side: ticket.side, sizeUsdt: ticket.size, leverage: ticket.lev, limitPrice: ticket.type === "limit" ? ticket.entry : null, tp: ticket.tp, sl: ticket.sl });
+    setBusy(false);
+    if (ok) setTicket(null);
+  };
+
   const toggle = (k: Ind) => setInds((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
   const pickTool = (t: ToolKind) => {
     setDraft(null);
     setSelected(null);
     setTool((cur) => (cur === t ? null : t));
+  };
+  const pickOrderTool = () => {
+    setDraft(null);
+    setSelected(null);
+    setTicket(null);
+    setTool((cur) => (cur === "order" ? null : "order"));
   };
   const clearAll = () => {
     updateShapes(() => []);
@@ -764,7 +903,8 @@ export function PriceChart({
   };
 
   const sel = shapes.find((s) => s.id === selected) ?? null;
-  const hint = tool ? (tool === "hline" ? "차트를 클릭해 수평선을 놓으세요" : draft ? "두 번째 점을 클릭하세요" : "첫 번째 점을 클릭하세요 (끌어서 그려도 됩니다)") : null;
+  const activeTicket = ticket && ticket.symbol === symbol ? ticket : null;
+  const hint = tool === "order" ? "주문할 가격을 클릭하세요 — 현재가보다 아래면 롱, 위면 숏 지정가가 됩니다" : tool ? (tool === "hline" ? "차트를 클릭해 수평선을 놓으세요" : draft ? "두 번째 점을 클릭하세요" : "첫 번째 점을 클릭하세요 (끌어서 그려도 됩니다)") : null;
   const btn = (on: boolean) => cn("rounded-md px-2 py-1 text-xs font-medium transition-colors", on ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted");
 
   return (
@@ -798,6 +938,11 @@ export function PriceChart({
           ))}
           <button type="button" aria-expanded={settingsOpen} onClick={() => setSettingsOpen((o) => !o)} className={cn("ml-0.5 rounded-md border px-2 py-0.5 text-[11px] font-medium", settingsOpen ? "border-foreground" : "border-transparent text-muted-foreground hover:bg-muted")}>
             ⚙ 설정
+          </button>
+        </div>
+        <div className="flex gap-0.5 border-l pl-3">
+          <button type="button" aria-pressed={tool === "order" || !!activeTicket} onClick={pickOrderTool} className={cn("rounded-md border px-2 py-1 text-xs font-semibold transition-colors", tool === "order" || activeTicket ? "border-brand bg-brand text-white" : "border-brand/50 text-brand hover:bg-brand-soft")}>
+            차트 주문
           </button>
         </div>
         <div className="flex gap-0.5 border-l pl-3">
@@ -841,6 +986,52 @@ export function PriceChart({
               );
             })}
           </g>
+          {activeTicket && layout.ticket && (() => {
+            const t = layout.ticket!;
+            const side = activeTicket.side;
+            const sideVar = side === "long" ? "var(--up)" : "var(--down)";
+            const w = layout.w;
+            const entry = activeTicket.type === "market" ? (price ?? activeTicket.entry) : activeTicket.entry;
+            const pnl = (v: number) => (side === "long" ? 1 : -1) * ((v - entry) / entry) * activeTicket.size;
+            const roe = (v: number) => (pnl(v) / (activeTicket.size / activeTicket.lev)) * 100;
+            const tag = (label: string, v: number | null) => (v === null ? label : `${label} ${fmtPrice(v)}  (${pnl(v) >= 0 ? "+" : ""}${fmtUsd(pnl(v))} · ${roe(v) >= 0 ? "+" : ""}${roe(v).toFixed(1)}%)`);
+            const lineEl = (key: "entry" | "tp" | "sl", y: number, varColor: string, dash: string | undefined, text: string, draggable: boolean) => (
+              <g key={key}>
+                {/* eslint-disable-next-line react-hooks/refs -- 이벤트 핸들러에서만 ref 를 읽습니다 */}
+                {draggable && <line x1={0} y1={y} x2={w} y2={y} stroke="rgba(0,0,0,0)" strokeWidth={16} style={{ pointerEvents: "stroke", cursor: "ns-resize" }} onPointerDown={(e) => startTicketDrag(e, key)} />}
+                <line x1={0} y1={y} x2={w} y2={y} style={{ stroke: varColor }} strokeWidth={key === "entry" ? 2 : 1.5} strokeDasharray={dash} pointerEvents="none" />
+                <text x={w - 8} y={y - 5} textAnchor="end" fontSize={11} fontWeight={600} style={{ fill: varColor, paintOrder: "stroke", stroke: "var(--background)", strokeWidth: 3 }} pointerEvents="none">
+                  {text}
+                </text>
+                {draggable && <rect x={w - 22} y={y - 6} width={14} height={12} rx={3} style={{ fill: "var(--background)", stroke: varColor, pointerEvents: "all", cursor: "ns-resize" }} strokeWidth={1.5} onPointerDown={(e) => startTicketDrag(e, key)} />}
+              </g>
+            );
+            return (
+              <g clipPath={`url(#${clipId})`}>
+                {t.ty !== null && <rect x={0} y={Math.min(t.ey, t.ty)} width={w} height={Math.abs(t.ty - t.ey)} style={{ fill: "var(--up)" }} fillOpacity={0.12} pointerEvents="none" />}
+                {t.sy !== null && <rect x={0} y={Math.min(t.ey, t.sy)} width={w} height={Math.abs(t.sy - t.ey)} style={{ fill: "var(--down)" }} fillOpacity={0.12} pointerEvents="none" />}
+                {lineEl("entry", t.ey, sideVar, undefined, `${side === "long" ? "롱" : "숏"} ${activeTicket.type === "market" ? "시장가" : "지정가"} ${fmtPrice(entry)}`, activeTicket.type === "limit")}
+                {t.ty !== null && lineEl("tp", t.ty, "var(--up)", "6 4", tag("익절", activeTicket.tp), true)}
+                {t.sy !== null && lineEl("sl", t.sy, "var(--down)", "6 4", tag("손절", activeTicket.sl), true)}
+              </g>
+            );
+          })()}
+          {layout.chips.map((c) => (
+            <g key={c.id + c.kind} transform={`translate(${Math.max(0, layout.w - 84)},${c.y})`} style={{ pointerEvents: "all", cursor: "grab" }} onPointerDown={(e) => startGhost(e, c.id, c.kind)}>
+              <rect width={76} height={18} rx={4} style={{ fill: "var(--card)", stroke: c.kind === "tp" ? "var(--up)" : "var(--down)" }} strokeWidth={1.2} />
+              <text x={38} y={12.5} textAnchor="middle" fontSize={10.5} fontWeight={700} style={{ fill: c.kind === "tp" ? "var(--up)" : "var(--down)" }} pointerEvents="none">
+                {c.kind === "tp" ? "＋ 익절 끌기" : "＋ 손절 끌기"}
+              </text>
+            </g>
+          ))}
+          {layout.ghost && (
+            <g pointerEvents="none">
+              <line x1={0} y1={layout.ghost.y} x2={layout.w} y2={layout.ghost.y} style={{ stroke: layout.ghost.kind === "tp" ? "var(--up)" : "var(--down)" }} strokeWidth={1.5} strokeDasharray="6 4" />
+              <text x={layout.w - 8} y={layout.ghost.y - 5} textAnchor="end" fontSize={11} fontWeight={600} style={{ fill: layout.ghost.kind === "tp" ? "var(--up)" : "var(--down)", paintOrder: "stroke", stroke: "var(--background)", strokeWidth: 3 }}>
+                {layout.ghost.kind === "tp" ? "익절" : "손절"} {ghost ? fmtPrice(ghost.price) : ""} — 놓으면 저장
+              </text>
+            </g>
+          )}
           {layout.items.map((it) =>
             it.id === selected && it.kind !== "hline" ? (
               <g key={"h" + it.id}>
@@ -855,7 +1046,7 @@ export function PriceChart({
         {hint && <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border bg-card/90 px-2 py-1 text-xs shadow-xs">{hint} · Esc 취소</div>}
 
         {/* 선택한 그림 편집 바 */}
-        {sel && !tool && (
+        {sel && !tool && !activeTicket && (
           <div className="absolute left-2 top-2 z-10 flex items-center gap-2 rounded-lg border bg-card px-2 py-1.5 shadow-sm">
             <div className="flex gap-1">
               {PALETTE.map((c) => (
@@ -875,6 +1066,9 @@ export function PriceChart({
           </div>
         )}
 
+        {activeTicket && (
+          <TicketPanel t={activeTicket} set={setTicket} mark={price} balance={balance} loggedIn={loggedIn} busy={busy} onSubmit={submitTicket} onClose={() => setTicket(null)} />
+        )}
         {settingsOpen && <IndSettings cfg={cfg} setCfg={setCfg} onClose={() => setSettingsOpen(false)} />}
         {error && <p className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">차트 데이터를 불러오지 못했습니다.</p>}
       </div>
@@ -883,7 +1077,7 @@ export function PriceChart({
 }
 
 /** 입력 중에는 자유롭게 지우고 쓸 수 있고, 범위 안의 값일 때만 설정에 반영합니다. */
-function NumField({ value, min, max, step = 1, onCommit, label }: { value: number; min: number; max: number; step?: number; onCommit: (n: number) => void; label: string }) {
+function NumField({ value, min, max, step = 1, onCommit, label, wide }: { value: number; min: number; max: number; step?: number; onCommit: (n: number) => void; label: string; wide?: boolean }) {
   const [txt, setTxt] = useState(String(value));
   const [seen, setSeen] = useState(value);
   if (value !== seen) {
@@ -901,7 +1095,7 @@ function NumField({ value, min, max, step = 1, onCommit, label }: { value: numbe
         if (e.target.value.trim() !== "" && Number.isFinite(n) && n >= min && n <= max && (step < 1 || Number.isInteger(n))) onCommit(n);
       }}
       onBlur={() => setTxt(String(value))}
-      className="h-7 w-16 rounded-md border bg-background px-2 text-right text-xs tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className={cn("h-7 rounded-md border bg-background px-2 text-right text-xs tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring/50", wide ? "w-28" : "w-16")}
     />
   );
 }
@@ -956,6 +1150,118 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
       </section>
       <button type="button" onClick={() => setCfg(DEFAULT_CFG)} className="text-xs text-muted-foreground underline-offset-2 hover:underline">
         기본값으로 되돌리기
+      </button>
+    </div>
+  );
+}
+
+const TICKET_LEVS = [1, 3, 5, 10, 20, 50];
+
+/** 차트 주문 설정 패널: 차트의 진입·익절·손절 선과 숫자가 서로 연동됩니다. */
+function TicketPanel({ t, set, mark, balance, loggedIn, busy, onSubmit, onClose }: { t: Ticket; set: (t: Ticket) => void; mark?: number; balance: number; loggedIn: boolean; busy: boolean; onSubmit: () => void; onClose: () => void }) {
+  const entry = t.type === "market" ? (mark ?? t.entry) : t.entry;
+  const dir = t.side === "long" ? 1 : -1;
+  const pnl = (v: number) => dir * ((v - entry) / entry) * t.size;
+  const margin = t.size / t.lev;
+  const fee = t.size * FEE_RATE;
+  const round = (n: number) => Number(n.toPrecision(7));
+
+  let error: string | null = null;
+  if (!loggedIn) error = "로그인이 필요합니다.";
+  else if (!(entry > 0)) error = "가격을 확인해 주세요.";
+  else if (t.size < 10) error = "주문 규모는 최소 10 USDT 입니다.";
+  else if (margin + fee > balance) error = `잔고가 부족합니다. (필요 ${fmtUsd(margin + fee)} USDT)`;
+  else if (t.type === "limit" && mark && ((t.side === "long" && entry >= mark) || (t.side === "short" && entry <= mark))) error = `${t.side === "long" ? "롱 지정가는 현재가보다 낮아야" : "숏 지정가는 현재가보다 높아야"} 합니다.`;
+  else if (t.tp !== null && (t.tp - entry) * dir <= 0) error = `${t.side === "long" ? "롱" : "숏"} 익절가는 진입가보다 ${t.side === "long" ? "높아야" : "낮아야"} 합니다.`;
+  else if (t.sl !== null && (t.sl - entry) * dir >= 0) error = `${t.side === "long" ? "롱" : "숏"} 손절가는 진입가보다 ${t.side === "long" ? "낮아야" : "높아야"} 합니다.`;
+
+  const flip = (side: Side) => {
+    if (side === t.side) return;
+    const mirror = (v: number | null) => (v === null ? null : 2 * entry - v > 0 ? round(2 * entry - v) : null);
+    set({ ...t, side, tp: mirror(t.tp), sl: mirror(t.sl) });
+  };
+  const level = (key: "tp" | "sl", name: string) => {
+    const v = t[key];
+    return (
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2 text-xs">
+          <span className={cn("w-8 font-semibold", key === "tp" ? "text-up" : "text-down")}>{name}</span>
+          {v === null ? (
+            <button type="button" onClick={() => set({ ...t, [key]: round(entry * (1 + dir * (key === "tp" ? 0.02 : -0.01))) })} className="rounded-md border px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted">
+              ＋ 설정
+            </button>
+          ) : (
+            <>
+              <NumField wide label={`${name} 가격`} value={v} min={0.0000001} max={1e9} step={0.0000001} onCommit={(n) => set({ ...t, [key]: n })} />
+              <button type="button" aria-label={`${name} 제거`} onClick={() => set({ ...t, [key]: null })} className="text-muted-foreground hover:text-foreground">
+                ✕
+              </button>
+            </>
+          )}
+        </div>
+        {v !== null && entry > 0 && (
+          <p className={cn("pl-10 text-[11px] tabular-nums", pnl(v) >= 0 ? "text-up" : "text-down")}>
+            {pnl(v) >= 0 ? "+" : ""}
+            {fmtUsd(pnl(v))} USDT · {pnl(v) >= 0 ? "+" : ""}
+            {((pnl(v) / margin) * 100).toFixed(1)}%
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="absolute left-2 top-2 z-20 w-64 space-y-2.5 rounded-xl border bg-card p-3 shadow-lg">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold">차트 주문</h3>
+        <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">
+          취소
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-xs font-semibold">
+        {(["long", "short"] as const).map((sd) => (
+          <button key={sd} type="button" onClick={() => flip(sd)} className={cn("rounded-md py-1.5", t.side === sd ? (sd === "long" ? "bg-up text-white" : "bg-down text-white") : "text-muted-foreground")}>
+            {sd === "long" ? "롱" : "숏"}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-1 rounded-lg border p-0.5 text-xs font-medium">
+        {(["limit", "market"] as const).map((ty) => (
+          <button key={ty} type="button" onClick={() => set({ ...t, type: ty })} className={cn("rounded-md py-1", t.type === ty ? "bg-foreground text-background" : "text-muted-foreground")}>
+            {ty === "limit" ? "지정가" : "시장가"}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 text-xs">
+        <span className="w-12 text-muted-foreground">진입가</span>
+        {t.type === "limit" ? <NumField wide label="진입가" value={t.entry} min={0.0000001} max={1e9} step={0.0000001} onCommit={(n) => set({ ...t, entry: n })} /> : <span className="tabular-nums">{mark ? fmtPrice(mark) : "—"} (현재가)</span>}
+      </div>
+      <div className="flex items-center gap-2 text-xs">
+        <span className="w-12 text-muted-foreground">금액</span>
+        <NumField wide label="주문 금액" value={t.size} min={10} max={1000000} step={0.01} onCommit={(n) => set({ ...t, size: n })} />
+        <span className="text-muted-foreground">USDT</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1 text-xs">
+        <span className="w-12 text-muted-foreground">레버리지</span>
+        {TICKET_LEVS.map((l) => (
+          <button key={l} type="button" onClick={() => set({ ...t, lev: l })} className={cn("rounded-md border px-1.5 py-0.5 text-[11px] font-medium", l === t.lev ? "border-brand bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted")}>
+            {l}x
+          </button>
+        ))}
+      </div>
+      {level("tp", "익절")}
+      {level("sl", "손절")}
+      <p className="text-[11px] text-muted-foreground">
+        증거금 {fmtUsd(margin)} · 수수료 {fmtUsd(fee)} USDT. 차트의 선을 끌어서 가격을 바꿀 수 있습니다.
+      </p>
+      {error && <p className="text-[11px] font-medium text-down">{error}</p>}
+      <button
+        type="button"
+        disabled={!!error || busy}
+        onClick={onSubmit}
+        className={cn("h-9 w-full rounded-lg text-sm font-semibold text-white transition-opacity disabled:opacity-40", t.side === "long" ? "bg-up" : "bg-down")}
+      >
+        {busy ? "주문 중…" : `${t.side === "long" ? "롱" : "숏"} ${t.type === "limit" ? "지정가" : "시장가"} 주문 확정`}
       </button>
     </div>
   );
