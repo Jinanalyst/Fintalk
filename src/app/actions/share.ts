@@ -57,7 +57,7 @@ export async function postShareAction(shareId: string): Promise<Result<{ postId:
     `인증 카드: /share/${s.id}`,
   ].join("\n");
 
-  const r = await createPostAction({ category: "trading", type: "review", title, body, tickers: [coin] });
+  const r = await createPostAction({ category: "trading", type: "general", title, body, tickers: [coin] });
   if (!r.ok) return r;
   const { error } = await sb.rpc("paper_share_attach_post", { p_share: shareId, p_post: r.id });
   if (error) console.error("[share] attach failed:", error.message);
