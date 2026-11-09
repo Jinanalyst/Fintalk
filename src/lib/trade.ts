@@ -14,7 +14,7 @@ export const isSymbol = (s: string): s is TradeSymbol => SYMBOLS.some((x) => x.s
 
 export const FEE_RATE = 0.0004;
 export const START_BALANCE = 10000;
-export const MAX_LEVERAGE = 50;
+export const MAX_LEVERAGE = 150;
 
 export type Side = "long" | "short";
 

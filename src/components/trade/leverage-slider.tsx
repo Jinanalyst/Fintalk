@@ -3,7 +3,7 @@
 import { MAX_LEVERAGE } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 
-const TICKS = [1, 5, 10, 20, 30, 40, 50].filter((t) => t <= MAX_LEVERAGE);
+const TICKS = [1, 10, 25, 50, 75, 100, 125, 150].filter((t) => t <= MAX_LEVERAGE);
 const LAST = TICKS.length - 1;
 
 /** 눈금을 같은 간격으로 놓기 위해, 레버리지 값 ↔ 슬라이더 위치(0~눈금 수)를 구간별로 변환합니다. */
