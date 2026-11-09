@@ -34,7 +34,7 @@ function bucketStart(itv: string, tsSec: number): number {
   const st = SECONDS[itv];
   return Math.floor(tsSec / st) * st;
 }
-const INTERVAL_LABEL: Record<string, string> = { "1d": "일", "1w": "주", "1M": "월" };
+const INTERVAL_LABEL: Record<string, string> = { "1m": "1분", "5m": "5분", "15m": "15분", "1h": "1시간", "4h": "4시간", "1d": "일봉", "1w": "주봉", "1M": "월봉" };
 const FIRST_LOAD = 1500; // Binance klines 1회 최대치
 const OLDER_LOAD = 1000;
 const MAX_CANDLES = 8000;
@@ -963,11 +963,18 @@ export function PriceChart({
     <div className="flex h-full flex-col p-2">
       <div className="mb-1.5 flex flex-nowrap items-center gap-x-3 gap-y-1 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0 [&>*]:shrink-0">
         <div className="flex gap-0.5">
-          {INTERVALS.map((i) => (
-            <button key={i} type="button" onClick={() => setIntervalKey(i)} className={cn("rounded-md px-2 py-1 text-xs font-medium transition-colors", i === interval ? "bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted")}>
-              {INTERVAL_LABEL[i] ?? i}
-            </button>
-          ))}
+          <select
+            aria-label="차트 주기"
+            value={interval}
+            onChange={(e) => setIntervalKey(e.target.value as (typeof INTERVALS)[number])}
+            className="h-7 cursor-pointer rounded-md border bg-brand-soft px-2 text-xs font-semibold text-brand outline-none [&>option]:bg-card [&>option]:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {INTERVALS.map((i) => (
+              <option key={i} value={i}>
+                {INTERVAL_LABEL[i]}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex gap-0.5 border-l pl-3">
           {KINDS.map(([k, name]) => (
