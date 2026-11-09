@@ -1011,8 +1011,8 @@ export function PriceChart({
 
       <div className="relative min-h-0 flex-1">
         <div ref={box} className="absolute inset-0" />
-        <button type="button" onClick={resetView} title="확대·축소·이동한 차트를 처음 상태로 되돌립니다" aria-label="차트 보기 초기화" className="absolute bottom-9 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-md border bg-card/90 px-2 py-1 text-[11px] font-medium text-muted-foreground shadow-xs backdrop-blur transition-colors hover:bg-muted hover:text-foreground">
-          ↺ 보기 초기화
+        <button type="button" onClick={resetView} title="확대·축소·이동한 차트를 처음 상태로 되돌립니다" aria-label="차트 초기화" className="absolute bottom-9 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-md border bg-card/90 px-2 py-1 text-[11px] font-medium text-muted-foreground shadow-xs backdrop-blur transition-colors hover:bg-muted hover:text-foreground">
+          ↺ 초기화
         </button>
 
         {/* 그리기 레이어: 도형 위에서만 마우스를 받고, 나머지는 차트로 통과시킵니다. */}
