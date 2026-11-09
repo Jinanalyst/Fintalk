@@ -8,16 +8,23 @@ import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
 import { fmtPrice, fmtUsd, type ClosedTrade } from "@/lib/trade";
 
-export type WinInfo = { trade: ClosedTrade; streak: number };
+export type TradeResult = { trade: ClosedTrade; streak: number; kind: "win" | "loss" };
 
-/** 새로 종료된 거래 중 수익이 난 것을 찾아, 그 거래부터 거슬러 올라가며 연속 수익 횟수를 셉니다. (trades 는 최신순) */
-export function findWin(trades: ClosedTrade[], seen: Set<string>): WinInfo | null {
-  const idx = trades.findIndex((t) => !seen.has(t.id) && t.pnl > 0);
+/** 새로 종료된 거래 중 가장 최근의 수익/손실 거래를 찾아, 거기서부터 거슬러 올라가며 같은 결과가 몇 번 연속인지 셉니다. (trades 는 최신순) */
+export function findResult(trades: ClosedTrade[], seen: Set<string>): TradeResult | null {
+  const idx = trades.findIndex((t) => !seen.has(t.id) && t.pnl !== 0);
   if (idx < 0) return null;
+  const win = trades[idx].pnl > 0;
   let streak = 0;
-  for (let i = idx; i < trades.length && trades[i].pnl > 0; i++) streak++;
-  return { trade: trades[idx], streak };
+  for (let i = idx; i < trades.length && trades[i].pnl > 0 === win && trades[i].pnl !== 0; i++) streak++;
+  return { trade: trades[idx], streak, kind: win ? "win" : "loss" };
 }
+
+const LOSS_MOODS = [
+  { title: "아쉬운 손실", line: "괜찮아요, 다음에 만회해요 💧" },
+  { title: "연속 손실", line: "잠깐 쉬어가도 좋아요 ☕" },
+  { title: "연패 중...", line: "무리하지 말고 리스크부터 점검해요 🌧" },
+];
 
 const MOODS = [
   { title: "수익 실현!", line: "잘했어요! 깔끔한 청산이에요 👏" },
@@ -89,15 +96,79 @@ function Mascot({ streak }: { streak: number }) {
   );
 }
 
-const CONFETTI = ["#f0b90b", "#22c55e", "#3b82f6", "#ef4444", "#a855f7", "#fff"];
+/** 슬픈 코인 캐릭터: 연패가 길수록 더 울상이 됩니다. 1회 = 시무룩, 2회 = 눈물, 3회 이상 = 비구름 + 반창고 + 엉엉 */
+function SadMascot({ streak }: { streak: number }) {
+  const tier = streak >= 3 ? 2 : streak >= 2 ? 1 : 0;
+  const GOLD = "#dcae1c";
+  const EDGE = "#9a7209";
+  const arm = (d: string, fx: number, fy: number) => (
+    <>
+      <path d={d} fill="none" stroke={EDGE} strokeWidth="9" strokeLinecap="round" />
+      <circle cx={fx} cy={fy} r="9" fill={GOLD} stroke={EDGE} strokeWidth="4" />
+    </>
+  );
+  return (
+    <svg viewBox="0 0 160 164" className="lose-mascot size-32" role="img" aria-label="슬퍼하는 코인 캐릭터">
+      {tier === 2 && (
+        <>
+          <g fill="#94a3b8" stroke="#64748b" strokeWidth="2.5">
+            <circle cx="58" cy="20" r="14" /><circle cx="80" cy="13" r="17" /><circle cx="102" cy="21" r="13" />
+            <rect x="46" y="22" width="68" height="12" rx="6" />
+          </g>
+          <g stroke="#60a5fa" strokeWidth="3" strokeLinecap="round">
+            <path className="lose-rain" d="M60 38 v8" /><path className="lose-rain" style={{ animationDelay: ".25s" }} d="M80 38 v8" /><path className="lose-rain" style={{ animationDelay: ".5s" }} d="M100 38 v8" />
+          </g>
+        </>
+      )}
+      <path d="M64 143 V156 M96 143 V156" stroke={EDGE} strokeWidth="8" strokeLinecap="round" />
+      <ellipse cx="60" cy="158" rx="11" ry="5" fill="#1f2937" />
+      <ellipse cx="100" cy="158" rx="11" ry="5" fill="#1f2937" />
+      {arm("M30 102 Q18 120 26 138", 26, 140)}
+      {arm("M130 102 Q142 120 134 138", 134, 140)}
+      <circle cx="80" cy="94" r="52" fill={GOLD} stroke={EDGE} strokeWidth="6" />
+      <circle cx="80" cy="94" r="41" fill="none" stroke="#f1d57a" strokeWidth="3" />
+      <path d="M45 74 Q52 56 70 50" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" opacity="0.4" />
+      {tier === 2 && (
+        <g transform="rotate(-18 104 56)">
+          <rect x="88" y="50" width="34" height="12" rx="3" fill="#fde7c4" stroke="#d6a76a" strokeWidth="2" />
+          <path d="M100 50 v12 M110 50 v12" stroke="#d6a76a" strokeWidth="1.5" />
+        </g>
+      )}
+      {tier === 0 && (
+        <>
+          <ellipse cx="64" cy="92" rx="8" ry="7.5" fill="#fff" stroke="#422006" strokeWidth="2.5" />
+          <ellipse cx="96" cy="92" rx="8" ry="7.5" fill="#fff" stroke="#422006" strokeWidth="2.5" />
+          <circle cx="64" cy="95" r="3.8" fill="#422006" /><circle cx="96" cy="95" r="3.8" fill="#422006" />
+          <path d="M54 84 L74 76 M106 84 L86 76" stroke="#422006" strokeWidth="4.5" strokeLinecap="round" />
+          <path d="M68 118 Q82 106 96 118" fill="none" stroke="#422006" strokeWidth="5" strokeLinecap="round" />
+          <path className="lose-tear" d="M99 102 q-4 6 0 9 q4 -3 0 -9z" fill="#60a5fa" />
+        </>
+      )}
+      {tier >= 1 && (
+        <>
+          <path d="M55 92 Q64 100 73 92 M87 92 Q96 100 105 92" fill="none" stroke="#422006" strokeWidth="5" strokeLinecap="round" />
+          <path d="M54 84 L74 76 M106 84 L86 76" stroke="#422006" strokeWidth="4.5" strokeLinecap="round" />
+          <path className="lose-tear" d="M62 100 q-5 4 -3 24 h6 q2 -20 -3 -24z" fill="#60a5fa" opacity="0.85" />
+          <path className="lose-tear" style={{ animationDelay: ".4s" }} d="M98 100 q-5 4 -3 24 h6 q2 -20 -3 -24z" fill="#60a5fa" opacity="0.85" />
+          <path d="M66 124 Q82 106 98 124 Z" fill="#7f1d1d" stroke="#422006" strokeWidth="4" strokeLinejoin="round" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+const CONFETTI =["#f0b90b", "#22c55e", "#3b82f6", "#ef4444", "#a855f7", "#fff"];
 
 /** 수익으로 청산했을 때 뜨는 팝업. 2번 이상 연속이면 "N WIN" 배지가 붙습니다. */
-export function WinPopup({ win, onClose }: { win: WinInfo; onClose: () => void }) {
+export function WinPopup({ win, onClose }: { win: TradeResult; onClose: () => void }) {
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const { trade: t, streak } = win;
-  const mood = MOODS[streak >= 3 ? 2 : streak >= 2 ? 1 : 0];
+  const loss = win.kind === "loss";
+  const mood = (loss ? LOSS_MOODS : MOODS)[streak >= 3 ? 2 : streak >= 2 ? 1 : 0];
+  const tone = loss ? "#ef4444" : "#22c55e";
+  const sign = loss ? "" : "+";
   const long = t.side === "long";
   const roe = t.margin > 0 ? (t.pnl / t.margin) * 100 : 0;
   const coin = t.symbol.replace("USDT", "");
@@ -117,20 +188,26 @@ export function WinPopup({ win, onClose }: { win: WinInfo; onClose: () => void }
         @keyframes win-wave-r{0%,100%{transform:rotate(0)}50%{transform:rotate(14deg)}}
         @keyframes win-fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(340px) rotate(540deg);opacity:0}}
         @keyframes win-twinkle{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+        @keyframes lose-sway{0%,100%{transform:rotate(-2deg) translateY(0)}50%{transform:rotate(2deg) translateY(3px)}}
+        @keyframes lose-tear{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(14px);opacity:0}}
+        @keyframes lose-rain{0%{transform:translateY(-4px);opacity:0}30%{opacity:1}100%{transform:translateY(6px);opacity:0}}
+        .lose-mascot{animation:lose-sway 2.4s ease-in-out infinite;overflow:visible}
+        .lose-tear,.lose-rain{animation:lose-tear 1.3s ease-in infinite}
+        .lose-rain{animation-name:lose-rain;animation-duration:.9s}
         .win-card{animation:win-pop .45s ease-out both}
         .win-mascot{animation:win-bounce 1s ease-in-out infinite;overflow:visible}
         .win-arm-l{transform-origin:30px 92px;animation:win-wave-l .5s ease-in-out infinite}
         .win-arm-r{transform-origin:130px 92px;animation:win-wave-r .5s ease-in-out infinite}
         .win-spark path{transform-box:fill-box;transform-origin:center;animation:win-twinkle .9s ease-in-out infinite}
         .win-conf{position:absolute;top:0;width:8px;height:14px;border-radius:2px;animation:win-fall 2.4s linear infinite}
-        @media (prefers-reduced-motion:reduce){.win-card,.win-mascot,.win-arm-l,.win-arm-r,.win-spark path,.win-conf{animation:none}}
+        @media (prefers-reduced-motion:reduce){.win-card,.win-mascot,.win-arm-l,.win-arm-r,.win-spark path,.win-conf,.lose-mascot,.lose-tear,.lose-rain{animation:none}}
       `}</style>
       <div
         className="win-card relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 p-6 text-center text-white shadow-2xl"
-        style={{ background: "linear-gradient(135deg,#0b1220 0%,#111c33 60%,#0d2a1f 100%)" }}
+        style={{ background: loss ? "linear-gradient(135deg,#0b1220 0%,#141b2d 60%,#2a1216 100%)" : "linear-gradient(135deg,#0b1220 0%,#111c33 60%,#0d2a1f 100%)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {streak >= 2 &&
+        {!loss && streak >= 2 &&
           Array.from({ length: 18 }, (_, i) => (
             <span key={i} className="win-conf" aria-hidden style={{ left: `${(i * 37) % 100}%`, background: CONFETTI[i % CONFETTI.length], animationDelay: `${(i % 6) * 0.35}s`, animationDuration: `${2 + (i % 4) * 0.4}s` }} />
           ))}
@@ -138,14 +215,14 @@ export function WinPopup({ win, onClose }: { win: WinInfo; onClose: () => void }
           <X className="size-4" />
         </button>
 
-        <div className="flex justify-center"><Mascot streak={streak} /></div>
+        <div className="flex justify-center">{loss ? <SadMascot streak={streak} /> : <Mascot streak={streak} />}</div>
 
         {streak >= 2 ? (
-          <p className="mt-1 text-5xl font-black italic tracking-tight text-[#f0b90b]">{streak} WIN</p>
+          <p className={`mt-1 text-5xl font-black italic tracking-tight ${loss ? "text-[#93c5fd]" : "text-[#f0b90b]"}`}>{streak} {loss ? "LOSE" : "WIN"}</p>
         ) : (
-          <p className="mt-1 text-3xl font-black text-[#f0b90b]">{mood.title}</p>
+          <p className={`mt-1 text-3xl font-black ${loss ? "text-[#93c5fd]" : "text-[#f0b90b]"}`}>{mood.title}</p>
         )}
-        {streak >= 2 && <p className="mt-0.5 text-sm font-bold text-white/90">{streak}번 연속 수익 · {mood.title}</p>}
+        {streak >= 2 && <p className="mt-0.5 text-sm font-bold text-white/90">{streak}번 연속 {loss ? "손실" : "수익"} · {mood.title}</p>}
         <p className="mt-1 text-xs text-white/70">{mood.line}</p>
 
         <div className="mt-4 rounded-2xl bg-white/5 p-4 text-left">
@@ -155,8 +232,8 @@ export function WinPopup({ win, onClose }: { win: WinInfo; onClose: () => void }
               {long ? "롱" : "숏"} {t.leverage}x
             </span>
           </div>
-          <p className="mt-1 text-4xl font-black tabular-nums text-[#22c55e]">+{roe.toFixed(2)}%</p>
-          <p className="text-sm font-semibold tabular-nums text-[#22c55e]">+{fmtUsd(t.pnl)} USDT</p>
+          <p className="mt-1 text-4xl font-black tabular-nums" style={{ color: tone }}>{sign}{roe.toFixed(2)}%</p>
+          <p className="text-sm font-semibold tabular-nums" style={{ color: tone }}>{sign}{fmtUsd(t.pnl)} USDT</p>
           <div className="mt-2 flex justify-between text-xs text-white/60 tabular-nums">
             <span>진입 {fmtPrice(t.entry_price)}</span>
             <span>청산 {fmtPrice(t.exit_price)}</span>
@@ -164,7 +241,7 @@ export function WinPopup({ win, onClose }: { win: WinInfo; onClose: () => void }
         </div>
 
         <div className="mt-4 flex gap-2">
-          <Button
+          {!loss && <Button
             className="flex-1"
             disabled={busy}
             onClick={async () => {
@@ -178,12 +255,12 @@ export function WinPopup({ win, onClose }: { win: WinInfo; onClose: () => void }
             }}
           >
             <Share2 /> 인증 카드 공유
-          </Button>
+          </Button>}
           <Button variant="outline" className="flex-1 border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={onClose}>
             계속 거래
           </Button>
         </div>
-        <p className="mt-3 text-[10px] text-white/40">가상 자금 모의투자 기록이며 실제 수익이 아닙니다.</p>
+        <p className="mt-3 text-[10px] text-white/40">가상 자금 모의투자 기록이며 실제 {loss ? "손실" : "수익"}이 아닙니다.</p>
       </div>
     </div>
   );

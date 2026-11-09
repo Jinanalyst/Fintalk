@@ -18,7 +18,7 @@ import { LeverageSlider } from "./leverage-slider";
 import { OrderBook } from "./orderbook";
 import { TradingViewChart } from "./tv-chart";
 import { usePriceFeed } from "./use-price-feed";
-import { WinPopup, findWin, type WinInfo } from "./win-popup";
+import { WinPopup, findResult, type TradeResult } from "./win-popup";
 
 // 차트는 브라우저 저장소(지표 설정·그림)를 읽으므로 서버에서는 그리지 않습니다.
 const PriceChart = dynamic(() => import("./chart").then((m) => m.PriceChart), {
@@ -40,15 +40,15 @@ export function TradeTerminal({ data }: { data: TradeData }) {
   const [pending, start] = useTransition();
   const toast = useToast();
   const mark = prices[symbol];
-  // 새로 종료된 수익 거래가 생기면 팝업을 띄웁니다. 처음 불러온 기존 거래는 팝업 대상이 아닙니다.
+  // 새로 종료된 거래가 생기면 수익/손실 팝업을 띄웁니다. 처음 불러온 기존 거래는 팝업 대상이 아닙니다.
   const seenTrades = useRef<Set<string> | null>(null);
-  const [win, setWin] = useState<WinInfo | null>(null);
+  const [win, setWin] = useState<TradeResult | null>(null);
   useEffect(() => {
     if (!seenTrades.current) {
       seenTrades.current = new Set(data.trades.map((t) => t.id));
       return;
     }
-    const w = findWin(data.trades, seenTrades.current);
+    const w = findResult(data.trades, seenTrades.current);
     for (const t of data.trades) seenTrades.current.add(t.id);
     if (w) setWin(w);
   }, [data.trades]);
