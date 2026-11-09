@@ -22,8 +22,19 @@ import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type CloseOrder,
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
 
-const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
-const SECONDS: Record<string, number> = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400 };
+const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M"] as const;
+const SECONDS: Record<string, number> = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800, "1M": 2592000 };
+// 현재 시각이 속한 봉의 시작 시각(초). 주봉은 월요일 0시(UTC), 월봉은 매월 1일 0시(UTC) — 바이낸스와 동일
+function bucketStart(itv: string, tsSec: number): number {
+  if (itv === "1M") {
+    const d = new Date(tsSec * 1000);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000;
+  }
+  if (itv === "1w") return Math.floor((tsSec - 345600) / 604800) * 604800 + 345600;
+  const st = SECONDS[itv];
+  return Math.floor(tsSec / st) * st;
+}
+const INTERVAL_LABEL: Record<string, string> = { "1d": "일", "1w": "주", "1M": "월" };
 const FIRST_LOAD = 1500; // Binance klines 1회 최대치
 const OLDER_LOAD = 1000;
 const MAX_CANDLES = 8000;
@@ -720,8 +731,7 @@ export function PriceChart({
     const data = candles.current;
     const m = main.current;
     if (!price || !data.length || !m) return;
-    const step = SECONDS[interval];
-    const bucket = Math.floor(Date.now() / 1000 / step) * step;
+    const bucket = bucketStart(interval, Date.now() / 1000);
     const cur = data[data.length - 1];
     if (bucket > cur.time) data.push({ time: bucket, open: price, high: price, low: price, close: price, volume: 0 });
     else data[data.length - 1] = { ...cur, high: Math.max(cur.high, price), low: Math.min(cur.low, price), close: price };
@@ -939,7 +949,7 @@ export function PriceChart({
         <div className="flex gap-0.5">
           {INTERVALS.map((i) => (
             <button key={i} type="button" onClick={() => setIntervalKey(i)} className={cn("rounded-md px-2 py-1 text-xs font-medium transition-colors", i === interval ? "bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted")}>
-              {i}
+              {INTERVAL_LABEL[i] ?? i}
             </button>
           ))}
         </div>
