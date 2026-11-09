@@ -93,11 +93,65 @@ export function heikinAshi(candles: Candle[]): Candle[] {
   return out;
 }
 
+/** 지표 설정 (기간 등). 차트의 설정 창에서 바꿉니다. */
+export type MaLine = { period: number; on: boolean };
+export type IndCfg = {
+  ma: MaLine[];
+  ema: MaLine[];
+  boll: { period: number; mult: number };
+  rsi: { period: number };
+  macd: { fast: number; slow: number; signal: number };
+};
+
+export const MA_COLORS = ["#f0b90b", "#a855f7", "#14b8a6"];
+export const EMA_COLORS = ["#3b82f6", "#f97316", "#ec4899"];
+
+export const DEFAULT_CFG: IndCfg = {
+  ma: [
+    { period: 20, on: true },
+    { period: 60, on: true },
+    { period: 120, on: false },
+  ],
+  ema: [
+    { period: 12, on: true },
+    { period: 26, on: true },
+    { period: 50, on: false },
+  ],
+  boll: { period: 20, mult: 2 },
+  rsi: { period: 14 },
+  macd: { fast: 12, slow: 26, signal: 9 },
+};
+
+const num = (v: unknown, fallback: number, min: number, max: number) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= min && n <= max ? n : fallback;
+};
+
+/** 저장된 값이 깨졌거나 범위를 벗어나도 안전하게 기본값으로 되돌립니다. */
+export function mergeCfg(raw: unknown): IndCfg {
+  const r = (raw ?? {}) as Partial<Record<keyof IndCfg, unknown>>;
+  const lines = (src: unknown, def: MaLine[]): MaLine[] =>
+    def.map((d, i) => {
+      const x = (Array.isArray(src) ? src[i] : undefined) as Partial<MaLine> | undefined;
+      return { period: Math.trunc(num(x?.period, d.period, 1, 500)), on: typeof x?.on === "boolean" ? x.on : d.on };
+    });
+  const b = (r.boll ?? {}) as Record<string, unknown>;
+  const rs = (r.rsi ?? {}) as Record<string, unknown>;
+  const m = (r.macd ?? {}) as Record<string, unknown>;
+  const fast = Math.trunc(num(m.fast, 12, 1, 200));
+  const slow = Math.trunc(num(m.slow, 26, 2, 400));
+  return {
+    ma: lines(r.ma, DEFAULT_CFG.ma),
+    ema: lines(r.ema, DEFAULT_CFG.ema),
+    boll: { period: Math.trunc(num(b.period, 20, 2, 500)), mult: num(b.mult, 2, 0.1, 10) },
+    rsi: { period: Math.trunc(num(rs.period, 14, 2, 200)) },
+    macd: fast < slow ? { fast, slow, signal: Math.trunc(num(m.signal, 9, 1, 200)) } : { ...DEFAULT_CFG.macd },
+  };
+}
+
 export type Calc = {
-  ma20: Series;
-  ma60: Series;
-  ema12: Series;
-  ema26: Series;
+  ma: Series[];
+  ema: Series[];
   bbMid: Series;
   bbUp: Series;
   bbLow: Series;
@@ -107,19 +161,17 @@ export type Calc = {
   macdHist: Series;
 };
 
-export function calcAll(candles: Candle[]): Calc {
+export function calcAll(candles: Candle[], cfg: IndCfg): Calc {
   const closes = candles.map((c) => c.close);
-  const bb = bollinger(closes);
-  const m = macd(closes);
+  const bb = bollinger(closes, cfg.boll.period, cfg.boll.mult);
+  const m = macd(closes, cfg.macd.fast, cfg.macd.slow, cfg.macd.signal);
   return {
-    ma20: sma(closes, 20),
-    ma60: sma(closes, 60),
-    ema12: ema(closes, 12),
-    ema26: ema(closes, 26),
+    ma: cfg.ma.map((l) => (l.on ? sma(closes, l.period) : [])),
+    ema: cfg.ema.map((l) => (l.on ? ema(closes, l.period) : [])),
     bbMid: bb.mid,
     bbUp: bb.upper,
     bbLow: bb.lower,
-    rsi: rsi(closes),
+    rsi: rsi(closes, cfg.rsi.period),
     macd: m.line,
     macdSignal: m.signal,
     macdHist: m.hist,

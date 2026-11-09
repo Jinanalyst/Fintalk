@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ChevronRight, RotateCcw, X } from "lucide-react";
@@ -11,9 +12,14 @@ import type { TradeData } from "@/lib/data/trade";
 import { FEE_RATE, MAX_LEVERAGE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, unrealizedPnl, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 import { OrderBook } from "./orderbook";
-import { PriceChart } from "./chart";
 import { TradingViewChart } from "./tv-chart";
 import { usePriceFeed } from "./use-price-feed";
+
+// 차트는 브라우저 저장소(지표 설정·그림)를 읽으므로 서버에서는 그리지 않습니다.
+const PriceChart = dynamic(() => import("./chart").then((m) => m.PriceChart), {
+  ssr: false,
+  loading: () => <div className="grid h-full place-items-center text-sm text-muted-foreground">차트 불러오는 중…</div>,
+});
 
 const LEVERAGES = [1, 2, 3, 5, 10, 20, 50];
 const inputCls = "h-9 w-full rounded-lg border bg-background px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
