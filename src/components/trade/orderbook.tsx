@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fmtPrice } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 
 type Level = [number, number]; // [가격, 수량]
-const ROWS = 12;
+const MAX_ROWS = 12;
+const ROW_H = 22; // 호가 한 줄 높이(px)
+const MID_H = 48; // 가운데 현재가 줄(여백 포함)
 
 /** Binance 선물 호가창 (상위 20호가 스냅샷을 100ms 단위로 수신) */
 function useDepth(symbol: string) {
@@ -50,9 +52,21 @@ const fmtQty = (n: number) => (n >= 100 ? n.toFixed(1) : n >= 1 ? n.toFixed(3) :
 
 export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: number; onPick: (price: number) => void }) {
   const book = useDepth(symbol);
+  // 칸 높이에 맞춰 보여줄 호가 줄 수를 정해, 아래쪽이 잘리지 않게 합니다.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [rows, setRows] = useState(MAX_ROWS);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const fit = () => setRows(Math.max(2, Math.min(MAX_ROWS, Math.floor((el.clientHeight - MID_H) / (2 * ROW_H)))));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [book === null]);
 
-  const asks = (book?.asks ?? []).slice(0, ROWS); // 낮은 가격부터
-  const bids = (book?.bids ?? []).slice(0, ROWS); // 높은 가격부터
+  const asks = (book?.asks ?? []).slice(0, rows); // 낮은 가격부터
+  const bids = (book?.bids ?? []).slice(0, rows); // 높은 가격부터
   const max = Math.max(1, ...asks.map((l) => l[1]), ...bids.map((l) => l[1]));
   const spread = asks[0] && bids[0] ? asks[0][0] - bids[0][0] : null;
 
@@ -74,7 +88,7 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
   );
 
   return (
-    <div className="flex h-full flex-col rounded-xl border bg-card shadow-xs">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-xs">
       <p className="border-b px-3 py-2 text-sm font-semibold">호가창</p>
       <div className="grid grid-cols-2 px-2 py-1.5 text-[11px] text-muted-foreground">
         <span>가격(USDT)</span>
@@ -83,7 +97,7 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
       {!book ? (
         <p className="grid flex-1 place-items-center py-16 text-xs text-muted-foreground">호가 불러오는 중…</p>
       ) : (
-        <div className="flex flex-1 flex-col justify-center">
+        <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden">
           <div className="flex flex-col-reverse">{asks.map((l) => row(l, "ask"))}</div>
           <div className="my-1 flex items-baseline justify-between border-y px-2 py-1.5">
             <span className="text-base font-bold tabular-nums">{mark ? fmtPrice(mark) : "—"}</span>
