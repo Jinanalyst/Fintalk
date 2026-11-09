@@ -103,6 +103,10 @@ export type IndCfg = {
   macd: { fast: number; slow: number; signal: number };
   /** 지표별 선 색 (키: ma0~2, ema0~2, bollBand, bollMid, rsi, macd, macdSig) */
   colors: Record<string, string>;
+  /** 지표별 점선 여부 (colors 와 같은 키) */
+  dashed: Record<string, boolean>;
+  /** 캔들 색 (빈 문자열이면 사이트 기본 상승/하락 색) */
+  candle: { up: string; down: string };
 };
 
 export const MA_COLORS = ["#f0b90b", "#a855f7", "#14b8a6"];
@@ -112,6 +116,11 @@ export const DEFAULT_COLORS: Record<string, string> = {
   ma0: MA_COLORS[0], ma1: MA_COLORS[1], ma2: MA_COLORS[2],
   ema0: EMA_COLORS[0], ema1: EMA_COLORS[1], ema2: EMA_COLORS[2],
   bollBand: "#60a5fa", bollMid: "#9ca3af", rsi: "#a855f7", macd: "#3b82f6", macdSig: "#f97316",
+};
+
+export const DEFAULT_DASHED: Record<string, boolean> = {
+  ma0: false, ma1: false, ma2: false, ema0: false, ema1: false, ema2: false,
+  bollBand: true, bollMid: false, rsi: false, macd: false, macdSig: false,
 };
 
 export const DEFAULT_CFG: IndCfg = {
@@ -129,6 +138,8 @@ export const DEFAULT_CFG: IndCfg = {
   rsi: { period: 14 },
   macd: { fast: 12, slow: 26, signal: 9 },
   colors: { ...DEFAULT_COLORS },
+  dashed: { ...DEFAULT_DASHED },
+  candle: { up: "", down: "" },
 };
 
 const num = (v: unknown, fallback: number, min: number, max: number) => {
@@ -152,8 +163,15 @@ export function mergeCfg(raw: unknown): IndCfg {
   const rc = (r.colors ?? {}) as Record<string, unknown>;
   const colors: Record<string, string> = {};
   for (const k of Object.keys(DEFAULT_COLORS)) colors[k] = typeof rc[k] === "string" && /^#[0-9a-fA-F]{6}$/.test(rc[k] as string) ? (rc[k] as string) : DEFAULT_COLORS[k];
+  const rd = (r.dashed ?? {}) as Record<string, unknown>;
+  const dashed: Record<string, boolean> = {};
+  for (const k of Object.keys(DEFAULT_DASHED)) dashed[k] = typeof rd[k] === "boolean" ? (rd[k] as boolean) : DEFAULT_DASHED[k];
+  const rcd = (r.candle ?? {}) as Record<string, unknown>;
+  const hex = (v: unknown) => (typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v) ? v : "");
   return {
     colors,
+    dashed,
+    candle: { up: hex(rcd.up), down: hex(rcd.down) },
     ma: lines(r.ma, DEFAULT_CFG.ma),
     ema: lines(r.ema, DEFAULT_CFG.ema),
     boll: { period: Math.trunc(num(b.period, 20, 2, 500)), mult: num(b.mult, 2, 0.1, 10) },

@@ -130,13 +130,14 @@ function loadDrawings(): Record<string, Shape[]> {
   return out;
 }
 
+const DASH_KEY: Record<string, string> = { bbUp: "bollBand", bbLow: "bollBand", bbMid: "bollMid", macdSig: "macdSig" };
 function specs(cfg: IndCfg): Spec[] {
   const line = (key: string, ind: Ind, pane: Spec["pane"], pick: (k: Calc) => (number | null)[], color: string, extra: Record<string, unknown> = {}): Spec => ({
     key,
     ind,
     pane,
     type: "line",
-    options: { color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, ...extra },
+    options: { color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, lineStyle: cfg.dashed[DASH_KEY[key] ?? key] ? LineStyle.Dashed : LineStyle.Solid, ...extra },
     point: (i, c, k) => {
       const v = pick(k)[i];
       return v === null || v === undefined ? null : { time: c[i].time as UTCTimestamp, value: v };
@@ -155,9 +156,9 @@ function specs(cfg: IndCfg): Spec[] {
   cfg.ma.forEach((m, i) => m.on && out.push(line(`ma${i}`, "ma", "main", (k) => k.ma[i], cfg.colors[`ma${i}`])));
   cfg.ema.forEach((m, i) => m.on && out.push(line(`ema${i}`, "ema", "main", (k) => k.ema[i], cfg.colors[`ema${i}`])));
   out.push(
-    line("bbUp", "boll", "main", (k) => k.bbUp, cfg.colors.bollBand, { lineStyle: LineStyle.Dashed }),
+    line("bbUp", "boll", "main", (k) => k.bbUp, cfg.colors.bollBand),
     line("bbMid", "boll", "main", (k) => k.bbMid, cfg.colors.bollMid),
-    line("bbLow", "boll", "main", (k) => k.bbLow, cfg.colors.bollBand, { lineStyle: LineStyle.Dashed }),
+    line("bbLow", "boll", "main", (k) => k.bbLow, cfg.colors.bollBand),
     line("rsi", "rsi", "rsi", (k) => k.rsi, cfg.colors.rsi, { lastValueVisible: true }),
     {
       key: "macdHist",
@@ -666,6 +667,12 @@ export function PriceChart({
     const c = chart.current;
     const data = candles.current;
     if (!c || !data.length) return;
+    const css = getComputedStyle(document.documentElement);
+    colors.current = {
+      ...colors.current,
+      up: cfg.candle.up || css.getPropertyValue("--up").trim() || "#16a34a",
+      down: cfg.candle.down || css.getPropertyValue("--down").trim() || "#dc2626",
+    };
     const col = colors.current;
 
     if (main.current) c.removeSeries(main.current);
@@ -1193,8 +1200,22 @@ function ColorPick({ value, label, onChange }: { value: string; label: string; o
   return <input type="color" value={value} aria-label={label} onChange={(e) => onChange(e.target.value)} className="size-5 shrink-0 cursor-pointer rounded border bg-transparent p-0" />;
 }
 
+function DashToggle({ on, label, onChange }: { on: boolean; label: string; onChange: (v: boolean) => void }) {
+  return (
+    <label className="ml-auto flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+      <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} aria-label={label} className="size-3.5 accent-foreground" />
+      점선
+    </label>
+  );
+}
+
 function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg) => void; onClose: () => void }) {
   const setColor = (k: string, c: string) => setCfg({ ...cfg, colors: { ...cfg.colors, [k]: c } });
+  const setDash = (k: string, v: boolean) => setCfg({ ...cfg, dashed: { ...cfg.dashed, [k]: v } });
+  const themeCss = typeof document !== "undefined" ? getComputedStyle(document.documentElement) : null;
+  const themeUp = themeCss?.getPropertyValue("--up").trim() || "#16a34a";
+  const themeDown = themeCss?.getPropertyValue("--down").trim() || "#dc2626";
+  const hex6 = (c: string, fb: string) => (/^#[0-9a-fA-F]{6}$/.test(c) ? c : fb);
   const lineGroup = (key: "ma" | "ema", title: string) => (
     <section>
       <h4 className="mb-1 text-xs font-semibold">{title}</h4>
@@ -1205,15 +1226,17 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
             <ColorPick value={cfg.colors[`${key}${i}`]} label={`${title} ${i + 1} 색`} onChange={(c) => setColor(`${key}${i}`, c)} />
             <span className="w-8 text-muted-foreground">기간</span>
             <NumField label={`${title} ${i + 1} 기간`} value={l.period} min={1} max={500} onCommit={(n) => setCfg({ ...cfg, [key]: cfg[key].map((x, j) => (j === i ? { ...x, period: n } : x)) })} />
+            <DashToggle on={cfg.dashed[`${key}${i}`]} label={`${title} ${i + 1} 점선`} onChange={(v) => setDash(`${key}${i}`, v)} />
           </div>
         ))}
       </div>
     </section>
   );
-  const row = (label: string, children: React.ReactNode) => (
+  const row = (label: string, children: React.ReactNode, dash?: string) => (
     <div className="flex items-center gap-2 text-xs">
       <span className="w-14 text-muted-foreground">{label}</span>
       {children}
+      {dash && <DashToggle on={cfg.dashed[dash]} label={`${label} 점선`} onChange={(v) => setDash(dash, v)} />}
     </div>
   );
   return (
@@ -1224,24 +1247,34 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
           닫기
         </button>
       </div>
+      <section className="space-y-1">
+        <h4 className="text-xs font-semibold">캔들</h4>
+        {row("상승", <ColorPick value={hex6(cfg.candle.up, themeUp)} label="상승 캔들 색" onChange={(c) => setCfg({ ...cfg, candle: { ...cfg.candle, up: c } })} />)}
+        {row("하락", <ColorPick value={hex6(cfg.candle.down, themeDown)} label="하락 캔들 색" onChange={(c) => setCfg({ ...cfg, candle: { ...cfg.candle, down: c } })} />)}
+        {(cfg.candle.up || cfg.candle.down) && (
+          <button type="button" onClick={() => setCfg({ ...cfg, candle: { up: "", down: "" } })} className="text-[11px] text-muted-foreground underline-offset-2 hover:underline">
+            캔들 색 기본값
+          </button>
+        )}
+      </section>
       {lineGroup("ma", "이동평균 (MA)")}
       {lineGroup("ema", "지수이동평균 (EMA)")}
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">볼린저 밴드</h4>
         {row("기간", <NumField label="볼린저 기간" value={cfg.boll.period} min={2} max={500} onCommit={(n) => setCfg({ ...cfg, boll: { ...cfg.boll, period: n } })} />)}
-        {row("밴드 색", <ColorPick value={cfg.colors.bollBand} label="볼린저 밴드 색" onChange={(c) => setColor("bollBand", c)} />)}
-        {row("중심선 색", <ColorPick value={cfg.colors.bollMid} label="볼린저 중심선 색" onChange={(c) => setColor("bollMid", c)} />)}
+        {row("밴드 색", <ColorPick value={cfg.colors.bollBand} label="볼린저 밴드 색" onChange={(c) => setColor("bollBand", c)} />, "bollBand")}
+        {row("중심선 색", <ColorPick value={cfg.colors.bollMid} label="볼린저 중심선 색" onChange={(c) => setColor("bollMid", c)} />, "bollMid")}
         {row("표준편차", <NumField label="볼린저 표준편차 배수" value={cfg.boll.mult} min={0.1} max={10} step={0.1} onCommit={(n) => setCfg({ ...cfg, boll: { ...cfg.boll, mult: n } })} />)}
       </section>
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">RSI</h4>
-        {row("색", <ColorPick value={cfg.colors.rsi} label="RSI 색" onChange={(c) => setColor("rsi", c)} />)}
+        {row("색", <ColorPick value={cfg.colors.rsi} label="RSI 색" onChange={(c) => setColor("rsi", c)} />, "rsi")}
         {row("기간", <NumField label="RSI 기간" value={cfg.rsi.period} min={2} max={200} onCommit={(n) => setCfg({ ...cfg, rsi: { period: n } })} />)}
       </section>
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">MACD</h4>
-        {row("MACD 색", <ColorPick value={cfg.colors.macd} label="MACD 선 색" onChange={(c) => setColor("macd", c)} />)}
-        {row("시그널 색", <ColorPick value={cfg.colors.macdSig} label="MACD 시그널 선 색" onChange={(c) => setColor("macdSig", c)} />)}
+        {row("MACD 색", <ColorPick value={cfg.colors.macd} label="MACD 선 색" onChange={(c) => setColor("macd", c)} />, "macd")}
+        {row("시그널 색", <ColorPick value={cfg.colors.macdSig} label="MACD 시그널 선 색" onChange={(c) => setColor("macdSig", c)} />, "macdSig")}
         {row("단기", <NumField label="MACD 단기" value={cfg.macd.fast} min={1} max={200} onCommit={(n) => n < cfg.macd.slow && setCfg({ ...cfg, macd: { ...cfg.macd, fast: n } })} />)}
         {row("장기", <NumField label="MACD 장기" value={cfg.macd.slow} min={2} max={400} onCommit={(n) => n > cfg.macd.fast && setCfg({ ...cfg, macd: { ...cfg.macd, slow: n } })} />)}
         {row("시그널", <NumField label="MACD 시그널" value={cfg.macd.signal} min={1} max={200} onCommit={(n) => setCfg({ ...cfg, macd: { ...cfg.macd, signal: n } })} />)}
