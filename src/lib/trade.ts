@@ -66,6 +66,7 @@ export type ClosedTrade = {
   pnl: number;
   fee: number;
   reason: "manual" | "tp" | "sl" | "liquidation" | "limit";
+  opened_at?: string | null;
   closed_at: string;
 };
 

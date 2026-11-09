@@ -9,6 +9,10 @@ import {
   LineSeries,
   LineStyle,
   createChart,
+  createSeriesMarkers,
+  type ISeriesMarkersPluginApi,
+  type SeriesMarker,
+  type Time,
   type IChartApi,
   type IPriceLine,
   type ISeriesApi,
@@ -19,7 +23,7 @@ import {
 import { AlignJustify, ChevronRight, CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
-import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
+import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
 
@@ -211,7 +215,9 @@ export function PriceChart({
   balance,
   loggedIn,
   onPlaceOrder,
+  trades = [],
 }: {
+  trades?: ClosedTrade[];
   symbol: string;
   price?: number;
   positions: Position[];
@@ -264,6 +270,11 @@ export function PriceChart({
   const [version, setVersion] = useState(0); // 캔들 데이터가 바뀔 때마다 증가
   const [error, setError] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // B/S 거래 기록 마커 (켜고 끌 수 있음)
+  const [showTrades, setShowTrades] = useState<boolean>(() => readJson<{ showTrades?: boolean }>(K_PREFS, {}).showTrades !== false);
+  const markersApi = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  const tradeRef = useRef({ show: showTrades, trades, positions, symbol, interval });
 
   // 그리기 상태
   const [store, setStore] = useState<Record<string, Shape[]>>(loadDrawings);
@@ -321,11 +332,47 @@ export function PriceChart({
   // 설정·그림 저장
   useEffect(() => {
     try {
-      localStorage.setItem(K_PREFS, JSON.stringify({ interval, kind, inds, cfg }));
+      localStorage.setItem(K_PREFS, JSON.stringify({ interval, kind, inds, cfg, showTrades }));
     } catch {
       /* 저장 불가 환경 */
     }
-  }, [interval, kind, inds, cfg]);
+  }, [interval, kind, inds, cfg, showTrades]);
+
+  /** 진입(매수=B, 매도=S)과 청산(롱 청산=S, 숏 청산=B)을 봉 위에 표시합니다. */
+  const applyMarkers = useCallback(() => {
+    const api = markersApi.current;
+    if (!api) return;
+    const t = tradeRef.current;
+    if (!t.show) {
+      api.setMarkers([]);
+      return;
+    }
+    const col = colors.current;
+    const out: SeriesMarker<Time>[] = [];
+    const add = (iso: string | null | undefined, buy: boolean) => {
+      const ms = iso ? Date.parse(iso) : NaN;
+      if (!Number.isFinite(ms)) return;
+      out.push({
+        time: bucketStart(t.interval, ms / 1000) as UTCTimestamp,
+        position: buy ? "belowBar" : "aboveBar",
+        shape: buy ? "arrowUp" : "arrowDown",
+        color: buy ? col.up : col.down,
+        text: buy ? "B" : "S",
+      });
+    };
+    for (const p of t.positions) if (p.symbol === t.symbol) add(p.opened_at, p.side === "long");
+    for (const x of t.trades) {
+      if (x.symbol !== t.symbol) continue;
+      add(x.opened_at, x.side === "long");
+      add(x.closed_at, x.side !== "long");
+    }
+    out.sort((a, b) => (a.time as number) - (b.time as number));
+    api.setMarkers(out);
+  }, []);
+  useEffect(() => {
+    tradeRef.current = { show: showTrades, trades, positions, symbol, interval };
+    applyMarkers();
+  }, [showTrades, trades, positions, symbol, interval, version, applyMarkers]);
   useEffect(() => {
     try {
       localStorage.setItem(K_DRAW, JSON.stringify(store));
@@ -740,6 +787,8 @@ export function PriceChart({
       m = s;
     }
     main.current = m;
+    markersApi.current = createSeriesMarkers(m as ISeriesApi<SeriesType, Time>, []);
+    applyMarkers();
 
     const calc = calcAll(data, cfg);
     const paneIndex = { main: 0, rsi: inds.includes("rsi") ? 1 : -1, macd: inds.includes("macd") ? (inds.includes("rsi") ? 2 : 1) : -1 };
@@ -770,7 +819,7 @@ export function PriceChart({
       keepRange.current = null;
     }
     drawLines();
-  }, [kind, inds, cfg, version, drawLines]);
+  }, [kind, inds, cfg, version, drawLines, applyMarkers]);
 
   // 포지션·주문이 바뀌면 가격선 갱신
   useEffect(() => {
@@ -1055,6 +1104,15 @@ export function PriceChart({
           ))}
           <button type="button" aria-expanded={settingsOpen} onClick={() => setSettingsOpen((o) => !o)} className={cn("ml-0.5 rounded-md border px-2 py-0.5 text-[11px] font-medium", settingsOpen ? "border-foreground" : "border-transparent text-muted-foreground hover:bg-muted")}>
             ⚙ 설정
+          </button>
+          <button
+            type="button"
+            aria-pressed={showTrades}
+            title={showTrades ? "매수/매도 기록 숨기기" : "매수/매도 기록 표시"}
+            onClick={() => setShowTrades((v) => !v)}
+            className={cn("ml-0.5 rounded-md border px-2 py-0.5 text-[11px] font-bold transition-colors", showTrades ? "border-brand bg-brand-soft" : "border-transparent text-muted-foreground hover:bg-muted")}
+          >
+            <span className={showTrades ? "text-up" : ""}>B</span> <span className={showTrades ? "text-down" : ""}>S</span>
           </button>
         </div>
       </div>

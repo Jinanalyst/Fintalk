@@ -107,7 +107,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           </div>
           <div className="h-[380px] sm:h-[420px] xl:h-[560px]">
             {chartMode === "lite" ? (
-              <PriceChart symbol={symbol} price={mark} positions={symPositions}
+              <PriceChart symbol={symbol} price={mark} positions={symPositions} trades={data.trades}
                 orders={symOrders}
                 onTpSl={async (id, tp, sl) => {
                   const r = await setTpSlAction(id, tp, sl);
