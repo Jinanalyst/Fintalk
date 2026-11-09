@@ -3,21 +3,33 @@
 import { MAX_LEVERAGE } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 
-const TICKS = [1, 5, 10, 20, 30, 40, 50];
+const TICKS = [1, 5, 10, 20, 30, 40, 50].filter((t) => t <= MAX_LEVERAGE);
+const LAST = TICKS.length - 1;
+
+/** 눈금을 같은 간격으로 놓기 위해, 레버리지 값 ↔ 슬라이더 위치(0~눈금 수)를 구간별로 변환합니다. */
+function toPos(v: number) {
+  for (let i = 0; i < LAST; i++) {
+    if (v <= TICKS[i + 1]) return i + (v - TICKS[i]) / (TICKS[i + 1] - TICKS[i]);
+  }
+  return LAST;
+}
+function fromPos(p: number) {
+  const i = Math.min(Math.floor(p), LAST - 1);
+  return Math.round(TICKS[i] + (p - i) * (TICKS[i + 1] - TICKS[i]));
+}
 
 /** 레버리지를 슬라이더로 끌어서 정합니다. 아래 눈금을 누르면 바로 그 값으로 이동합니다. */
 export function LeverageSlider({ value, onChange, className }: { value: number; onChange: (n: number) => void; className?: string }) {
-  const pct = ((value - 1) / (MAX_LEVERAGE - 1)) * 100;
   return (
     <div className={cn("space-y-1.5", className)}>
       <div className="flex items-center gap-3">
         <input
           type="range"
-          min={1}
-          max={MAX_LEVERAGE}
-          step={1}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
+          min={0}
+          max={LAST}
+          step={0.01}
+          value={toPos(value)}
+          onChange={(e) => onChange(fromPos(Number(e.target.value)))}
           aria-label="레버리지"
           className="h-1 flex-1 cursor-pointer accent-foreground"
         />
@@ -36,18 +48,17 @@ export function LeverageSlider({ value, onChange, className }: { value: number; 
         </label>
       </div>
       <div className="relative h-4 text-[10px] text-muted-foreground" style={{ marginRight: 76 }}>
-        {TICKS.filter((t) => t <= MAX_LEVERAGE).map((t) => (
+        {TICKS.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => onChange(t)}
             className={cn("absolute -translate-x-1/2 tabular-nums hover:text-foreground", t === value && "font-bold text-foreground")}
-            style={{ left: `${((t - 1) / (MAX_LEVERAGE - 1)) * 100}%` }}
+            style={{ left: `${(toPos(t) / LAST) * 100}%` }}
           >
             {t}x
           </button>
         ))}
-        <span className="sr-only">{pct.toFixed(0)}%</span>
       </div>
     </div>
   );
