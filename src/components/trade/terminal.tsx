@@ -496,6 +496,9 @@ function PositionsTable({ positions, prices, pending, run }: { positions: Positi
               </td>
               <td className={cn(td, "font-semibold", pnlCls(pnl))}>
                 {signed(pnl)} <span className="text-xs">({roe >= 0 ? "+" : ""}{roe.toFixed(2)}%)</span>
+                <span className="block text-[11px] font-normal text-muted-foreground" title="진입·청산 수수료(0.04%씩)를 모두 뺀 예상 손익">
+                  수수료 반영 약 {signed(pnl - (p.qty * p.entry_price + p.qty * m) * FEE_RATE)}
+                </span>
               </td>
               <td className={td}>
                 <Button variant="outline" size="xs" disabled={pending} onClick={() => run(() => closePositionAction(p.id), "포지션을 청산했습니다.")}>
@@ -541,9 +544,9 @@ function OrdersTable({ orders, pending, run }: { orders: TradeData["orders"]; pe
 function HistoryTable({ trades }: { trades: TradeData["trades"] }) {
   if (!trades.length) return <Empty text="아직 거래 내역이 없습니다." />;
   return (
-    <table className="w-full min-w-[640px]">
+    <table className="w-full min-w-[820px]">
       <thead>
-        <tr>{["종목", "진입가", "청산가", "규모", "손익 (수수료 포함)", "사유", "시각", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+        <tr>{["종목", "진입가", "청산가", "규모", "수수료", "손익 (수수료 포함)", "수익률", "사유", "시각", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
       </thead>
       <tbody>
         {trades.map((t) => (
@@ -552,7 +555,9 @@ function HistoryTable({ trades }: { trades: TradeData["trades"] }) {
             <td className={td}>{fmtPrice(t.entry_price)}</td>
             <td className={td}>{fmtPrice(t.exit_price)}</td>
             <td className={td}>{fmtUsd(t.qty * t.entry_price)}</td>
+            <td className={cn(td, "text-muted-foreground")}>{fmtUsd(t.fee)}</td>
             <td className={cn(td, "font-semibold", pnlCls(t.pnl))}>{signed(t.pnl)}</td>
+            <td className={cn(td, "font-semibold", pnlCls(t.pnl))}>{t.margin > 0 ? `${t.pnl >= 0 ? "+" : ""}${((t.pnl / t.margin) * 100).toFixed(2)}%` : "—"}</td>
             <td className={td}>{REASON_LABEL[t.reason]}</td>
             <td className={cn(td, "text-xs text-muted-foreground")}>{new Date(t.closed_at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
             <td className={td}><ShareButton kind="trade" id={t.id} /></td>
