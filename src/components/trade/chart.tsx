@@ -20,7 +20,7 @@ import {
   type SeriesType,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { AlignJustify, ChevronRight, CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
+import { AlignJustify, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
@@ -51,6 +51,18 @@ const KINDS = [
   ["area", "면적"],
 ] as const;
 type Kind = (typeof KINDS)[number][0];
+
+/** 하이킨아시: 속이 빈 캔들 모양 */
+function HeikinAshiIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="M7 3v3M7 16v3M17 5v3M17 18v3" />
+      <rect x="4.5" y="6" width="5" height="10" rx="1" />
+      <rect x="14.5" y="8" width="5" height="10" rx="1" />
+    </svg>
+  );
+}
+const KIND_ICON = { candle: ChartCandlestick, ha: HeikinAshiIcon, line: ChartLine, area: ChartArea } as const;
 
 const INDS = [
   ["vol", "거래량"],
@@ -1084,11 +1096,14 @@ export function PriceChart({
           </select>
         </div>
         <div className="flex gap-0.5 border-l pl-3">
-          {KINDS.map(([k, name]) => (
-            <button key={k} type="button" onClick={() => setKind(k)} className={btn(k === kind)}>
-              {name}
-            </button>
-          ))}
+          {KINDS.map(([k, name]) => {
+            const Icon = KIND_ICON[k];
+            return (
+              <button key={k} type="button" title={name} aria-label={name} aria-pressed={k === kind} onClick={() => setKind(k)} className={cn(btn(k === kind), "flex items-center justify-center px-2")}>
+                <Icon className="size-4" />
+              </button>
+            );
+          })}
         </div>
         <div className="flex flex-wrap items-center gap-0.5 border-l pl-3">
           {INDS.map(([k, name]) => (
