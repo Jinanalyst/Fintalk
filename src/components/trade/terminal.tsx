@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Fragment, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RotateCcw, Share2, X } from "lucide-react";
@@ -18,6 +18,7 @@ import { LeverageSlider } from "./leverage-slider";
 import { OrderBook } from "./orderbook";
 import { TradingViewChart } from "./tv-chart";
 import { usePriceFeed } from "./use-price-feed";
+import { WinPopup, findWin, type WinInfo } from "./win-popup";
 
 // 차트는 브라우저 저장소(지표 설정·그림)를 읽으므로 서버에서는 그리지 않습니다.
 const PriceChart = dynamic(() => import("./chart").then((m) => m.PriceChart), {
@@ -39,6 +40,18 @@ export function TradeTerminal({ data }: { data: TradeData }) {
   const [pending, start] = useTransition();
   const toast = useToast();
   const mark = prices[symbol];
+  // 새로 종료된 수익 거래가 생기면 팝업을 띄웁니다. 처음 불러온 기존 거래는 팝업 대상이 아닙니다.
+  const seenTrades = useRef<Set<string> | null>(null);
+  const [win, setWin] = useState<WinInfo | null>(null);
+  useEffect(() => {
+    if (!seenTrades.current) {
+      seenTrades.current = new Set(data.trades.map((t) => t.id));
+      return;
+    }
+    const w = findWin(data.trades, seenTrades.current);
+    for (const t of data.trades) seenTrades.current.add(t.id);
+    if (w) setWin(w);
+  }, [data.trades]);
   // 참조가 안정적이어야 차트의 가격선이 시세 틱마다 다시 그려지지 않습니다.
   const router = useRouter();
   const symCloseOrders = useMemo(() => {
@@ -61,6 +74,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
 
   return (
     <div className="space-y-4">
+      {win && <WinPopup win={win} onClose={() => setWin(null)} />}
       {/* 계정 요약 */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat title="총 자산" value={`${fmtUsd(equity)} USDT`} />
