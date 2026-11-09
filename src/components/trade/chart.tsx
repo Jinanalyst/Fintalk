@@ -16,6 +16,7 @@ import {
   type SeriesType,
   type UTCTimestamp,
 } from "lightweight-charts";
+import { CirclePlus, Minus, MoveUpRight, Ruler, Trash2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
@@ -63,6 +64,7 @@ const TOOLS = [
   ["ray", "연장선"],
   ["ruler", "자"],
 ] as const;
+const TOOL_ICON = { hline: Minus, trend: TrendingUp, ray: MoveUpRight, ruler: Ruler } as const;
 type ToolKind = (typeof TOOLS)[number][0];
 
 const PALETTE = ["#f0b90b", "#3b82f6", "#ef4444", "#22c55e", "#a855f7", "#9ca3af"];
@@ -999,24 +1001,29 @@ export function PriceChart({
             ⚙ 설정
           </button>
         </div>
-        <div className="flex gap-0.5 border-l pl-3">
-          <button type="button" aria-pressed={tool === "order" || !!activeTicket} onClick={pickOrderTool} className={cn("rounded-md border px-2 py-1 text-xs font-semibold transition-colors", tool === "order" || activeTicket ? "border-brand bg-brand text-white" : "border-brand/50 text-brand hover:bg-brand-soft")}>
-            차트 주문
-          </button>
-        </div>
-        <div className="flex gap-0.5 border-l pl-3">
-          {TOOLS.map(([k, name]) => (
-            <button key={k} type="button" aria-pressed={tool === k} onClick={() => pickTool(k)} className={btn(tool === k)}>
-              {name}
-            </button>
-          ))}
-          <button type="button" onClick={clearAll} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted">
-            모두 지우기
-          </button>
-        </div>
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 gap-1">
+        {/* 그리기 도구: 아이콘 (이름은 마우스를 올리면 표시) */}
+        <div className="flex w-9 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r pr-1">
+          <button type="button" title="차트 주문" aria-label="차트 주문" aria-pressed={tool === "order" || !!activeTicket} onClick={pickOrderTool} className={cn("flex size-8 items-center justify-center rounded-md transition-colors", tool === "order" || activeTicket ? "bg-brand text-white" : "text-brand hover:bg-brand-soft")}>
+            <CirclePlus className="size-[18px]" />
+          </button>
+          <span className="my-0.5 h-px w-5 bg-border" />
+          {TOOLS.map(([k, name]) => {
+            const Icon = TOOL_ICON[k];
+            return (
+              <button key={k} type="button" title={name} aria-label={name} aria-pressed={tool === k} onClick={() => pickTool(k)} className={cn("flex size-8 items-center justify-center rounded-md transition-colors", tool === k ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+                <Icon className="size-[18px]" />
+              </button>
+            );
+          })}
+          <span className="my-0.5 h-px w-5 bg-border" />
+          <button type="button" title="모두 지우기" aria-label="모두 지우기" onClick={clearAll} className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground">
+            <Trash2 className="size-[18px]" />
+          </button>
+        </div>
+      <div className="relative min-h-0 min-w-0 flex-1">
         <div ref={box} className="absolute inset-0" />
         <button type="button" onClick={resetView} title="확대·축소·이동한 차트를 처음 상태로 되돌립니다" aria-label="차트 초기화" className="absolute bottom-9 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-md border bg-card/90 px-2 py-1 text-[11px] font-medium text-muted-foreground shadow-xs backdrop-blur transition-colors hover:bg-muted hover:text-foreground">
           ↺ 초기화
@@ -1174,6 +1181,7 @@ export function PriceChart({
         )}
         {settingsOpen && <IndSettings cfg={cfg} setCfg={setCfg} onClose={() => setSettingsOpen(false)} />}
         {error && <p className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">차트 데이터를 불러오지 못했습니다.</p>}
+      </div>
       </div>
     </div>
   );
