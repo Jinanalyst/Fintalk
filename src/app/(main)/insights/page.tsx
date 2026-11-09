@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronDown, PenLine } from "lucide-react";
-import { AdSlot } from "@/components/common/ad-slot";
 import { PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { InsightCard } from "@/components/feed/cards";
 import { listPosts } from "@/lib/data/community";
@@ -105,7 +104,6 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
           {rest.map((p, i) => (
             <div key={p.id} className="contents">
               <InsightCard post={p} />
-              {i === 3 && <div className="md:col-span-2"><AdSlot slot="insights-inline" /></div>}
             </div>
           ))}
         </div>

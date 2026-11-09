@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronDown, PenLine } from "lucide-react";
-import { AdSlot } from "@/components/common/ad-slot";
 import { PageTitle, Pills, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
 import { WatchStar } from "@/components/feed/interactive";
@@ -94,7 +93,6 @@ export default async function CommunityPage({ searchParams }: PageProps<"/commun
           {list.map((p, i) => (
             <div key={p.id} className="contents">
               <PostCard post={p} />
-              {i === 4 && <AdSlot slot="feed-inline" />}
             </div>
           ))}
         </div>

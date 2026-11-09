@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { AdSlot } from "@/components/common/ad-slot";
 import { getPopularCreators } from "@/lib/data/creators";
 import { PopularCreatorsView } from "./popular-creators";
 import { MyContributionCard, TopHelpersCard, TrendingTickersCard } from "./side-cards";
@@ -29,7 +28,6 @@ function RightSidebar() {
   return (
     <aside className="hidden space-y-4 xl:block" aria-label="사이드 정보">
       <SideCards />
-      <AdSlot slot="sidebar" className="min-h-[250px]" />
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
         핀톡의 게시글은 이용자의 개인 의견이며 투자 권유가 아닙니다. 투자 판단과 책임은 본인에게 있습니다.
       </p>

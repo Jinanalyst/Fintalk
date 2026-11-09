@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, MessageCircleQuestion, PenLine } from "lucide-react";
-import { AdSlot } from "@/components/common/ad-slot";
 import { Pills, SampleBadge, SectionHeader } from "@/components/common/bits";
 import { InsightCard, PostCard, questionStatus } from "@/components/feed/cards";
 import { SideCards } from "@/components/layout/shell";
@@ -45,7 +44,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
   return (
     <div className="space-y-7">
-      <AdSlot slot="home-top" preview className="min-h-20" />
 
       {/* 히어로: 돕는 커뮤니티 */}
       <section className="overflow-hidden rounded-3xl border bg-card p-5 shadow-xs sm:p-8">
@@ -133,7 +131,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         <Pills items={TABS} active={tab} hrefFor={(t) => (t === "hot" ? "/" : `/?tab=${t}`)} className="mb-3" />
         <div className="space-y-2.5">
           {posts.slice(0, 3).map((p) => <PostCard key={p.id} post={p} />)}
-          {posts.length > 3 && <AdSlot slot="feed-inline" />}
           {posts.slice(3).map((p) => <PostCard key={p.id} post={p} />)}
         </div>
         {posts.length === 0 && (

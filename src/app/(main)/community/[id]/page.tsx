@@ -4,7 +4,6 @@ import { LiveViews, ViewCounter } from "@/components/feed/live-views";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Eye, ImageIcon } from "lucide-react";
-import { AdSlot } from "@/components/common/ad-slot";
 import { Card, SampleBadge, SectionHeader, Tag } from "@/components/common/bits";
 import { CommentForm, CommentList } from "@/components/feed/comments";
 import { PostBadges } from "@/components/feed/cards";
@@ -148,7 +147,6 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
         )}
       </Card>
 
-      <AdSlot slot="post-detail" />
 
       <section>
         <SectionHeader
