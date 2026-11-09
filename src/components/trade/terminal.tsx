@@ -143,6 +143,12 @@ export function TradeTerminal({ data }: { data: TradeData }) {
   const symPositions = useMemo(() => data.positions.filter((p) => p.symbol === symbol), [data.positions, symbol]);
   const symOrders = useMemo(() => data.orders.filter((o) => o.symbol === symbol), [data.orders, symbol]);
 
+  // 표의 종목명을 누르면 해당 종목 차트·포지션 현황으로 전환하고 차트 위치로 스크롤합니다.
+  const selectSymbol = (s: string) => {
+    setSymbol(s);
+    requestAnimationFrame(() => document.getElementById("trade-chart")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg?: string) =>
     start(async () => {
       const r = await fn();
@@ -167,7 +173,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_260px_320px]">
         <Card className="flex min-w-0 flex-col p-0 md:col-span-2 xl:col-span-1">
-          <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+          <div id="trade-chart" className="flex scroll-mt-20 flex-wrap items-center gap-2 border-b px-3 py-2">
             {SYMBOLS.map((s) => (
               <button
                 key={s.symbol}
@@ -292,11 +298,11 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               <Link href="/login" className="font-semibold text-brand hover:underline">로그인</Link>하면 10,000 USDT 가상 자금으로 모의투자를 시작할 수 있습니다.
             </p>
           ) : tab === "positions" ? (
-            <PositionsTable positions={data.positions} closeOrders={data.closeOrders} prices={prices} pending={pending} run={run} />
+            <PositionsTable positions={data.positions} closeOrders={data.closeOrders} prices={prices} pending={pending} run={run} current={symbol} onSelect={selectSymbol} />
           ) : tab === "orders" ? (
-            <OrdersTable orders={data.orders} closeOrders={data.closeOrders} positions={data.positions} pending={pending} run={run} />
+            <OrdersTable orders={data.orders} closeOrders={data.closeOrders} positions={data.positions} pending={pending} run={run} current={symbol} onSelect={selectSymbol} />
           ) : (
-            <HistoryTable trades={data.trades} />
+            <HistoryTable trades={data.trades} current={symbol} onSelect={selectSymbol} />
           )}
         </div>
       </Card>
@@ -567,6 +573,13 @@ function Row({ k, v, bold }: { k: string; v: string; bold?: boolean }) {
 const th = "px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap";
 const td = "px-2 py-2 text-sm tabular-nums whitespace-nowrap";
 const SideTag = ({ side }: { side: Side }) => <span className={cn("font-semibold", side === "long" ? "text-up" : "text-down")}>{side === "long" ? "롱" : "숏"}</span>;
+function SymLink({ sym, current, onSelect }: { sym: string; current: string; onSelect: (s: string) => void }) {
+  return (
+    <button type="button" title="차트·포지션 보기" onClick={() => onSelect(sym)} className={cn("font-medium hover:text-brand hover:underline", sym === current && "text-brand")}>
+      {label(sym)}
+    </button>
+  );
+}
 const Empty = ({ text }: { text: string }) => <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
 
 /** 포지션·거래의 공유 카드를 만들고 카드 페이지로 이동합니다. 수치는 서버가 기록에서 계산합니다. */
@@ -594,7 +607,9 @@ function ShareButton({ kind, id }: { kind: "position" | "trade"; id: string }) {
   );
 }
 
-function PositionsTable({ positions, closeOrders, prices, pending, run }: { positions: Position[]; closeOrders: CloseOrder[]; prices: Record<string, number>; pending: boolean; run: Run }) {
+type Pick = { current: string; onSelect: (s: string) => void };
+
+function PositionsTable({ positions, closeOrders, prices, pending, run, current, onSelect }: { positions: Position[]; closeOrders: CloseOrder[]; prices: Record<string, number>; pending: boolean; run: Run } & Pick) {
   const [editing, setEditing] = useState<string | null>(null);
   const [closing, setClosing] = useState<string | null>(null);
   const [tp, setTp] = useState("");
@@ -619,7 +634,7 @@ function PositionsTable({ positions, closeOrders, prices, pending, run }: { posi
             <Fragment key={p.id}>
             <tr className="border-t align-top">
               <td className={td}>
-                {label(p.symbol)} <SideTag side={p.side} /> <span className="text-xs text-muted-foreground">{p.leverage}x</span>
+                <SymLink sym={p.symbol} current={current} onSelect={onSelect} /> <SideTag side={p.side} /> <span className="text-xs text-muted-foreground">{p.leverage}x</span>
               </td>
               <td className={td}>{fmtUsd(p.qty * p.entry_price)}</td>
               <td className={td}>{fmtPrice(p.entry_price)}</td>
@@ -687,7 +702,7 @@ function PositionsTable({ positions, closeOrders, prices, pending, run }: { posi
   );
 }
 
-function OrdersTable({ orders, closeOrders, positions, pending, run }: { orders: TradeData["orders"]; closeOrders: CloseOrder[]; positions: Position[]; pending: boolean; run: Run }) {
+function OrdersTable({ orders, closeOrders, positions, pending, run, current, onSelect }: { orders: TradeData["orders"]; closeOrders: CloseOrder[]; positions: Position[]; pending: boolean; run: Run } & Pick) {
   if (!orders.length && !closeOrders.length) return <Empty text="미체결 주문이 없습니다." />;
   return (
     <table className="w-full min-w-[560px]">
@@ -700,7 +715,7 @@ function OrdersTable({ orders, closeOrders, positions, pending, run }: { orders:
           if (!pos) return null;
           return (
             <tr key={c.id} className="border-t">
-              <td className={td}>{label(pos.symbol)} <SideTag side={pos.side} /> <span className="rounded bg-muted px-1 text-[11px]">청산 {((c.qty / pos.qty) * 100).toFixed(0)}%</span></td>
+              <td className={td}><SymLink sym={pos.symbol} current={current} onSelect={onSelect} /> <SideTag side={pos.side} /> <span className="rounded bg-muted px-1 text-[11px]">청산 {((c.qty / pos.qty) * 100).toFixed(0)}%</span></td>
               <td className={td}>{fmtPrice(c.price)}</td>
               <td className={td}>{fmtUsd(c.qty * c.price)}</td>
               <td className={td}>—</td>
@@ -715,7 +730,7 @@ function OrdersTable({ orders, closeOrders, positions, pending, run }: { orders:
         })}
         {orders.map((o) => (
           <tr key={o.id} className="border-t">
-            <td className={td}>{label(o.symbol)} <SideTag side={o.side} /> <span className="text-xs text-muted-foreground">{o.leverage}x</span></td>
+            <td className={td}><SymLink sym={o.symbol} current={current} onSelect={onSelect} /> <SideTag side={o.side} /> <span className="text-xs text-muted-foreground">{o.leverage}x</span></td>
             <td className={td}>{fmtPrice(o.price)}</td>
             <td className={td}>{fmtUsd(o.qty * o.price)}</td>
             <td className={td}>{o.tp ? fmtPrice(o.tp) : "—"} / {o.sl ? fmtPrice(o.sl) : "—"}</td>
@@ -732,7 +747,7 @@ function OrdersTable({ orders, closeOrders, positions, pending, run }: { orders:
   );
 }
 
-function HistoryTable({ trades }: { trades: TradeData["trades"] }) {
+function HistoryTable({ trades, current, onSelect }: { trades: TradeData["trades"] } & Pick) {
   if (!trades.length) return <Empty text="아직 거래 내역이 없습니다." />;
   return (
     <table className="w-full min-w-[820px]">
@@ -742,7 +757,7 @@ function HistoryTable({ trades }: { trades: TradeData["trades"] }) {
       <tbody>
         {trades.map((t) => (
           <tr key={t.id} className="border-t">
-            <td className={td}>{label(t.symbol)} <SideTag side={t.side} /> <span className="text-xs text-muted-foreground">{t.leverage}x</span></td>
+            <td className={td}><SymLink sym={t.symbol} current={current} onSelect={onSelect} /> <SideTag side={t.side} /> <span className="text-xs text-muted-foreground">{t.leverage}x</span></td>
             <td className={td}>{fmtPrice(t.entry_price)}</td>
             <td className={td}>{fmtPrice(t.exit_price)}</td>
             <td className={td}>{fmtUsd(t.qty * t.entry_price)}</td>
