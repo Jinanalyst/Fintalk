@@ -4,16 +4,17 @@ import dynamic from "next/dynamic";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, RotateCcw, Share2, X } from "lucide-react";
+import { RotateCcw, Share2, X } from "lucide-react";
 import { Card } from "@/components/common/bits";
 import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
 import { createShareAction } from "@/app/actions/share";
 import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
-import { FEE_RATE, MAX_LEVERAGE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, unrealizedPnl, type CloseOrder, type Position, type Side } from "@/lib/trade";
+import { FEE_RATE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, unrealizedPnl, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 import { ClosePanel } from "./close-panel";
+import { LeverageSlider } from "./leverage-slider";
 import { OrderBook } from "./orderbook";
 import { TradingViewChart } from "./tv-chart";
 import { usePriceFeed } from "./use-price-feed";
@@ -24,7 +25,6 @@ const PriceChart = dynamic(() => import("./chart").then((m) => m.PriceChart), {
   loading: () => <div className="grid h-full place-items-center text-sm text-muted-foreground">차트 불러오는 중…</div>,
 });
 
-const LEVERAGES = [1, 2, 3, 5, 10, 20, 50];
 const inputCls = "h-9 w-full rounded-lg border bg-background px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 const pnlCls = (n: number) => (n >= 0 ? "text-up" : "text-down");
 const signed = (n: number) => `${n >= 0 ? "+" : ""}${fmtUsd(n)}`;
@@ -224,7 +224,6 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
   const [type, setType] = useState<"market" | "limit">("market");
   const [size, setSize] = useState("");
   const [lev, setLev] = useState(10);
-  const [levOpen, setLevOpen] = useState(false);
   const [limit, setLimit] = useState("");
   const [tpsl, setTpsl] = useState(false);
   const [tp, setTp] = useState("");
@@ -292,27 +291,14 @@ function OrderForm({ symbol, mark, balance, loggedIn, pending, run, picked }: { 
       {/* 레버리지 (맨 위) */}
       <div>
         <div className="flex items-center justify-between text-sm">
-          <button type="button" onClick={() => setLevOpen((o) => !o)} className="flex items-center gap-1 font-medium" aria-expanded={levOpen}>
-            <span className="text-muted-foreground">레버리지</span> {lev}x <ChevronRight className={cn("size-3.5 transition-transform", levOpen && "rotate-90")} />
-          </button>
+          <span className="font-medium">
+            <span className="text-muted-foreground">레버리지</span> {lev}x
+          </span>
           <span className="text-xs text-muted-foreground">
             거래 가능 규모 <span className="font-semibold tabular-nums text-foreground">${fmtUsd(power)}</span>
           </span>
         </div>
-        {levOpen && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {LEVERAGES.filter((l) => l <= MAX_LEVERAGE).map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => { setLev(l); setLevOpen(false); }}
-                className={cn("rounded-md border px-2.5 py-1 text-xs font-medium", l === lev ? "border-brand bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted")}
-              >
-                {l}x
-              </button>
-            ))}
-          </div>
-        )}
+        <LeverageSlider className="mt-2" value={lev} onChange={setLev} />
       </div>
 
       {type === "limit" && (

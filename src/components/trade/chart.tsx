@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, EMA_COLORS, MA_COLORS, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { ClosePanel } from "./close-panel";
+import { LeverageSlider } from "./leverage-slider";
 
 const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 const SECONDS: Record<string, number> = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400 };
@@ -1221,7 +1222,6 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
   );
 }
 
-const TICKET_LEVS = [1, 3, 5, 10, 20, 50];
 
 /** 차트 주문 설정 패널: 차트의 진입·익절·손절 선과 숫자가 서로 연동됩니다. */
 function TicketPanel({ t, set, mark, balance, loggedIn, busy, onSubmit, onClose }: { t: Ticket; set: (t: Ticket) => void; mark?: number; balance: number; loggedIn: boolean; busy: boolean; onSubmit: () => void; onClose: () => void }) {
@@ -1307,13 +1307,9 @@ function TicketPanel({ t, set, mark, balance, loggedIn, busy, onSubmit, onClose 
         <NumField wide label="주문 금액" value={t.size} min={10} max={1000000} step={0.01} onCommit={(n) => set({ ...t, size: n })} />
         <span className="text-muted-foreground">USDT</span>
       </div>
-      <div className="flex flex-wrap items-center gap-1 text-xs">
-        <span className="w-12 text-muted-foreground">레버리지</span>
-        {TICKET_LEVS.map((l) => (
-          <button key={l} type="button" onClick={() => set({ ...t, lev: l })} className={cn("rounded-md border px-1.5 py-0.5 text-[11px] font-medium", l === t.lev ? "border-brand bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted")}>
-            {l}x
-          </button>
-        ))}
+      <div className="space-y-1 text-xs">
+        <span className="text-muted-foreground">레버리지</span>
+        <LeverageSlider value={t.lev} onChange={(l) => set({ ...t, lev: l })} />
       </div>
       {level("tp", "익절")}
       {level("sl", "손절")}
