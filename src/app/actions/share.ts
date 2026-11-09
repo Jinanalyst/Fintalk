@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { UUID_RE } from "@/lib/data/community";
 import { fmtPrice } from "@/lib/trade";
+import { refreshPrices } from "@/lib/refresh-prices";
 import { createPostAction, type Result } from "./community";
 
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });
@@ -27,6 +28,8 @@ export async function createShareAction(kind: "position" | "trade", sourceId: st
   const sb = await authed();
   if (!sb) return fail("로그인이 필요합니다.");
   if (!UUID_RE.test(sourceId)) return fail("잘못된 요청입니다.");
+  // 진행 중인 포지션은 서버에 저장된 시세가 오래됐거나 비어 있으면 수익률이 0% 로 나오므로, 공유 직전에 최신 시세를 반영합니다.
+  if (kind === "position") await refreshPrices(sb);
   const { data, error } = await sb.rpc(kind === "position" ? "paper_share_position" : "paper_share_trade", { p_id: sourceId });
   if (error || !data) return fail(dbMsg(error?.message ?? "", error?.code));
   return { ok: true, id: data as string };

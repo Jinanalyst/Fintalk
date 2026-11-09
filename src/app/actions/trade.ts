@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { UUID_RE } from "@/lib/data/community";
-import { MAX_LEVERAGE, fetchPrices, isSymbol } from "@/lib/trade";
+import { MAX_LEVERAGE, isSymbol } from "@/lib/trade";
+import { refreshPrices } from "@/lib/refresh-prices";
 import type { Result } from "./community";
 
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });
@@ -22,18 +23,6 @@ function dbMsg(m: string, code?: string) {
   if (code === "P0001" || /P0001/.test(m)) return m;
   console.error("[trade] db error:", code, m);
   return "요청을 처리하지 못했습니다.";
-}
-
-/** 주문 직전에 최신 시세를 DB 에 반영합니다. (비밀값은 서버만 알고 있어 클라이언트가 가격을 조작할 수 없음) */
-let lastTick = 0;
-async function refreshPrices(sb: NonNullable<Awaited<ReturnType<typeof authed>>>) {
-  const secret = process.env.TRADE_TICK_SECRET;
-  if (!secret) return;
-  // 직전 1.5초 안에 갱신했다면 건너뜁니다. 연속 주문마다 거래소 조회+DB 왕복을 반복하지 않도록.
-  if (Date.now() - lastTick < 1500) return;
-  lastTick = Date.now();
-  const prices = await fetchPrices();
-  if (prices) await sb.rpc("paper_tick", { p_secret: secret, p_prices: prices });
 }
 
 const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
