@@ -101,10 +101,18 @@ export type IndCfg = {
   boll: { period: number; mult: number };
   rsi: { period: number };
   macd: { fast: number; slow: number; signal: number };
+  /** 지표별 선 색 (키: ma0~2, ema0~2, bollBand, bollMid, rsi, macd, macdSig) */
+  colors: Record<string, string>;
 };
 
 export const MA_COLORS = ["#f0b90b", "#a855f7", "#14b8a6"];
 export const EMA_COLORS = ["#3b82f6", "#f97316", "#ec4899"];
+
+export const DEFAULT_COLORS: Record<string, string> = {
+  ma0: MA_COLORS[0], ma1: MA_COLORS[1], ma2: MA_COLORS[2],
+  ema0: EMA_COLORS[0], ema1: EMA_COLORS[1], ema2: EMA_COLORS[2],
+  bollBand: "#60a5fa", bollMid: "#9ca3af", rsi: "#a855f7", macd: "#3b82f6", macdSig: "#f97316",
+};
 
 export const DEFAULT_CFG: IndCfg = {
   ma: [
@@ -120,6 +128,7 @@ export const DEFAULT_CFG: IndCfg = {
   boll: { period: 20, mult: 2 },
   rsi: { period: 14 },
   macd: { fast: 12, slow: 26, signal: 9 },
+  colors: { ...DEFAULT_COLORS },
 };
 
 const num = (v: unknown, fallback: number, min: number, max: number) => {
@@ -140,7 +149,11 @@ export function mergeCfg(raw: unknown): IndCfg {
   const m = (r.macd ?? {}) as Record<string, unknown>;
   const fast = Math.trunc(num(m.fast, 12, 1, 200));
   const slow = Math.trunc(num(m.slow, 26, 2, 400));
+  const rc = (r.colors ?? {}) as Record<string, unknown>;
+  const colors: Record<string, string> = {};
+  for (const k of Object.keys(DEFAULT_COLORS)) colors[k] = typeof rc[k] === "string" && /^#[0-9a-fA-F]{6}$/.test(rc[k] as string) ? (rc[k] as string) : DEFAULT_COLORS[k];
   return {
+    colors,
     ma: lines(r.ma, DEFAULT_CFG.ma),
     ema: lines(r.ema, DEFAULT_CFG.ema),
     boll: { period: Math.trunc(num(b.period, 20, 2, 500)), mult: num(b.mult, 2, 0.1, 10) },

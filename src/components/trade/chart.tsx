@@ -17,7 +17,7 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import { cn } from "@/lib/utils";
-import { DEFAULT_CFG, EMA_COLORS, MA_COLORS, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
+import { DEFAULT_CFG, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
@@ -152,13 +152,13 @@ function specs(cfg: IndCfg): Spec[] {
       point: (i, c, _k, col) => ({ time: c[i].time as UTCTimestamp, value: c[i].volume, color: alpha(c[i].close >= c[i].open ? col.up : col.down, 0.45) }),
     },
   ];
-  cfg.ma.forEach((m, i) => m.on && out.push(line(`ma${i}`, "ma", "main", (k) => k.ma[i], MA_COLORS[i])));
-  cfg.ema.forEach((m, i) => m.on && out.push(line(`ema${i}`, "ema", "main", (k) => k.ema[i], EMA_COLORS[i])));
+  cfg.ma.forEach((m, i) => m.on && out.push(line(`ma${i}`, "ma", "main", (k) => k.ma[i], cfg.colors[`ma${i}`])));
+  cfg.ema.forEach((m, i) => m.on && out.push(line(`ema${i}`, "ema", "main", (k) => k.ema[i], cfg.colors[`ema${i}`])));
   out.push(
-    line("bbUp", "boll", "main", (k) => k.bbUp, "#60a5fa", { lineStyle: LineStyle.Dashed }),
-    line("bbMid", "boll", "main", (k) => k.bbMid, "#9ca3af"),
-    line("bbLow", "boll", "main", (k) => k.bbLow, "#60a5fa", { lineStyle: LineStyle.Dashed }),
-    line("rsi", "rsi", "rsi", (k) => k.rsi, "#a855f7", { lastValueVisible: true }),
+    line("bbUp", "boll", "main", (k) => k.bbUp, cfg.colors.bollBand, { lineStyle: LineStyle.Dashed }),
+    line("bbMid", "boll", "main", (k) => k.bbMid, cfg.colors.bollMid),
+    line("bbLow", "boll", "main", (k) => k.bbLow, cfg.colors.bollBand, { lineStyle: LineStyle.Dashed }),
+    line("rsi", "rsi", "rsi", (k) => k.rsi, cfg.colors.rsi, { lastValueVisible: true }),
     {
       key: "macdHist",
       ind: "macd",
@@ -170,8 +170,8 @@ function specs(cfg: IndCfg): Spec[] {
         return v === null || v === undefined ? null : { time: c[i].time as UTCTimestamp, value: v, color: alpha(v >= 0 ? col.up : col.down, 0.7) };
       },
     },
-    line("macd", "macd", "macd", (k) => k.macd, "#3b82f6"),
-    line("macdSig", "macd", "macd", (k) => k.macdSignal, "#f97316"),
+    line("macd", "macd", "macd", (k) => k.macd, cfg.colors.macd),
+    line("macdSig", "macd", "macd", (k) => k.macdSignal, cfg.colors.macdSig),
   );
   return out;
 }
@@ -1177,15 +1177,20 @@ function NumField({ value, min, max, step = 1, onCommit, label, wide }: { value:
   );
 }
 
+function ColorPick({ value, label, onChange }: { value: string; label: string; onChange: (c: string) => void }) {
+  return <input type="color" value={value} aria-label={label} onChange={(e) => onChange(e.target.value)} className="size-5 shrink-0 cursor-pointer rounded border bg-transparent p-0" />;
+}
+
 function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg) => void; onClose: () => void }) {
-  const lineGroup = (key: "ma" | "ema", title: string, colorsList: string[]) => (
+  const setColor = (k: string, c: string) => setCfg({ ...cfg, colors: { ...cfg.colors, [k]: c } });
+  const lineGroup = (key: "ma" | "ema", title: string) => (
     <section>
       <h4 className="mb-1 text-xs font-semibold">{title}</h4>
       <div className="space-y-1">
         {cfg[key].map((l, i) => (
           <div key={i} className="flex items-center gap-2 text-xs">
             <input type="checkbox" checked={l.on} onChange={(e) => setCfg({ ...cfg, [key]: cfg[key].map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)) })} className="size-3.5 accent-foreground" aria-label={`${title} ${i + 1} 사용`} />
-            <span className="size-2.5 rounded-full" style={{ background: colorsList[i] }} />
+            <ColorPick value={cfg.colors[`${key}${i}`]} label={`${title} ${i + 1} 색`} onChange={(c) => setColor(`${key}${i}`, c)} />
             <span className="w-8 text-muted-foreground">기간</span>
             <NumField label={`${title} ${i + 1} 기간`} value={l.period} min={1} max={500} onCommit={(n) => setCfg({ ...cfg, [key]: cfg[key].map((x, j) => (j === i ? { ...x, period: n } : x)) })} />
           </div>
@@ -1207,19 +1212,24 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
           닫기
         </button>
       </div>
-      {lineGroup("ma", "이동평균 (MA)", MA_COLORS)}
-      {lineGroup("ema", "지수이동평균 (EMA)", EMA_COLORS)}
+      {lineGroup("ma", "이동평균 (MA)")}
+      {lineGroup("ema", "지수이동평균 (EMA)")}
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">볼린저 밴드</h4>
         {row("기간", <NumField label="볼린저 기간" value={cfg.boll.period} min={2} max={500} onCommit={(n) => setCfg({ ...cfg, boll: { ...cfg.boll, period: n } })} />)}
+        {row("밴드 색", <ColorPick value={cfg.colors.bollBand} label="볼린저 밴드 색" onChange={(c) => setColor("bollBand", c)} />)}
+        {row("중심선 색", <ColorPick value={cfg.colors.bollMid} label="볼린저 중심선 색" onChange={(c) => setColor("bollMid", c)} />)}
         {row("표준편차", <NumField label="볼린저 표준편차 배수" value={cfg.boll.mult} min={0.1} max={10} step={0.1} onCommit={(n) => setCfg({ ...cfg, boll: { ...cfg.boll, mult: n } })} />)}
       </section>
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">RSI</h4>
+        {row("색", <ColorPick value={cfg.colors.rsi} label="RSI 색" onChange={(c) => setColor("rsi", c)} />)}
         {row("기간", <NumField label="RSI 기간" value={cfg.rsi.period} min={2} max={200} onCommit={(n) => setCfg({ ...cfg, rsi: { period: n } })} />)}
       </section>
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">MACD</h4>
+        {row("MACD 색", <ColorPick value={cfg.colors.macd} label="MACD 선 색" onChange={(c) => setColor("macd", c)} />)}
+        {row("시그널 색", <ColorPick value={cfg.colors.macdSig} label="MACD 시그널 선 색" onChange={(c) => setColor("macdSig", c)} />)}
         {row("단기", <NumField label="MACD 단기" value={cfg.macd.fast} min={1} max={200} onCommit={(n) => n < cfg.macd.slow && setCfg({ ...cfg, macd: { ...cfg.macd, fast: n } })} />)}
         {row("장기", <NumField label="MACD 장기" value={cfg.macd.slow} min={2} max={400} onCommit={(n) => n > cfg.macd.fast && setCfg({ ...cfg, macd: { ...cfg.macd, slow: n } })} />)}
         {row("시그널", <NumField label="MACD 시그널" value={cfg.macd.signal} min={1} max={200} onCommit={(n) => setCfg({ ...cfg, macd: { ...cfg.macd, signal: n } })} />)}
