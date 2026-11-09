@@ -479,7 +479,9 @@ export function PriceChart({
           levels.push({ y: r1(y as number), text: `${r} (${fmtPrice(pv)})` });
         }
         const lx = r1(Math.min(pa.x, pb.x, pc ? pc.x : Infinity));
-        items.push({ id: sh.id, kind: sh.kind, x1: r1(pa.x), y1: r1(pa.y), x2: r1(pb.x), y2: r1(pb.y), hx1: r1(pa.x), hy1: r1(pa.y), hx2: r1(pb.x), hy2: r1(pb.y), hx3: pc ? r1(pc.x) : undefined, hy3: pc ? r1(pc.y) : undefined, levels, lx, rx: w, color, width: sh.width, draft: sh.draft });
+        // 선은 그린 구간 길이만큼만(최소 140px) 그려서 화면 끝까지 길게 늘어지지 않게 합니다.
+        const rxSpan = Math.max(pa.x, pb.x, pc ? pc.x : -Infinity) - lx;
+        items.push({ id: sh.id, kind: sh.kind, x1: r1(pa.x), y1: r1(pa.y), x2: r1(pb.x), y2: r1(pb.y), hx1: r1(pa.x), hy1: r1(pa.y), hx2: r1(pb.x), hy2: r1(pb.y), hx3: pc ? r1(pc.x) : undefined, hy3: pc ? r1(pc.y) : undefined, levels, lx, rx: r1(lx + Math.max(rxSpan, 140)), color, width: sh.width, draft: sh.draft });
         continue;
       }
       if (sh.kind === "box") {
