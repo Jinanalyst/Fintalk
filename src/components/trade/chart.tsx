@@ -938,6 +938,15 @@ export function PriceChart({
     setSelected(null);
   };
 
+  // 확대·축소·이동한 차트를 처음 상태(전체 봉 맞춤 + 가격축 자동)로 되돌립니다.
+  const resetView = () => {
+    const c = chart.current;
+    if (!c) return;
+    c.timeScale().fitContent();
+    c.priceScale("right").applyOptions({ autoScale: true });
+    c.panes().forEach((_, i) => { try { c.priceScale("right", i).applyOptions({ autoScale: true }); } catch { /* 해당 패널 없음 */ } });
+  };
+
   const sel = shapes.find((s) => s.id === selected) ?? null;
   const activeTicket = ticket && ticket.symbol === symbol ? ticket : null;
   const hint = tool === "order" ? "주문할 가격을 클릭하세요 — 현재가보다 아래면 롱, 위면 숏 지정가가 됩니다" : tool ? (tool === "hline" ? "차트를 클릭해 수평선을 놓으세요" : draft ? "두 번째 점을 클릭하세요" : "첫 번째 점을 클릭하세요 (끌어서 그려도 됩니다)") : null;
@@ -952,6 +961,9 @@ export function PriceChart({
               {INTERVAL_LABEL[i] ?? i}
             </button>
           ))}
+          <button type="button" onClick={resetView} title="확대·축소·이동한 차트를 처음 상태로 되돌립니다" className="ml-1 rounded-md border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted">
+            ↺ 초기화
+          </button>
         </div>
         <div className="flex gap-0.5 border-l pl-3">
           {KINDS.map(([k, name]) => (
