@@ -961,7 +961,7 @@ export function PriceChart({
         <div ref={box} className="absolute inset-0" />
 
         {/* 그리기 레이어: 도형 위에서만 마우스를 받고, 나머지는 차트로 통과시킵니다. */}
-        <svg ref={svgRef} className="pointer-events-none absolute inset-0 h-full w-full overflow-hidden" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+        <svg ref={svgRef} className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-hidden" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
           <defs>
             <clipPath id={clipId}>
               <rect x={0} y={0} width={layout.w} height={layout.h} />
