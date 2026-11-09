@@ -69,12 +69,38 @@ export async function placeOrderAction(input: {
   return { ok: true, status: data === "open" ? "open" : "filled" };
 }
 
-export async function closePositionAction(id: string): Promise<Result> {
+/** 시장가 청산. pct 는 1~100 (부분 청산) */
+export async function closePositionAction(id: string, pct = 100): Promise<Result> {
   const sb = await authed();
   if (!sb) return fail("로그인이 필요합니다.");
   if (!UUID_RE.test(id)) return fail("잘못된 요청입니다.");
+  if (!(Number.isFinite(pct) && pct > 0 && pct <= 100)) return fail("청산 비율은 1~100% 입니다.");
   await refreshPrices(sb);
-  const { error } = await sb.rpc("paper_close_position", { p_id: id });
+  const { error } = await sb.rpc("paper_close_position", { p_id: id, p_pct: pct });
+  if (error) return fail(dbMsg(error.message, error.code));
+  revalidatePath("/trade");
+  return { ok: true };
+}
+
+/** 지정가 청산 주문(reduce-only) 등록 */
+export async function placeCloseOrderAction(id: string, pct: number, price: number): Promise<Result> {
+  const sb = await authed();
+  if (!sb) return fail("로그인이 필요합니다.");
+  if (!UUID_RE.test(id)) return fail("잘못된 요청입니다.");
+  if (!(Number.isFinite(pct) && pct > 0 && pct <= 100)) return fail("청산 비율은 1~100% 입니다.");
+  if (!(Number.isFinite(price) && price > 0)) return fail("가격이 올바르지 않습니다.");
+  await refreshPrices(sb);
+  const { error } = await sb.rpc("paper_place_close_order", { p_id: id, p_pct: pct, p_price: price });
+  if (error) return fail(dbMsg(error.message, error.code));
+  revalidatePath("/trade");
+  return { ok: true };
+}
+
+export async function cancelCloseOrderAction(id: string): Promise<Result> {
+  const sb = await authed();
+  if (!sb) return fail("로그인이 필요합니다.");
+  if (!UUID_RE.test(id)) return fail("잘못된 요청입니다.");
+  const { error } = await sb.rpc("paper_cancel_close_order", { p_id: id });
   if (error) return fail(dbMsg(error.message, error.code));
   revalidatePath("/trade");
   return { ok: true };

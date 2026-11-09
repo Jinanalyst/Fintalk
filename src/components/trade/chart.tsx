@@ -18,7 +18,8 @@ import {
 } from "lightweight-charts";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, EMA_COLORS, MA_COLORS, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
-import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type Position, type Side } from "@/lib/trade";
+import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
+import { ClosePanel } from "./close-panel";
 
 const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
 const SECONDS: Record<string, number> = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400 };
@@ -81,11 +82,13 @@ type Layout = {
   ticket: { ey: number; ty: number | null; sy: number | null } | null;
   chips: { id: string; kind: "tp" | "sl"; y: number }[];
   ghost: { y: number; kind: "tp" | "sl" } | null;
+  closeBtns: { id: string; y: number }[];
+  closeLines: { id: string; y: number; price: number; pct: number }[];
 };
 type Draft = { kind: ToolKind; a: Anchor; b: Anchor; down: boolean; sx: number; sy: number; moved: boolean };
 type Drag = { id: string; mode: "move" | "a" | "b"; sx: number; sy: number; orig: Item };
 
-const EMPTY_LAYOUT: Layout = { w: 0, h: 0, items: [], ticket: null, chips: [], ghost: null };
+const EMPTY_LAYOUT: Layout = { w: 0, h: 0, items: [], ticket: null, chips: [], ghost: null, closeBtns: [], closeLines: [] };
 const K_DRAW = "fintalk.trade.drawings.v1";
 const K_PREFS = "fintalk.trade.chartprefs.v1";
 
@@ -175,6 +178,10 @@ export function PriceChart({
   positions,
   orders,
   onTpSl,
+  closeOrders,
+  onClosePosition,
+  onCloseLimit,
+  onCancelClose,
   balance,
   loggedIn,
   onPlaceOrder,
@@ -184,6 +191,10 @@ export function PriceChart({
   positions: Position[];
   orders: Order[];
   onTpSl?: (id: string, tp: number | null, sl: number | null) => Promise<unknown>;
+  closeOrders: CloseOrder[];
+  onClosePosition?: (id: string, pct: number) => Promise<boolean>;
+  onCloseLimit?: (id: string, pct: number, price: number) => Promise<boolean>;
+  onCancelClose?: (id: string) => Promise<unknown>;
   balance: number;
   loggedIn: boolean;
   onPlaceOrder?: (o: TicketOrder) => Promise<boolean>;
@@ -199,7 +210,9 @@ export function PriceChart({
   const lineRefs = useRef<IPriceLine[]>([]);
   const entryLines = useRef<{ line: IPriceLine; pos: Position }[]>([]);
   const dragLines = useRef<DragLine[]>([]);
-  const overlay = useRef({ positions, orders });
+  const overlay = useRef({ positions, orders, closeOrders });
+  const [closeId, setCloseId] = useState<string | null>(null);
+  const [closeBusy, setCloseBusy] = useState(false);
   const fitNext = useRef(false);
   const keepRange = useRef<{ from: unknown; to: unknown } | null>(null);
   const hasMore = useRef(true);
@@ -375,7 +388,19 @@ export function PriceChart({
       }
       const g = ghostRef.current;
       const gy = g ? yOf(g.price) : null;
-      return { ticket: ticketPx, chips, ghost: g && gy !== null ? { y: gy, kind: g.kind } : null };
+      // 포지션 진입선 옆 청산 버튼과, 대기 중인 지정가 청산선
+      const closeBtns: Layout["closeBtns"] = [];
+      for (const pos of overlay.current.positions) {
+        const ey = yOf(pos.entry_price);
+        if (ey !== null) closeBtns.push({ id: pos.id, y: ey });
+      }
+      const closeLines: Layout["closeLines"] = [];
+      for (const c of overlay.current.closeOrders) {
+        const pos = overlay.current.positions.find((x) => x.id === c.position_id);
+        const cy = yOf(c.price);
+        if (pos && cy !== null) closeLines.push({ id: c.id, y: cy, price: c.price, pct: Math.round((c.qty / pos.qty) * 100) });
+      }
+      return { ticket: ticketPx, chips, ghost: g && gy !== null ? { y: gy, kind: g.kind } : null, closeBtns, closeLines };
     })();
     if (!list.length) return { w, h, items: [], ...ex }; // 도형이 없어도 그리기 도구가 클릭을 받을 영역 크기는 필요
     const step = SECONDS[intervalRef.current];
@@ -685,9 +710,9 @@ export function PriceChart({
 
   // 포지션·주문이 바뀌면 가격선 갱신
   useEffect(() => {
-    overlay.current = { positions, orders };
+    overlay.current = { positions, orders, closeOrders };
     drawLines();
-  }, [positions, orders, symbol, drawLines]);
+  }, [positions, orders, closeOrders, symbol, drawLines]);
 
   // 실시간 시세로 마지막 봉과 지표 갱신 (새 봉 구간이 시작되면 새 봉 생성)
   useEffect(() => {
@@ -1016,6 +1041,24 @@ export function PriceChart({
               </g>
             );
           })()}
+          {layout.closeLines.map((c) => (
+            <g key={c.id}>
+              <line x1={0} y1={c.y} x2={layout.w} y2={c.y} style={{ stroke: "#f59e0b" }} strokeWidth={1.5} strokeDasharray="2 4" pointerEvents="none" />
+              <text x={layout.w - 8} y={c.y - 5} textAnchor="end" fontSize={11} fontWeight={600} style={{ fill: "#f59e0b", paintOrder: "stroke", stroke: "var(--background)", strokeWidth: 3 }} pointerEvents="none">
+                {"지정가 청산 " + c.pct + "% " + fmtPrice(c.price)}
+              </text>
+              <g transform={"translate(8," + (c.y - 9) + ")"} style={{ pointerEvents: "all", cursor: "pointer" }} onPointerDown={(e) => { e.stopPropagation(); void onCancelClose?.(c.id); }}>
+                <rect width={44} height={18} rx={4} style={{ fill: "var(--card)", stroke: "#f59e0b" }} strokeWidth={1.2} />
+                <text x={22} y={12.5} textAnchor="middle" fontSize={10.5} fontWeight={700} style={{ fill: "#f59e0b" }} pointerEvents="none">취소 ✕</text>
+              </g>
+            </g>
+          ))}
+          {layout.closeBtns.map((c) => (
+            <g key={"cb" + c.id} transform={"translate(60," + (c.y - 9) + ")"} style={{ pointerEvents: "all", cursor: "pointer" }} onPointerDown={(e) => { e.stopPropagation(); setCloseId((cur) => (cur === c.id ? null : c.id)); }}>
+              <rect width={48} height={18} rx={4} style={{ fill: closeId === c.id ? "var(--foreground)" : "var(--card)", stroke: "var(--foreground)" }} strokeWidth={1.2} />
+              <text x={24} y={12.5} textAnchor="middle" fontSize={10.5} fontWeight={700} style={{ fill: closeId === c.id ? "var(--background)" : "var(--foreground)" }} pointerEvents="none">청산 ▾</text>
+            </g>
+          ))}
           {layout.chips.map((c) => (
             <g key={c.id + c.kind} transform={`translate(${Math.max(0, layout.w - 84)},${c.y})`} style={{ pointerEvents: "all", cursor: "grab" }} onPointerDown={(e) => startGhost(e, c.id, c.kind)}>
               <rect width={76} height={18} rx={4} style={{ fill: "var(--card)", stroke: c.kind === "tp" ? "var(--up)" : "var(--down)" }} strokeWidth={1.2} />
@@ -1068,6 +1111,29 @@ export function PriceChart({
 
         {activeTicket && (
           <TicketPanel t={activeTicket} set={setTicket} mark={price} balance={balance} loggedIn={loggedIn} busy={busy} onSubmit={submitTicket} onClose={() => setTicket(null)} />
+        )}
+        {closeId && positions.find((x) => x.id === closeId) && (
+          <div className="absolute right-16 top-2 z-20 w-64 rounded-xl border bg-card p-3 shadow-lg">
+            <h3 className="mb-2 text-sm font-bold">포지션 청산</h3>
+            <ClosePanel
+              pos={positions.find((x) => x.id === closeId)!}
+              mark={price}
+              busy={closeBusy}
+              onMarket={async (pct) => {
+                setCloseBusy(true);
+                const ok = await onClosePosition?.(closeId, pct);
+                setCloseBusy(false);
+                if (ok && pct >= 100) setCloseId(null);
+              }}
+              onLimit={async (pct, pr) => {
+                setCloseBusy(true);
+                const ok = await onCloseLimit?.(closeId, pct, pr);
+                setCloseBusy(false);
+                if (ok) setCloseId(null);
+              }}
+              onCancel={() => setCloseId(null)}
+            />
+          </div>
         )}
         {settingsOpen && <IndSettings cfg={cfg} setCfg={setCfg} onClose={() => setSettingsOpen(false)} />}
         {error && <p className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">차트 데이터를 불러오지 못했습니다.</p>}

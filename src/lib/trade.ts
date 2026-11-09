@@ -45,6 +45,15 @@ export type Order = {
   created_at: string;
 };
 
+/** 지정가 청산 주문 (reduce-only): 포지션의 일부 또는 전부를 지정한 가격에 청산 */
+export type CloseOrder = {
+  id: string;
+  position_id: string;
+  price: number;
+  qty: number;
+  created_at: string;
+};
+
 export type ClosedTrade = {
   id: string;
   symbol: string;
@@ -56,7 +65,7 @@ export type ClosedTrade = {
   margin: number;
   pnl: number;
   fee: number;
-  reason: "manual" | "tp" | "sl" | "liquidation";
+  reason: "manual" | "tp" | "sl" | "liquidation" | "limit";
   closed_at: string;
 };
 
@@ -68,6 +77,7 @@ export const REASON_LABEL: Record<ClosedTrade["reason"], string> = {
   tp: "익절",
   sl: "손절",
   liquidation: "강제청산",
+  limit: "지정가 청산",
 };
 
 /** 가격 자릿수: 큰 값은 소수 2자리, 작은 값은 더 길게 */

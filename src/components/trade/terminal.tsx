@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, RotateCcw, Share2, X } from "lucide-react";
@@ -9,10 +9,11 @@ import { Card } from "@/components/common/bits";
 import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
 import { createShareAction } from "@/app/actions/share";
-import { cancelOrderAction, closePositionAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
+import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
-import { FEE_RATE, MAX_LEVERAGE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, unrealizedPnl, type Position, type Side } from "@/lib/trade";
+import { FEE_RATE, MAX_LEVERAGE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, unrealizedPnl, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
+import { ClosePanel } from "./close-panel";
 import { OrderBook } from "./orderbook";
 import { TradingViewChart } from "./tv-chart";
 import { usePriceFeed } from "./use-price-feed";
@@ -39,6 +40,11 @@ export function TradeTerminal({ data }: { data: TradeData }) {
   const toast = useToast();
   const mark = prices[symbol];
   // 참조가 안정적이어야 차트의 가격선이 시세 틱마다 다시 그려지지 않습니다.
+  const router = useRouter();
+  const symCloseOrders = useMemo(() => {
+    const ids = new Set(data.positions.filter((p) => p.symbol === symbol).map((p) => p.id));
+    return data.closeOrders.filter((c) => ids.has(c.position_id));
+  }, [data.closeOrders, data.positions, symbol]);
   const symPositions = useMemo(() => data.positions.filter((p) => p.symbol === symbol), [data.positions, symbol]);
   const symOrders = useMemo(() => data.orders.filter((o) => o.symbol === symbol), [data.orders, symbol]);
 
@@ -107,6 +113,24 @@ export function TradeTerminal({ data }: { data: TradeData }) {
                   const r = await setTpSlAction(id, tp, sl);
                   toast.show(r.ok ? "익절/손절을 수정했습니다." : r.error);
                 }}
+                closeOrders={symCloseOrders}
+                onClosePosition={async (id, pct) => {
+                  const r = await closePositionAction(id, pct);
+                  toast.show(r.ok ? (pct >= 100 ? "포지션을 청산했습니다." : `${pct}% 청산했습니다.`) : r.error);
+                  if (r.ok) router.refresh();
+                  return r.ok;
+                }}
+                onCloseLimit={async (id, pct, price) => {
+                  const r = await placeCloseOrderAction(id, pct, price);
+                  toast.show(r.ok ? "지정가 청산 주문을 등록했습니다." : r.error);
+                  if (r.ok) router.refresh();
+                  return r.ok;
+                }}
+                onCancelClose={async (id) => {
+                  const r = await cancelCloseOrderAction(id);
+                  toast.show(r.ok ? "청산 주문을 취소했습니다." : r.error);
+                  if (r.ok) router.refresh();
+                }}
                 balance={data.balance}
                 loggedIn={data.loggedIn}
                 onPlaceOrder={async (o) => {
@@ -134,7 +158,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           {(
             [
               ["positions", `포지션 ${data.positions.length}`],
-              ["orders", `미체결 ${data.orders.length}`],
+              ["orders", `미체결 ${data.orders.length + data.closeOrders.length}`],
               ["history", "거래 내역"],
             ] as const
           ).map(([k, t]) => (
@@ -169,9 +193,9 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               <Link href="/login" className="font-semibold text-brand hover:underline">로그인</Link>하면 10,000 USDT 가상 자금으로 모의투자를 시작할 수 있습니다.
             </p>
           ) : tab === "positions" ? (
-            <PositionsTable positions={data.positions} prices={prices} pending={pending} run={run} />
+            <PositionsTable positions={data.positions} closeOrders={data.closeOrders} prices={prices} pending={pending} run={run} />
           ) : tab === "orders" ? (
-            <OrdersTable orders={data.orders} pending={pending} run={run} />
+            <OrdersTable orders={data.orders} closeOrders={data.closeOrders} positions={data.positions} pending={pending} run={run} />
           ) : (
             <HistoryTable trades={data.trades} />
           )}
@@ -453,8 +477,9 @@ function ShareButton({ kind, id }: { kind: "position" | "trade"; id: string }) {
   );
 }
 
-function PositionsTable({ positions, prices, pending, run }: { positions: Position[]; prices: Record<string, number>; pending: boolean; run: Run }) {
+function PositionsTable({ positions, closeOrders, prices, pending, run }: { positions: Position[]; closeOrders: CloseOrder[]; prices: Record<string, number>; pending: boolean; run: Run }) {
   const [editing, setEditing] = useState<string | null>(null);
+  const [closing, setClosing] = useState<string | null>(null);
   const [tp, setTp] = useState("");
   const [sl, setSl] = useState("");
   if (!positions.length) return <Empty text="열린 포지션이 없습니다." />;
@@ -472,8 +497,10 @@ function PositionsTable({ positions, prices, pending, run }: { positions: Positi
           const m = prices[p.symbol] ?? p.entry_price;
           const pnl = unrealizedPnl(p, m);
           const roe = (pnl / p.margin) * 100;
+          const mine = closeOrders.filter((c) => c.position_id === p.id);
           return (
-            <tr key={p.id} className="border-t align-top">
+            <Fragment key={p.id}>
+            <tr className="border-t align-top">
               <td className={td}>
                 {label(p.symbol)} <SideTag side={p.side} /> <span className="text-xs text-muted-foreground">{p.leverage}x</span>
               </td>
@@ -501,12 +528,41 @@ function PositionsTable({ positions, prices, pending, run }: { positions: Positi
                 </span>
               </td>
               <td className={td}>
-                <Button variant="outline" size="xs" disabled={pending} onClick={() => run(() => closePositionAction(p.id), "포지션을 청산했습니다.")}>
-                  시장가 청산
+                <Button variant={closing === p.id ? "secondary" : "outline"} size="xs" onClick={() => setClosing(closing === p.id ? null : p.id)}>
+                  청산{mine.length > 0 && ` (${mine.length})`}
                 </Button>
                 <ShareButton kind="position" id={p.id} />
               </td>
             </tr>
+            {closing === p.id && (
+              <tr className="bg-muted/30">
+                <td colSpan={8} className="px-3 py-3">
+                  <div className="flex flex-wrap items-start gap-6">
+                    <ClosePanel
+                      className="w-72"
+                      pos={p}
+                      mark={m}
+                      busy={pending}
+                      onMarket={(pct) => { run(() => closePositionAction(p.id, pct), pct >= 100 ? "포지션을 청산했습니다." : `${pct}% 청산했습니다.`); if (pct >= 100) setClosing(null); }}
+                      onLimit={(pct, price) => run(() => placeCloseOrderAction(p.id, pct, price), "지정가 청산 주문을 등록했습니다.")}
+                      onCancel={() => setClosing(null)}
+                    />
+                    {mine.length > 0 && (
+                      <ul className="min-w-56 space-y-1 text-xs">
+                        <li className="font-semibold text-muted-foreground">대기 중인 지정가 청산</li>
+                        {mine.map((c) => (
+                          <li key={c.id} className="flex items-center gap-2 tabular-nums">
+                            {fmtPrice(c.price)} · {((c.qty / p.qty) * 100).toFixed(0)}%
+                            <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => cancelCloseOrderAction(c.id), "청산 주문을 취소했습니다.")}><X /> 취소</Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )}
+            </Fragment>
           );
         })}
       </tbody>
@@ -514,14 +570,32 @@ function PositionsTable({ positions, prices, pending, run }: { positions: Positi
   );
 }
 
-function OrdersTable({ orders, pending, run }: { orders: TradeData["orders"]; pending: boolean; run: Run }) {
-  if (!orders.length) return <Empty text="미체결 주문이 없습니다." />;
+function OrdersTable({ orders, closeOrders, positions, pending, run }: { orders: TradeData["orders"]; closeOrders: CloseOrder[]; positions: Position[]; pending: boolean; run: Run }) {
+  if (!orders.length && !closeOrders.length) return <Empty text="미체결 주문이 없습니다." />;
   return (
     <table className="w-full min-w-[560px]">
       <thead>
         <tr>{["종목", "지정가", "규모", "익절 / 손절", "예약 증거금", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
       </thead>
       <tbody>
+        {closeOrders.map((c) => {
+          const pos = positions.find((x) => x.id === c.position_id);
+          if (!pos) return null;
+          return (
+            <tr key={c.id} className="border-t">
+              <td className={td}>{label(pos.symbol)} <SideTag side={pos.side} /> <span className="rounded bg-muted px-1 text-[11px]">청산 {((c.qty / pos.qty) * 100).toFixed(0)}%</span></td>
+              <td className={td}>{fmtPrice(c.price)}</td>
+              <td className={td}>{fmtUsd(c.qty * c.price)}</td>
+              <td className={td}>—</td>
+              <td className={td}>—</td>
+              <td className={td}>
+                <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => cancelCloseOrderAction(c.id), "청산 주문을 취소했습니다.")}>
+                  <X /> 취소
+                </Button>
+              </td>
+            </tr>
+          );
+        })}
         {orders.map((o) => (
           <tr key={o.id} className="border-t">
             <td className={td}>{label(o.symbol)} <SideTag side={o.side} /> <span className="text-xs text-muted-foreground">{o.leverage}x</span></td>
