@@ -12,8 +12,9 @@ const fail = (error: string): { ok: false; error: string } => ({ ok: false, erro
 async function authed() {
   if (!isSupabaseConfigured) return null;
   const sb = await createClient();
-  const { data } = await sb.auth.getUser();
-  return data.user ? sb : null;
+  // getClaims 는 Supabase Auth 서버를 부르지 않고 JWT 를 로컬에서 검증해 훨씬 빠릅니다. (DB 쪽 RLS/auth.uid() 가 다시 검증)
+  const { data } = await sb.auth.getClaims();
+  return data?.claims?.sub ? sb : null;
 }
 
 /** DB 함수가 던진 한글 메시지는 그대로 보여주고, 그 외는 일반 문구로 숨깁니다. */
@@ -24,9 +25,13 @@ function dbMsg(m: string, code?: string) {
 }
 
 /** 주문 직전에 최신 시세를 DB 에 반영합니다. (비밀값은 서버만 알고 있어 클라이언트가 가격을 조작할 수 없음) */
+let lastTick = 0;
 async function refreshPrices(sb: NonNullable<Awaited<ReturnType<typeof authed>>>) {
   const secret = process.env.TRADE_TICK_SECRET;
   if (!secret) return;
+  // 직전 1.5초 안에 갱신했다면 건너뜁니다. 연속 주문마다 거래소 조회+DB 왕복을 반복하지 않도록.
+  if (Date.now() - lastTick < 1500) return;
+  lastTick = Date.now();
   const prices = await fetchPrices();
   if (prices) await sb.rpc("paper_tick", { p_secret: secret, p_prices: prices });
 }

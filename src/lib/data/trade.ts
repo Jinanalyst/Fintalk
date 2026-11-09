@@ -27,14 +27,15 @@ const toTrade = (r: Record<string, unknown>) =>
 export async function getTradeData(): Promise<TradeData> {
   if (!isSupabaseConfigured) return EMPTY;
   const sb = await createClient();
-  const { data: auth } = await sb.auth.getUser();
+  // 인증 확인과 시세 조회를 동시에 (getClaims: 서버 왕복 없는 로컬 JWT 검증, 데이터는 RLS 가 다시 보호)
+  const [{ data: auth }, { data: pr }] = await Promise.all([sb.auth.getClaims(), sb.from("paper_prices").select("symbol,price")]);
   const prices: Record<string, number> = {};
-  const { data: pr } = await sb.from("paper_prices").select("symbol,price");
   for (const r of pr ?? []) prices[r.symbol] = Number(r.price);
-  if (!auth.user) return { ...EMPTY, prices };
+  const uid = auth?.claims?.sub;
+  if (!uid) return { ...EMPTY, prices };
 
   const [acc, pos, ord, cls, trd] = await Promise.all([
-    sb.from("paper_accounts").select("balance").eq("user_id", auth.user.id).maybeSingle(),
+    sb.from("paper_accounts").select("balance").eq("user_id", uid).maybeSingle(),
     sb.from("paper_positions").select("*").order("opened_at", { ascending: false }),
     sb.from("paper_orders").select("*").eq("status", "open").order("created_at", { ascending: false }),
     sb.from("paper_close_orders").select("*").eq("status", "open").order("created_at", { ascending: false }),
