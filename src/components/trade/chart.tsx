@@ -16,7 +16,7 @@ import {
   type SeriesType,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { CirclePlus, Minus, MoveUpRight, Ruler, Trash2, TrendingUp } from "lucide-react";
+import { CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, unrealizedPnl, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
@@ -62,9 +62,10 @@ const TOOLS = [
   ["hline", "수평선"],
   ["trend", "추세선"],
   ["ray", "연장선"],
+  ["box", "매물대(박스)"],
   ["ruler", "자"],
 ] as const;
-const TOOL_ICON = { hline: Minus, trend: TrendingUp, ray: MoveUpRight, ruler: Ruler } as const;
+const TOOL_ICON = { hline: Minus, trend: TrendingUp, ray: MoveUpRight, box: Square, ruler: Ruler } as const;
 type ToolKind = (typeof TOOLS)[number][0];
 
 const PALETTE = ["#f0b90b", "#3b82f6", "#ef4444", "#22c55e", "#a855f7", "#9ca3af"];
@@ -446,6 +447,11 @@ export function PriceChart({
           x2 = pa.x;
         }
       }
+      if (sh.kind === "box") {
+        const hi = Math.max(sh.a.p, sh.b.p);
+        const lo = Math.min(sh.a.p, sh.b.p);
+        label = `${fmtPrice(hi)} ~ ${fmtPrice(lo)}`;
+      }
       if (sh.kind === "ruler") {
         const diff = sh.b.p - sh.a.p;
         const bars = Math.round((sh.b.t - sh.a.t) / step);
@@ -771,7 +777,7 @@ export function PriceChart({
 
   const commit = useCallback(
     (kind: ToolKind, a: Anchor, b: Anchor) => {
-      const sh: Shape = { id: uid(), kind, a, b, color: kind === "hline" ? "#f0b90b" : kind === "ray" ? "#3b82f6" : "#f0b90b", width: 2 };
+      const sh: Shape = { id: uid(), kind, a, b, color: kind === "hline" ? "#f0b90b" : kind === "ray" || kind === "box" ? "#3b82f6" : "#f0b90b", width: 2 };
       updateShapes((l) => [...l, sh]);
       setSelected(sh.id);
       setTool(null);
@@ -1042,10 +1048,16 @@ export function PriceChart({
               const isSel = it.id === selected;
               return (
                 <g key={it.id}>
+                  {it.kind === "box" ? (
+                    <rect x={Math.min(it.x1, it.x2)} y={Math.min(it.y1, it.y2)} width={Math.abs(it.x2 - it.x1)} height={Math.abs(it.y2 - it.y1)} fill={it.color} fillOpacity={isSel ? 0.25 : 0.16} stroke={it.color} strokeWidth={isSel ? it.width + 1 : it.width} strokeDasharray={it.draft ? "6 4" : undefined} style={{ pointerEvents: it.draft || tool ? "none" : "all", cursor: tool ? undefined : "move" }} onPointerDown={(e) => startDrag(e, it, "move")} />
+                  ) : (
+                    <>
                   {!it.draft && (
                     <line x1={it.x1} y1={it.y1} x2={it.x2} y2={it.y2} stroke="rgba(0,0,0,0)" strokeWidth={14} style={{ pointerEvents: "stroke", cursor: tool ? undefined : "move" }} onPointerDown={(e) => startDrag(e, it, "move")} />
                   )}
                   <line x1={it.x1} y1={it.y1} x2={it.x2} y2={it.y2} stroke={it.color} strokeWidth={isSel ? it.width + 1 : it.width} strokeDasharray={it.kind === "ruler" || it.draft ? "6 4" : undefined} strokeLinecap="round" pointerEvents="none" />
+                    </>
+                  )}
                   {it.label && (
                     <text x={(it.hx1 + it.hx2) / 2} y={Math.min(it.hy1, it.hy2) - 8} textAnchor="middle" fontSize={11} fontWeight={600} fill={it.color} pointerEvents="none" style={{ paintOrder: "stroke", stroke: "var(--background)", strokeWidth: 3 }}>
                       {it.label}
