@@ -105,7 +105,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               </span>
             </span>
           </div>
-          <div className="h-[420px] xl:h-[560px]">
+          <div className="h-[380px] sm:h-[420px] xl:h-[560px]">
             {chartMode === "lite" ? (
               <PriceChart symbol={symbol} price={mark} positions={symPositions}
                 orders={symOrders}
@@ -145,16 +145,18 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           </div>
         </Card>
 
-        <div className="min-h-[420px] xl:h-[618px]">
+        <div className="order-3 min-h-[360px] md:order-none md:min-h-[420px] xl:h-[618px]">
           <OrderBook symbol={symbol} mark={mark} onPick={(price) => setPicked({ price, n: (picked?.n ?? 0) + 1 })} />
         </div>
 
-        <OrderForm symbol={symbol} mark={mark} positions={symPositions} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
+        <div className="order-2 min-w-0 md:order-none">
+          <OrderForm symbol={symbol} mark={mark} positions={symPositions} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
+        </div>
       </div>
 
       {/* 포지션 / 주문 / 내역 */}
       <Card className="p-0">
-        <div className="flex items-center gap-1 border-b px-3 pt-2">
+        <div className="flex items-center gap-1 overflow-x-auto border-b px-3 pt-2">
           {(
             [
               ["positions", `포지션 ${data.positions.length}`],
@@ -167,7 +169,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               type="button"
               onClick={() => setTab(k)}
               className={cn(
-                "-mb-px border-b-2 px-3 py-2 text-sm font-medium",
+                "-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium",
                 tab === k ? "border-brand text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >

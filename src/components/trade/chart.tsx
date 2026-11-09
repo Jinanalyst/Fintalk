@@ -945,7 +945,7 @@ export function PriceChart({
 
   return (
     <div className="flex h-full flex-col p-2">
-      <div className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="mb-1.5 flex flex-nowrap items-center gap-x-3 gap-y-1 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0 [&>*]:shrink-0">
         <div className="flex gap-0.5">
           {INTERVALS.map((i) => (
             <button key={i} type="button" onClick={() => setIntervalKey(i)} className={cn("rounded-md px-2 py-1 text-xs font-medium transition-colors", i === interval ? "bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted")}>
@@ -1205,7 +1205,7 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
     </div>
   );
   return (
-    <div className="absolute right-2 top-2 z-20 max-h-[calc(100%-16px)] w-64 space-y-3 overflow-y-auto rounded-xl border bg-card p-3 shadow-lg">
+    <div className="absolute right-2 top-2 z-20 max-h-[calc(100%-16px)] w-64 max-w-[calc(100%-16px)] space-y-3 overflow-y-auto rounded-xl border bg-card p-3 shadow-lg">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold">지표 설정</h3>
         <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">
