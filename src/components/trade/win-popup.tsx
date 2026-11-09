@@ -25,52 +25,64 @@ const MOODS = [
   { title: "불꽃 연승!", line: "대단해요! 지금 완전 물올랐어요 🔥" },
 ];
 
-/** 코인 캐릭터: 연승이 길수록 표정이 커집니다. 1회 = 미소, 2회 = 웃는 눈, 3회 이상 = 별 눈 + 파티 모자 */
+/** 코인 캐릭터: 연승이 길수록 멋있어집니다. 1회 = 자신만만한 표정, 2회 = 선글라스 + 주먹, 3회 이상 = 왕관 + 망토 */
 function Mascot({ streak }: { streak: number }) {
   const tier = streak >= 3 ? 2 : streak >= 2 ? 1 : 0;
+  const GOLD = "#f5c211";
+  const EDGE = "#b8860b";
+  const rightUp = tier >= 1;
+  const leftUp = tier === 2;
+  const fist = (cx: number, cy: number) => <circle cx={cx} cy={cy} r={10} fill={GOLD} stroke={EDGE} strokeWidth="4" />;
   return (
-    <svg viewBox="0 0 160 160" className="win-mascot size-32" role="img" aria-label="기뻐하는 코인 캐릭터">
-      {tier === 2 && <path d="M80 6 L62 44 H98 Z" fill="#ef4444" stroke="#fff" strokeWidth="3" strokeLinejoin="round" />}
-      {tier === 2 && <circle cx="80" cy="6" r="6" fill="#f0b90b" />}
-      <g className="win-arm-l"><path d="M30 92 Q10 70 22 52" fill="none" stroke="#d99a06" strokeWidth="10" strokeLinecap="round" /></g>
-      <g className="win-arm-r"><path d="M130 92 Q150 70 138 52" fill="none" stroke="#d99a06" strokeWidth="10" strokeLinecap="round" /></g>
-      <circle cx="80" cy="92" r="52" fill="#f0b90b" stroke="#d99a06" strokeWidth="6" />
-      <circle cx="80" cy="92" r="40" fill="none" stroke="#fcd34d" strokeWidth="3" strokeDasharray="4 6" />
-      {/* 볼 */}
-      <circle cx="52" cy="102" r="7" fill="#fb7185" opacity="0.55" />
-      <circle cx="108" cy="102" r="7" fill="#fb7185" opacity="0.55" />
-      {/* 눈 */}
-      {tier === 0 && (
-        <>
-          <circle cx="62" cy="88" r="6" fill="#422006" />
-          <circle cx="98" cy="88" r="6" fill="#422006" />
-          <circle cx="64" cy="86" r="2" fill="#fff" />
-          <circle cx="100" cy="86" r="2" fill="#fff" />
-        </>
-      )}
-      {tier === 1 && (
-        <>
-          <path d="M53 92 Q62 80 71 92" fill="none" stroke="#422006" strokeWidth="5" strokeLinecap="round" />
-          <path d="M89 92 Q98 80 107 92" fill="none" stroke="#422006" strokeWidth="5" strokeLinecap="round" />
-        </>
-      )}
+    <svg viewBox="0 0 160 164" className="win-mascot size-32" role="img" aria-label="멋진 코인 캐릭터">
+      {tier === 2 && <path d="M42 72 Q14 126 26 152 L134 152 Q146 126 118 72 Z" fill="#dc2626" stroke="#991b1b" strokeWidth="3" strokeLinejoin="round" />}
+      <path d="M64 143 V156 M96 143 V156" stroke={EDGE} strokeWidth="8" strokeLinecap="round" />
+      <ellipse cx="60" cy="158" rx="11" ry="5" fill="#1f2937" />
+      <ellipse cx="100" cy="158" rx="11" ry="5" fill="#1f2937" />
+      <g className="win-arm-l">
+        {leftUp ? (
+          <><path d="M30 92 Q10 74 18 52" fill="none" stroke={EDGE} strokeWidth="9" strokeLinecap="round" />{fist(18, 46)}</>
+        ) : (
+          <><path d="M30 100 Q12 112 22 128" fill="none" stroke={EDGE} strokeWidth="9" strokeLinecap="round" />{fist(22, 130)}</>
+        )}
+      </g>
+      <g className="win-arm-r">
+        {rightUp ? (
+          <><path d="M130 92 Q150 74 142 52" fill="none" stroke={EDGE} strokeWidth="9" strokeLinecap="round" />{fist(142, 46)}</>
+        ) : (
+          <><path d="M130 100 Q148 112 138 128" fill="none" stroke={EDGE} strokeWidth="9" strokeLinecap="round" />{fist(138, 130)}</>
+        )}
+      </g>
+      <circle cx="80" cy="92" r="52" fill={GOLD} stroke={EDGE} strokeWidth="6" />
+      <circle cx="80" cy="92" r="41" fill="none" stroke="#fde68a" strokeWidth="3" />
+      <path d="M45 72 Q52 54 70 48" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" opacity="0.6" />
       {tier === 2 && (
         <>
-          <path d="M62 78 l3.5 7 7.5 1 -5.5 5 1.5 7.5 -7 -3.8 -7 3.8 1.5 -7.5 -5.5 -5 7.5 -1z" fill="#fff" stroke="#422006" strokeWidth="2.5" strokeLinejoin="round" />
-          <path d="M98 78 l3.5 7 7.5 1 -5.5 5 1.5 7.5 -7 -3.8 -7 3.8 1.5 -7.5 -5.5 -5 7.5 -1z" fill="#fff" stroke="#422006" strokeWidth="2.5" strokeLinejoin="round" />
+          <path d="M54 50 L56 24 L68 38 L80 18 L92 38 L104 24 L106 50 Z" fill="#a855f7" stroke="#6b21a8" strokeWidth="3.5" strokeLinejoin="round" />
+          <circle cx="56" cy="24" r="4" fill="#fde047" /><circle cx="80" cy="18" r="4.5" fill="#fde047" /><circle cx="104" cy="24" r="4" fill="#fde047" />
         </>
       )}
-      {/* 입 */}
       {tier === 0 ? (
-        <path d="M66 108 Q80 120 94 108" fill="none" stroke="#422006" strokeWidth="5" strokeLinecap="round" />
+        <>
+          <ellipse cx="64" cy="90" rx="8" ry="7" fill="#fff" stroke="#422006" strokeWidth="2.5" />
+          <ellipse cx="96" cy="90" rx="8" ry="7" fill="#fff" stroke="#422006" strokeWidth="2.5" />
+          <circle cx="66" cy="91" r="3.5" fill="#422006" /><circle cx="98" cy="91" r="3.5" fill="#422006" />
+          <path d="M53 77 L74 83 M107 77 L86 83" stroke="#422006" strokeWidth="4.5" strokeLinecap="round" />
+          <path d="M66 113 Q84 120 100 104" fill="none" stroke="#422006" strokeWidth="5" strokeLinecap="round" />
+        </>
       ) : (
-        <path d="M62 106 Q80 132 98 106 Z" fill="#7f1d1d" stroke="#422006" strokeWidth="4" strokeLinejoin="round" />
+        <>
+          <path d="M48 80 H76 V92 Q76 102 66 102 H58 Q48 102 48 92 Z" fill="#111827" />
+          <path d="M84 80 H112 V92 Q112 102 102 102 H94 Q84 102 84 92 Z" fill="#111827" />
+          <path d="M76 84 H84" stroke="#111827" strokeWidth="4" />
+          <path d="M54 85 L62 85 M90 85 L98 85" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" opacity="0.8" />
+          <path d="M62 109 Q82 128 102 106 Z" fill="#fff" stroke="#422006" strokeWidth="4" strokeLinejoin="round" />
+        </>
       )}
-      {/* 반짝이 */}
       {tier >= 1 && (
         <g fill="#fff" className="win-spark">
-          <path d="M20 30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z" />
-          <path d="M140 24 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5z" />
+          <path d="M18 28 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z" />
+          <path d="M136 22 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5z" />
         </g>
       )}
     </svg>
