@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/common/theme";
 import { ToastProvider } from "@/components/common/toast";
+import { LiveChat } from "@/components/chat/live-chat";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -28,7 +29,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ko" suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
         <ThemeProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            {children}
+            <LiveChat />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>
