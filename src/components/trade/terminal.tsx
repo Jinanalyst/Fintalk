@@ -3,10 +3,12 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronRight, RotateCcw, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronRight, RotateCcw, Share2, X } from "lucide-react";
 import { Card } from "@/components/common/bits";
 import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
+import { createShareAction } from "@/app/actions/share";
 import { cancelOrderAction, closePositionAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
 import { FEE_RATE, MAX_LEVERAGE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, unrealizedPnl, type Position, type Side } from "@/lib/trade";
@@ -426,6 +428,31 @@ const td = "px-2 py-2 text-sm tabular-nums whitespace-nowrap";
 const SideTag = ({ side }: { side: Side }) => <span className={cn("font-semibold", side === "long" ? "text-up" : "text-down")}>{side === "long" ? "롱" : "숏"}</span>;
 const Empty = ({ text }: { text: string }) => <p className="py-8 text-center text-sm text-muted-foreground">{text}</p>;
 
+/** 포지션·거래의 공유 카드를 만들고 카드 페이지로 이동합니다. 수치는 서버가 기록에서 계산합니다. */
+function ShareButton({ kind, id }: { kind: "position" | "trade"; id: string }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="ghost"
+      size="xs"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        const r = await createShareAction(kind, id);
+        if (r.ok) router.push(`/share/${r.id}`);
+        else {
+          setBusy(false);
+          toast.show(r.error);
+        }
+      }}
+    >
+      <Share2 /> 공유
+    </Button>
+  );
+}
+
 function PositionsTable({ positions, prices, pending, run }: { positions: Position[]; prices: Record<string, number>; pending: boolean; run: Run }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [tp, setTp] = useState("");
@@ -474,6 +501,7 @@ function PositionsTable({ positions, prices, pending, run }: { positions: Positi
                 <Button variant="outline" size="xs" disabled={pending} onClick={() => run(() => closePositionAction(p.id), "포지션을 청산했습니다.")}>
                   시장가 청산
                 </Button>
+                <ShareButton kind="position" id={p.id} />
               </td>
             </tr>
           );
@@ -515,7 +543,7 @@ function HistoryTable({ trades }: { trades: TradeData["trades"] }) {
   return (
     <table className="w-full min-w-[640px]">
       <thead>
-        <tr>{["종목", "진입가", "청산가", "규모", "손익 (수수료 포함)", "사유", "시각"].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+        <tr>{["종목", "진입가", "청산가", "규모", "손익 (수수료 포함)", "사유", "시각", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
       </thead>
       <tbody>
         {trades.map((t) => (
@@ -527,6 +555,7 @@ function HistoryTable({ trades }: { trades: TradeData["trades"] }) {
             <td className={cn(td, "font-semibold", pnlCls(t.pnl))}>{signed(t.pnl)}</td>
             <td className={td}>{REASON_LABEL[t.reason]}</td>
             <td className={cn(td, "text-xs text-muted-foreground")}>{new Date(t.closed_at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+            <td className={td}><ShareButton kind="trade" id={t.id} /></td>
           </tr>
         ))}
       </tbody>

@@ -1,0 +1,66 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { UUID_RE } from "@/lib/data/community";
+import { fmtPrice } from "@/lib/trade";
+import { createPostAction, type Result } from "./community";
+
+const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });
+
+async function authed() {
+  if (!isSupabaseConfigured) return null;
+  const sb = await createClient();
+  const { data } = await sb.auth.getUser();
+  return data.user ? sb : null;
+}
+
+const dbMsg = (m: string, code?: string) => {
+  if (code === "P0001" || /P0001/.test(m)) return m;
+  console.error("[share] db error:", code, m);
+  return "요청을 처리하지 못했습니다. (공유 마이그레이션이 적용되었는지 확인해 주세요)";
+};
+
+/** 포지션 또는 종료된 거래의 공유 카드를 만듭니다. 숫자는 모두 DB 가 직접 계산합니다. */
+export async function createShareAction(kind: "position" | "trade", sourceId: string): Promise<Result<{ id: string }>> {
+  const sb = await authed();
+  if (!sb) return fail("로그인이 필요합니다.");
+  if (!UUID_RE.test(sourceId)) return fail("잘못된 요청입니다.");
+  const { data, error } = await sb.rpc(kind === "position" ? "paper_share_position" : "paper_share_trade", { p_id: sourceId });
+  if (error || !data) return fail(dbMsg(error?.message ?? "", error?.code));
+  return { ok: true, id: data as string };
+}
+
+/** 공유 카드를 커뮤니티에 게시합니다. 카드당 1회만 가능해 반복 게시로 중복 노출되지 않습니다. */
+export async function postShareAction(shareId: string): Promise<Result<{ postId: string }>> {
+  const sb = await authed();
+  if (!sb) return fail("로그인이 필요합니다.");
+  if (!UUID_RE.test(shareId)) return fail("잘못된 요청입니다.");
+  const { data: s } = await sb
+    .from("trade_shares")
+    .select("id,symbol,side,leverage,entry_price,mark_price,roe,pnl,closed,post_id")
+    .eq("id", shareId)
+    .maybeSingle();
+  if (!s) return fail("공유 카드를 찾을 수 없습니다.");
+  if (s.post_id) return { ok: true, postId: s.post_id };
+
+  const coin = String(s.symbol).replace("USDT", "");
+  const roe = Number(s.roe);
+  const title = `[모의투자] ${coin} ${s.side === "long" ? "롱" : "숏"} ${s.leverage}x ${roe >= 0 ? "+" : ""}${roe.toFixed(2)}%`;
+  const body = [
+    `${coin}USDT ${s.side === "long" ? "롱" : "숏"} ${s.leverage}x · ${s.closed ? "종료" : "진행 중"}`,
+    `진입 ${fmtPrice(Number(s.entry_price))} → ${s.closed ? "청산" : "현재"} ${fmtPrice(Number(s.mark_price))}`,
+    `수익률(ROE) ${roe >= 0 ? "+" : ""}${roe.toFixed(2)}% · 손익 ${Number(s.pnl) >= 0 ? "+" : ""}${Number(s.pnl).toFixed(2)} USDT`,
+    "",
+    "가상 자금으로 거래한 모의투자 기록이며 실제 수익이 아닙니다.",
+    `인증 카드: /share/${s.id}`,
+  ].join("\n");
+
+  const r = await createPostAction({ category: "trading", type: "review", title, body, tickers: [coin] });
+  if (!r.ok) return r;
+  const { error } = await sb.rpc("paper_share_attach_post", { p_share: shareId, p_post: r.id });
+  if (error) console.error("[share] attach failed:", error.message);
+  revalidatePath("/community");
+  return { ok: true, postId: r.id };
+}
