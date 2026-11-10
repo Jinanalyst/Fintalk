@@ -20,7 +20,7 @@ import {
   type SeriesType,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { AlignJustify, Camera, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Copy, Download, ExternalLink, Link2, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
+import { AlignJustify, Camera, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Copy, Download, ExternalLink, Link2, Brush, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, LINE_PALETTE, MAX_LINES, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, pricePrecision, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
@@ -80,8 +80,10 @@ const TOOLS = [
   ["ray", "연장선"],
   ["box", "매물대(박스)"],
   ["ruler", "자"],
+  ["brush", "브러시"],
+  ["text", "텍스트"],
 ] as const;
-const TOOL_ICON = { hline: Minus, trend: TrendingUp, ray: MoveUpRight, box: Square, ruler: Ruler } as const;
+const TOOL_ICON = { hline: Minus, trend: TrendingUp, ray: MoveUpRight, box: Square, ruler: Ruler, brush: Brush, text: Type } as const;
 // 피보나치 그룹 (되돌림: 점 2개, 익스텐션: 점 3개)
 const FIB_TOOLS = [
   ["fib", "피보나치 되돌림"],
@@ -110,8 +112,8 @@ type Kline = [number, string, string, string, string, string];
 
 /** 그리기 도구로 만든 도형. 위치는 (시각 초, 가격)으로 저장해 주기·스크롤이 바뀌어도 같은 자리에 붙어 있습니다. */
 type Anchor = { t: number; p: number };
-type Shape = { id: string; kind: ToolKind; a: Anchor; b: Anchor; c?: Anchor; color: string; width: number };
-type Item = { id: string; kind: ToolKind; x1: number; y1: number; x2: number; y2: number; hx1: number; hy1: number; hx2: number; hy2: number; hx3?: number; hy3?: number; levels?: { y: number; text: string }[]; lx?: number; rx?: number; color: string; width: number; label?: string; draft?: boolean };
+type Shape = { id: string; kind: ToolKind; a: Anchor; b: Anchor; c?: Anchor; color: string; width: number; pts?: Anchor[]; text?: string };
+type Item = { id: string; kind: ToolKind; x1: number; y1: number; x2: number; y2: number; hx1: number; hy1: number; hx2: number; hy2: number; hx3?: number; hy3?: number; levels?: { y: number; text: string }[]; lx?: number; rx?: number; color: string; width: number; label?: string; draft?: boolean; path?: string; px?: { x: number; y: number }[]; text?: string };
 /** 차트에서 바로 거는 주문(미리보기). 진입·익절·손절 선을 끌어서 정한 뒤 확정합니다. */
 /** 익절·손절선 제목: 해당 가격에 닿을 때의 예상 손익(수수료 포함)을 함께 보여 줍니다. */
 function tpSlTitle(kind: "tp" | "sl", pos: Position, price: number): string {
@@ -134,7 +136,7 @@ type Layout = {
   closeBtns: { id: string; y: number }[];
   closeLines: { id: string; y: number; price: number; pct: number }[];
 };
-type Draft = { kind: ToolKind; a: Anchor; b: Anchor; c?: Anchor; down: boolean; sx: number; sy: number; moved: boolean };
+type Draft = { kind: ToolKind; a: Anchor; b: Anchor; c?: Anchor; pts?: Anchor[]; down: boolean; sx: number; sy: number; moved: boolean };
 type Drag = { id: string; mode: "move" | "a" | "b" | "c"; sx: number; sy: number; orig: Item };
 
 const EMPTY_LAYOUT: Layout = { w: 0, h: 0, items: [], ticket: null, chips: [], ghost: null, closeBtns: [], closeLines: [] };
@@ -162,7 +164,7 @@ function loadDrawings(): Record<string, Shape[]> {
   const ok = (a: unknown): a is Anchor => !!a && typeof (a as Anchor).t === "number" && typeof (a as Anchor).p === "number";
   for (const [sym, list] of Object.entries(raw)) {
     if (!Array.isArray(list)) continue;
-    out[sym] = list.filter((s): s is Shape => !!s && typeof s.id === "string" && ALL_TOOLS.some(([k]) => k === s.kind) && ok(s.a) && ok(s.b) && (s.c === undefined || ok(s.c)));
+    out[sym] = list.filter((s): s is Shape => !!s && typeof s.id === "string" && ALL_TOOLS.some(([k]) => k === s.kind) && ok(s.a) && ok(s.b) && (s.c === undefined || ok(s.c)) && (s.pts === undefined || (Array.isArray(s.pts) && s.pts.every(ok))) && (s.text === undefined || typeof s.text === "string"));
   }
   return out;
 }
@@ -563,7 +565,7 @@ export function PriceChart({
     if (!c || !s) return EMPTY_LAYOUT;
     const list: (Shape & { draft?: boolean })[] = [...shapesRef.current];
     const d = draftRef.current;
-    if (d) list.push({ id: "draft", kind: d.kind, a: d.a, b: d.b, c: d.c, color: "#f0b90b", width: 2, draft: true });
+    if (d) list.push({ id: "draft", kind: d.kind, a: d.a, b: d.b, c: d.c, pts: d.pts, color: "#f0b90b", width: 2, draft: true });
     const w = r1(c.timeScale().width());
     const h = r1(c.panes()[0]?.getHeight() ?? 0);
     const ex = (() => {
@@ -614,6 +616,22 @@ export function PriceChart({
         if (y === null) continue;
         const yy = r1(y as number);
         items.push({ id: sh.id, kind: sh.kind, x1: 0, y1: yy, x2: w, y2: yy, hx1: 0, hy1: yy, hx2: 0, hy2: yy, color: sh.color, width: sh.width, draft: sh.draft });
+        continue;
+      }
+      if (sh.kind === "brush") {
+        const px = (sh.pts ?? [sh.a, sh.b]).map((q) => toPx(q));
+        if (px.length < 2 || px.some((q) => !q)) continue;
+        const pts = (px as { x: number; y: number }[]).map((q) => ({ x: r1(q.x), y: r1(q.y) }));
+        const path = pts.map((q, i) => (i ? "L" : "M") + q.x + " " + q.y).join("");
+        const f = pts[0];
+        const l = pts[pts.length - 1];
+        items.push({ id: sh.id, kind: sh.kind, x1: f.x, y1: f.y, x2: l.x, y2: l.y, hx1: f.x, hy1: f.y, hx2: l.x, hy2: l.y, path, px: pts, color: sh.color, width: sh.width, draft: sh.draft });
+        continue;
+      }
+      if (sh.kind === "text") {
+        const q = toPx(sh.a);
+        if (!q) continue;
+        items.push({ id: sh.id, kind: sh.kind, x1: r1(q.x), y1: r1(q.y), x2: r1(q.x), y2: r1(q.y), hx1: r1(q.x), hy1: r1(q.y), hx2: r1(q.x), hy2: r1(q.y), text: sh.text ?? "", color: sh.color, width: sh.width, draft: sh.draft });
         continue;
       }
       const pa = toPx(sh.a);
@@ -983,8 +1001,8 @@ export function PriceChart({
   };
 
   const commit = useCallback(
-    (kind: ToolKind, a: Anchor, b: Anchor, c?: Anchor) => {
-      const sh: Shape = { id: uid(), kind, a, b, ...(c ? { c } : {}), color: kind === "hline" ? "#f0b90b" : kind === "ray" || kind === "box" || kind === "fib" || kind === "fibext" ? "#3b82f6" : "#f0b90b", width: 2 };
+    (kind: ToolKind, a: Anchor, b: Anchor, c?: Anchor, extra?: Partial<Shape>) => {
+      const sh: Shape = { id: uid(), kind, a, b, ...(c ? { c } : {}), ...extra, color: kind === "hline" ? "#f0b90b" : kind === "brush" ? "#ef4444" : kind === "ray" || kind === "box" || kind === "fib" || kind === "fibext" ? "#3b82f6" : "#f0b90b", width: 2 };
       updateShapes((l) => [...l, sh]);
       setSelected(sh.id);
       setTool(null);
@@ -1021,6 +1039,12 @@ export function PriceChart({
     }
     const d = draftRef.current;
     if (tool === "hline") return commit("hline", pt, pt);
+    if (tool === "text") {
+      const t = window.prompt("차트에 넣을 텍스트를 입력하세요")?.trim();
+      if (!t) return setTool(null);
+      return commit("text", pt, pt, undefined, { text: t.slice(0, 100) });
+    }
+    if (tool === "brush") return setDraft({ kind: "brush", a: pt, b: pt, pts: [pt], down: true, sx: e.clientX, sy: e.clientY, moved: false });
     if (d && d.kind === "fibext") {
       if (!d.c) return setDraft({ ...d, b: pt, c: pt, down: false }); // 두 번째 점 확정 → 세 번째 점 대기
       return commit(d.kind, d.a, d.b, pt);
@@ -1051,7 +1075,10 @@ export function PriceChart({
       const dy = e.clientY - g.sy;
       const o = g.orig;
       const upd = (fn: (s: Shape) => Shape) => updateShapes((l) => l.map((s) => (s.id === g.id ? fn(s) : s)));
-      if (o.kind === "hline") {
+      if (o.kind === "brush" && o.px) {
+        const moved = o.px.map((q) => toAnchor(q.x + dx, q.y + dy));
+        if (moved.every((q): q is Anchor => !!q)) upd((s) => ({ ...s, pts: moved, a: moved[0], b: moved[moved.length - 1] }));
+      } else if (o.kind === "hline") {
         const p = toAnchor(0, o.y1 + dy)?.p;
         if (p !== undefined) upd((s) => ({ ...s, a: { ...s.a, p }, b: { ...s.b, p } }));
       } else if (g.mode === "move") {
@@ -1075,6 +1102,12 @@ export function PriceChart({
     if (d) {
       const { x, y } = rel(e);
       const pt = toAnchor(x, y);
+      if (d.kind === "brush") {
+        if (!pt || !d.down) return;
+        const last = toPx(d.pts![d.pts!.length - 1]);
+        if (!last || Math.hypot(last.x - x, last.y - y) < 3) return; // 너무 촘촘한 점은 건너뜀
+        return setDraft({ ...d, b: pt, pts: [...d.pts!, pt], moved: true });
+      }
       if (pt && d.c) setDraft({ ...d, c: pt });
       else if (pt) setDraft({ ...d, b: pt, moved: d.moved || Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 6 });
     }
@@ -1098,6 +1131,10 @@ export function PriceChart({
     }
     const d = draftRef.current;
     if (!d || !d.down) return;
+    if (d.kind === "brush") {
+      if (d.pts && d.pts.length >= 2) return commit("brush", d.pts[0], d.pts[d.pts.length - 1], undefined, { pts: d.pts });
+      return setDraft(null);
+    }
     if (d.moved || Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 6) {
       const { x, y } = rel(e);
       const end = toAnchor(x, y) ?? d.b;
@@ -1186,7 +1223,7 @@ export function PriceChart({
   // 이 종목에 열린 포지션이 있으면 그 레버리지로 고정
   const lockedLev = positions.find((p) => p.symbol === symbol)?.leverage ?? null;
   const activeTicket = ticket && ticket.symbol === symbol ? (lockedLev !== null ? { ...ticket, lev: lockedLev } : ticket) : null;
-  const hint = tool === "order" ? "주문할 가격을 클릭하세요 — 현재가보다 아래면 롱, 위면 숏 지정가가 됩니다" : tool ? (tool === "hline" ? "차트를 클릭해 수평선을 놓으세요" : draft?.c ? "세 번째 점(되돌림 끝)을 클릭하세요" : draft ? "두 번째 점을 클릭하세요" : "첫 번째 점을 클릭하세요 (끌어서 그려도 됩니다)") : null;
+  const hint = tool === "order" ? "주문할 가격을 클릭하세요 — 현재가보다 아래면 롱, 위면 숏 지정가가 됩니다" : tool ? (tool === "hline" ? "차트를 클릭해 수평선을 놓으세요" : tool === "brush" ? "차트 위를 끌어서 자유롭게 그리세요" : tool === "text" ? "텍스트를 놓을 위치를 클릭하세요" : draft?.c ? "세 번째 점(되돌림 끝)을 클릭하세요" : draft ? "두 번째 점을 클릭하세요" : "첫 번째 점을 클릭하세요 (끌어서 그려도 됩니다)") : null;
   const btn = (on: boolean) => cn("rounded-md px-2 py-1 text-xs font-medium transition-colors", on ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted");
 
   return (
@@ -1356,6 +1393,29 @@ export function PriceChart({
                         </g>
                       ))}
                     </>
+                  ) : it.kind === "brush" ? (
+                    <>
+                      {!it.draft && <path d={it.path} fill="none" stroke="rgba(0,0,0,0)" strokeWidth={14} strokeLinejoin="round" strokeLinecap="round" style={{ pointerEvents: tool ? "none" : "stroke", cursor: tool ? undefined : "move" }} onPointerDown={(e) => startDrag(e, it, "move")} />}
+                      <path d={it.path} fill="none" stroke={it.color} strokeWidth={isSel ? it.width + 1 : it.width} strokeLinejoin="round" strokeLinecap="round" pointerEvents="none" />
+                    </>
+                  ) : it.kind === "text" ? (
+                    <text
+                      x={it.x1}
+                      y={it.y1}
+                      fontSize={it.width === 1 ? 12 : it.width === 3 ? 20 : 15}
+                      fontWeight={700}
+                      fill={it.color}
+                      textDecoration={isSel ? "underline" : undefined}
+                      style={{ paintOrder: "stroke", stroke: "var(--background)", strokeWidth: 3, pointerEvents: tool ? "none" : "all", cursor: tool ? undefined : "move", userSelect: "none" }}
+                      onPointerDown={(e) => startDrag(e, it, "move")}
+                      onDoubleClick={() => {
+                        if (tool) return;
+                        const t = window.prompt("텍스트 수정", it.text)?.trim();
+                        if (t) updateShapes((l) => l.map((x) => (x.id === it.id ? { ...x, text: t.slice(0, 100) } : x)));
+                      }}
+                    >
+                      {it.text}
+                    </text>
                   ) : it.kind === "box" ? (
                     <rect x={Math.min(it.x1, it.x2)} y={Math.min(it.y1, it.y2)} width={Math.abs(it.x2 - it.x1)} height={Math.abs(it.y2 - it.y1)} fill={it.color} fillOpacity={isSel ? 0.25 : 0.16} stroke={it.color} strokeWidth={isSel ? it.width + 1 : it.width} strokeDasharray={it.draft ? "6 4" : undefined} style={{ pointerEvents: it.draft || tool ? "none" : "all", cursor: tool ? undefined : "move" }} onPointerDown={(e) => startDrag(e, it, "move")} />
                   ) : (
@@ -1440,7 +1500,7 @@ export function PriceChart({
             </g>
           )}
           {layout.items.map((it) =>
-            it.id === selected && it.kind !== "hline" ? (
+            it.id === selected && it.kind !== "hline" && it.kind !== "brush" && it.kind !== "text" ? (
               <g key={"h" + it.id}>
                 {([["a", it.hx1, it.hy1], ["b", it.hx2, it.hy2], ...(it.hx3 !== undefined && it.hy3 !== undefined ? ([["c", it.hx3, it.hy3]] as const) : [])] as const).map(([m, x, y]) => (
                   <circle key={m} cx={x} cy={y} r={5.5} fill="var(--background)" stroke={it.color} strokeWidth={2} style={{ pointerEvents: "all", cursor: "grab" }} onPointerDown={(e) => startDrag(e, it, m)} />
