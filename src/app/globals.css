@@ -151,3 +151,8 @@
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }
+
+/* 구글 번역 위젯: 상단 배너·툴팁을 숨기고 페이지가 밀리지 않게 합니다. */
+body { top: 0 !important; }
+.skiptranslate iframe, .goog-te-banner-frame, #goog-gt-tt, .goog-tooltip, .goog-text-highlight { display: none !important; box-shadow: none !important; background: none !important; }
+#google_translate_element { display: none; }

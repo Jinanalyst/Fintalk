@@ -83,7 +83,7 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
       key={`${side}${l[0]}`}
       type="button"
       onClick={() => onPick(l[0])}
-      className="relative grid w-full grid-cols-[1fr_auto_1fr] gap-2 px-2 py-[3px] text-xs tabular-nums hover:bg-muted"
+      className="notranslate relative grid w-full grid-cols-[1fr_auto_1fr] gap-2 px-2 py-[3px] text-xs tabular-nums hover:bg-muted"
     >
       <span
         aria-hidden
@@ -109,7 +109,7 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
       ) : (
         <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden">
           <div className="flex flex-col-reverse">{asks.map((l) => row(l, "ask"))}</div>
-          <div className="my-1 flex items-baseline justify-between border-y px-2 py-1.5">
+          <div className="notranslate my-1 flex items-baseline justify-between border-y px-2 py-1.5">
             <span className="text-base font-bold tabular-nums">{mark ? fmtPrice(mark) : "—"}</span>
             {spread !== null && <span className="text-[11px] text-muted-foreground tabular-nums">스프레드 {fmtPrice(spread)}</span>}
           </div>

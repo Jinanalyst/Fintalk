@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { LogoMark } from "@/components/common/logo-mark";
 import { ThemeToggle } from "@/components/common/theme";
+import { LangToggle } from "@/components/common/lang-toggle";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { NotificationBell } from "./notification-bell";
 import { SidebarNav, TopNav } from "./nav";
@@ -16,7 +17,7 @@ import { signOutAction } from "@/app/actions/auth";
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <Link href="/" className={`flex items-center gap-2 ${className}`} aria-label="핀톡 홈">
+    <Link href="/" className={`flex items-center gap-2 ${className}`} aria-label="FinTalk 홈">
       <LogoMark className="size-8" />
       <span className="text-xl font-extrabold tracking-tighter">핀톡</span>
     </Link>
@@ -110,6 +111,7 @@ export function Header() {
               <Button variant="outline" size="lg">로그인</Button>
             </Link>
           )}
+          <LangToggle />
         </div>
       </div>
 

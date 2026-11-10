@@ -201,14 +201,14 @@ export function TradeTerminal({ data }: { data: TradeData }) {
                   </button>
                 ))}
               </span>
-              <span className="text-base font-bold tabular-nums text-foreground">{mark ? fmtPrice(mark) : "—"}</span>
+              <span className="notranslate text-base font-bold tabular-nums text-foreground">{mark ? fmtPrice(mark) : "—"}</span>
               <span className="flex items-center gap-1.5">
                 <span className={cn("size-1.5 rounded-full", live ? "bg-up" : "bg-muted-foreground/40")} />
                 {live ? "실시간" : "연결 중"}
               </span>
             </span>
           </div>
-          <div className="h-[380px] sm:h-[420px] xl:h-[560px]">
+          <div className="notranslate h-[380px] sm:h-[420px] xl:h-[560px]">
             {chartMode === "lite" ? (
               <PriceChart symbol={symbol} price={mark} positions={symPositions} trades={data.trades}
                 orders={symOrders}
@@ -642,7 +642,7 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
               </td>
               <td className={td}>{fmtUsd(p.qty * p.entry_price)}</td>
               <td className={td}>{fmtPrice(p.entry_price)}</td>
-              <td className={td}>{fmtPrice(m)}</td>
+              <td className={cn(td, "notranslate")}>{fmtPrice(m)}</td>
               <td className={cn(td, "text-down")}>{fmtPrice(p.liq_price)}</td>
               <td className={td}>
                 {editing === p.id ? (
@@ -657,7 +657,7 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
                   </button>
                 )}
               </td>
-              <td className={cn(td, "font-semibold", pnlCls(pnl))}>
+              <td className={cn(td, "notranslate font-semibold", pnlCls(pnl))}>
                 {signed(pnl)} <span className="text-xs">({roe >= 0 ? "+" : ""}{roe.toFixed(2)}%)</span>
                 <span className="block text-[11px] font-normal text-muted-foreground" title="진입·청산 수수료(0.04%씩)를 모두 뺀 예상 손익">
                   수수료 반영 약 {signed(pnl - (p.qty * p.entry_price + p.qty * m) * FEE_RATE)}
