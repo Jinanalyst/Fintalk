@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
 import { OrderBook } from "./orderbook";
+import { SymbolInfo } from "./symbol-info";
 import { TradingViewChart } from "./tv-chart";
 import { usePriceFeed } from "./use-price-feed";
 import { WinPopup, findResult, type TradeResult } from "./win-popup";
@@ -32,6 +33,69 @@ const signed = (n: number) => `${n >= 0 ? "+" : ""}${fmtUsd(n)}`;
 const label = symbolLabel;
 
 const PAGE = 60;
+
+// 드래그로 조절하는 패널 크기(px). 값은 그리드 요소의 CSS 변수로 들고, 브라우저에 저장합니다.
+const LAYOUT_KEY = "fintalk-trade-layout";
+const LAYOUT_VARS = {
+  "--ob": { def: 260, min: 200, max: 520 },
+  "--of": { def: 320, min: 260, max: 520 },
+  "--ch": { def: 560, min: 360, max: 1000 },
+} as const;
+type LayoutVar = keyof typeof LAYOUT_VARS;
+
+function readVar(el: HTMLElement, v: LayoutVar) {
+  const n = parseFloat(el.style.getPropertyValue(v));
+  return Number.isFinite(n) ? n : LAYOUT_VARS[v].def;
+}
+function saveLayout(el: HTMLElement) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(Object.fromEntries((Object.keys(LAYOUT_VARS) as LayoutVar[]).map((v) => [v, readVar(el, v)]))));
+  } catch {
+    /* 저장소 사용 불가 */
+  }
+}
+
+/** 패널 사이 드래그 손잡이. dir=-1 이면 왼쪽(위)으로 끌수록 값이 커집니다. 더블클릭하면 기본 크기로 돌아갑니다. */
+function Splitter({ v, axis, dir, label, className }: { v: LayoutVar; axis: "x" | "y"; dir: 1 | -1; label: string; className?: string }) {
+  const { min, max, def } = LAYOUT_VARS[v];
+  const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const grid = e.currentTarget.parentElement as HTMLElement;
+    const start = axis === "x" ? e.clientX : e.clientY;
+    const base = readVar(grid, v);
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      const d = ((axis === "x" ? ev.clientX : ev.clientY) - start) * dir;
+      grid.style.setProperty(v, `${Math.round(Math.min(max, Math.max(min, base + d)))}px`);
+    };
+    const up = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      handle.removeEventListener("pointercancel", up);
+      saveLayout(grid);
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", up);
+  };
+  return (
+    <div
+      role="separator"
+      aria-orientation={axis === "x" ? "vertical" : "horizontal"}
+      aria-label={label}
+      title={`${label} (끌어서 조절, 더블클릭: 초기화)`}
+      onPointerDown={onDown}
+      onDoubleClick={(e) => {
+        const grid = e.currentTarget.parentElement as HTMLElement;
+        grid.style.setProperty(v, `${def}px`);
+        saveLayout(grid);
+      }}
+      className={cn("group hidden touch-none select-none items-center justify-center xl:flex", axis === "x" ? "cursor-col-resize" : "cursor-row-resize", className)}
+    >
+      <span className={cn("rounded-full bg-border transition-colors group-hover:bg-brand group-active:bg-brand", axis === "x" ? "h-10 w-1" : "h-1 w-10")} />
+    </div>
+  );
+}
 
 /** 바이낸스 선물 전 종목 검색. 시세가 들어온 종목(prices)이 곧 거래 가능한 종목입니다. */
 function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Record<string, number>; onPick: (s: string) => void }) {
@@ -147,6 +211,21 @@ export function TradeTerminal({ data }: { data: TradeData }) {
   }, [data.trades]);
   // 참조가 안정적이어야 차트의 가격선이 시세 틱마다 다시 그려지지 않습니다.
   const router = useRouter();
+  // 저장된 패널 크기 복원 (state 없이 CSS 변수로 바로 적용)
+  const gridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? "{}") as Record<string, number>;
+      for (const [k, { min, max }] of Object.entries(LAYOUT_VARS)) {
+        const n = Number(saved[k]);
+        if (Number.isFinite(n) && n >= min && n <= max) el.style.setProperty(k, `${n}px`);
+      }
+    } catch {
+      /* 무시 */
+    }
+  }, []);
   const symCloseOrders = useMemo(() => {
     const ids = new Set(data.positions.filter((p) => p.symbol === symbol).map((p) => p.id));
     return data.closeOrders.filter((c) => ids.has(c.position_id));
@@ -182,7 +261,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
         <Stat title="미실현 손익" value={`${signed(unreal)} USDT`} tone={pnlCls(unreal)} />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_260px_320px]">
+      <div ref={gridRef} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_12px_var(--ob,260px)_12px_var(--of,320px)] xl:gap-0 xl:gap-y-0">
         <Card className="flex min-w-0 flex-col p-0 md:col-span-2 xl:col-span-1">
           <div id="trade-chart" className="flex scroll-mt-20 flex-wrap items-center gap-2 border-b px-3 py-2">
             {SYMBOLS.map((s) => (
@@ -219,7 +298,8 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               </span>
             </span>
           </div>
-          <div className="notranslate h-[380px] sm:h-[420px] xl:h-[560px]">
+          <SymbolInfo symbol={symbol} mark={mark} />
+          <div className="notranslate h-[380px] sm:h-[420px] xl:h-[var(--ch,560px)]">
             {chartMode === "lite" ? (
               <PriceChart symbol={symbol} price={mark} positions={symPositions} trades={data.trades}
                 orders={symOrders}
@@ -259,13 +339,19 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           </div>
         </Card>
 
-        <div className="order-3 min-h-[360px] md:order-none md:min-h-[420px] xl:h-[618px]">
-          <OrderBook symbol={symbol} mark={mark} onPick={(price) => setPicked({ price, n: (picked?.n ?? 0) + 1 })} />
+        <Splitter v="--ob" axis="x" dir={-1} label="차트와 호가창 너비 조절" />
+
+        <div className="relative order-3 min-h-[360px] md:order-none md:min-h-[420px] xl:min-h-0">
+          <div className="h-full xl:absolute xl:inset-0"><OrderBook symbol={symbol} mark={mark} onPick={(price) => setPicked({ price, n: (picked?.n ?? 0) + 1 })} /></div>
         </div>
+
+        <Splitter v="--of" axis="x" dir={-1} label="호가창과 주문창 너비 조절" />
 
         <div className="order-2 min-w-0 md:order-none">
           <OrderForm symbol={symbol} mark={mark} positions={symPositions} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
         </div>
+
+        <Splitter v="--ch" axis="y" dir={1} label="차트 높이 조절" className="xl:col-span-5 h-3" />
       </div>
 
       {/* 포지션 / 주문 / 내역 */}

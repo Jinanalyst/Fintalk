@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { fmtPrice } from "@/lib/trade";
 import { cn } from "@/lib/utils";
+import { TradesList } from "./trades-list";
 
 type Level = [number, number]; // [가격, 수량]
-const MAX_ROWS = 12;
+const MAX_ROWS = 20;
 const ROW_H = 22; // 호가 한 줄 높이(px)
 const MID_H = 48; // 가운데 현재가 줄(여백 포함)
 
@@ -52,7 +53,9 @@ const fmtQty = (n: number) => (n >= 100 ? n.toFixed(1) : n >= 1 ? n.toFixed(3) :
 
 export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: number; onPick: (price: number) => void }) {
   const book = useDepth(symbol);
+  const [tab, setTab] = useState<"book" | "trades">("book");
   // 칸 높이에 맞춰 보여줄 호가 줄 수를 정해, 아래쪽이 잘리지 않게 합니다.
+  const loading = book === null;
   const bodyRef = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState(MAX_ROWS);
   useEffect(() => {
@@ -63,7 +66,7 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [book === null]);
+  }, [loading, tab]);
 
   const asks = (book?.asks ?? []).slice(0, rows); // 낮은 가격부터
   const bids = (book?.bids ?? []).slice(0, rows); // 높은 가격부터
@@ -98,7 +101,18 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-xs">
-      <p className="border-b px-3 py-2 text-sm font-semibold">호가창</p>
+      <div role="tablist" className="flex gap-4 border-b px-3">
+        {([["book", "호가창"], ["trades", "체결"]] as const).map(([k, t]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={cn("-mb-px border-b-2 py-2 text-sm font-semibold", tab === k ? "border-brand text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+            {t}
+          </button>
+        ))}
+      </div>
+      {tab === "trades" ? (
+        <TradesList symbol={symbol} />
+      ) : (
+      <>
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 px-2 py-1.5 text-[11px] text-muted-foreground">
         <span>가격(USDT)</span>
         <span className="text-right">현재가 대비</span>
@@ -117,6 +131,8 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
         </div>
       )}
       <p className="px-3 py-1.5 text-[10px] text-muted-foreground">가격을 누르면 지정가로 채워집니다.</p>
+      </>
+      )}
     </div>
   );
 }

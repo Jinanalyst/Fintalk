@@ -6,7 +6,7 @@ import { isSymbol } from "@/lib/trade";
 const BASE = "wss://fstream.binance.com/market/stream?streams=";
 
 /** 바이낸스 선물 공개 WebSocket 을 연결합니다. 끊기면 자동 재연결(점점 길어지는 간격). */
-function connectStream(streams: string, onData: (d: unknown) => void, onLive?: (v: boolean) => void) {
+export function connectStream(streams: string, onData: (d: unknown) => void, onLive?: (v: boolean) => void) {
   let ws: WebSocket | null = null;
   let retry: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
