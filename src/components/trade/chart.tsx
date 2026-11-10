@@ -20,7 +20,7 @@ import {
   type SeriesType,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { AlignJustify, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
+import { ChartArea, ChartCandlestick, ChartLine, CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, pricePrecision, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
@@ -78,7 +78,7 @@ const TOOLS = [
   ["hline", "수평선"],
   ["trend", "추세선"],
   ["ray", "연장선"],
-  ["box", "매물대(박스)"],
+  ["box", "매물대"],
   ["ruler", "자"],
 ] as const;
 const TOOL_ICON = { hline: Minus, trend: TrendingUp, ray: MoveUpRight, box: Square, ruler: Ruler } as const;
@@ -552,9 +552,6 @@ export function PriceChart({
         continue;
       }
       if (sh.kind === "box") {
-        const hi = Math.max(sh.a.p, sh.b.p);
-        const lo = Math.min(sh.a.p, sh.b.p);
-        label = `${fmtPrice(hi)} ~ ${fmtPrice(lo)}`;
       }
       if (sh.kind === "ruler") {
         const diff = sh.b.p - sh.a.p;
@@ -1152,7 +1149,7 @@ export function PriceChart({
             <CirclePlus className="size-[18px]" />
           </button>
           <span className="my-0.5 h-px w-5 bg-border" />
-          {TOOLS.map(([k, name]) => {
+          {TOOLS.filter(([k]) => k === "box").map(([k, name]) => {
             const Icon = TOOL_ICON[k];
             return (
               <button key={k} type="button" title={name} aria-label={name} aria-pressed={tool === k} onClick={() => pickTool(k)} className={cn("flex size-8 items-center justify-center rounded-md transition-colors", tool === k ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
@@ -1160,23 +1157,6 @@ export function PriceChart({
               </button>
             );
           })}
-          <div ref={fibRef} className="relative">
-            <button type="button" title="피보나치" aria-label="피보나치" aria-expanded={fibMenu} onClick={() => setFibMenu((o) => !o)} className={cn("relative flex size-8 items-center justify-center rounded-md transition-colors", tool === "fib" || tool === "fibext" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
-              <AlignJustify className="size-[18px]" />
-              <ChevronRight className="absolute right-[-3px] size-2.5 opacity-60" />
-            </button>
-            {fibMenu && (
-              <div className="absolute left-full top-0 z-30 ml-2 w-48 rounded-xl border bg-card p-1 shadow-lg">
-                <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground">피보나치</p>
-                {FIB_TOOLS.map(([k, name]) => (
-                  <button key={k} type="button" onClick={() => pickTool(k)} className={cn("flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted", tool === k && "bg-muted font-semibold")}>
-                    <AlignJustify className="size-4 shrink-0" />
-                    {name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
           <span className="my-0.5 h-px w-5 bg-border" />
           <button type="button" title="모두 지우기" aria-label="모두 지우기" onClick={clearAll} className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground">
             <Trash2 className="size-[18px]" />
