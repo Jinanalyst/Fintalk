@@ -888,7 +888,7 @@ function TpSlCells({ p, pending, run }: { p: Position; pending: boolean; run: Ru
         </span>
       ) : (
         <button type="button" title="눌러서 수정" className="hover:underline" onClick={() => { setTp(p.tp ? String(p.tp) : ""); setSl(p.sl ? String(p.sl) : ""); setEditing(true); }}>
-          {p.tp ? fmtPrice(p.tp) : "—"} / {p.sl ? fmtPrice(p.sl) : "—"} <span className="text-[11px] text-muted-foreground">✎</span>
+          {p.tp ? fmtPrice(p.tp) : "—"} / {p.sl ? fmtPrice(p.sl) : "—"} <span className="inline-block -scale-x-100 text-[11px] text-muted-foreground">✎</span>
         </button>
       )}
     </td>
