@@ -27,8 +27,8 @@ import { FEE_RATE, fmtPrice, fmtUsd, pricePrecision, unrealizedPnl, type ClosedT
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
 
-const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M"] as const;
-const SECONDS: Record<string, number> = { "1m": 60, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800, "1M": 2592000 };
+const INTERVALS = ["1m", "3m", "5m", "15m", "1h", "4h", "1d", "1w", "1M"] as const;
+const SECONDS: Record<string, number> = { "1m": 60, "3m": 180, "5m": 300, "15m": 900, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800, "1M": 2592000 };
 // 현재 시각이 속한 봉의 시작 시각(초). 주봉은 월요일 0시(UTC), 월봉은 매월 1일 0시(UTC) — 바이낸스와 동일
 function bucketStart(itv: string, tsSec: number): number {
   if (itv === "1M") {
@@ -39,7 +39,7 @@ function bucketStart(itv: string, tsSec: number): number {
   const st = SECONDS[itv];
   return Math.floor(tsSec / st) * st;
 }
-const INTERVAL_LABEL: Record<string, string> = { "1m": "1분", "5m": "5분", "15m": "15분", "1h": "1시간", "4h": "4시간", "1d": "일봉", "1w": "주봉", "1M": "월봉" };
+const INTERVAL_LABEL: Record<string, string> = { "1m": "1분", "3m": "3분", "5m": "5분", "15m": "15분", "1h": "1시간", "4h": "4시간", "1d": "일봉", "1w": "주봉", "1M": "월봉" };
 const FIRST_LOAD = 1500; // Binance klines 1회 최대치
 const OLDER_LOAD = 1000;
 const MAX_CANDLES = 8000;
