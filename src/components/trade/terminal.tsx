@@ -328,7 +328,10 @@ type Run = (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg?: string) 
 function OrderForm({ symbol, mark, positions, balance, loggedIn, pending, run, picked }: { symbol: string; mark?: number; positions: Position[]; balance: number; loggedIn: boolean; pending: boolean; run: Run; picked: { price: number; n: number } | null }) {
   const [type, setType] = useState<"market" | "limit">("market");
   const [size, setSize] = useState("");
-  const [lev, setLev] = useState(10);
+  const [levInput, setLev] = useState(10);
+  // 이 종목에 열린 포지션이 있으면 그 레버리지로 고정 (같은 종목은 레버리지를 바꿀 수 없음)
+  const lockedLev = positions[0]?.leverage ?? null;
+  const lev = lockedLev ?? levInput;
   const [limit, setLimit] = useState("");
   const [tpsl, setTpsl] = useState(false);
   const [reduce, setReduce] = useState(false); // 리듀스 온리: 반대 방향 포지션만 줄임
@@ -411,12 +414,13 @@ function OrderForm({ symbol, mark, positions, balance, loggedIn, pending, run, p
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
             <span className="text-muted-foreground">레버리지</span> {lev}x
+            {lockedLev !== null && <span className="ml-1.5 text-xs font-normal text-muted-foreground" title="이 종목에 열린 포지션이 있어 레버리지가 고정됩니다. 포지션을 모두 청산하면 바꿀 수 있습니다.">🔒 포지션 고정</span>}
           </span>
           <span className="text-xs text-muted-foreground">
             {reduce ? "줄일 수 있는 규모" : "거래 가능 규모"} <span className="font-semibold tabular-nums text-foreground">${fmtUsd(reduce ? reduceMax : power)}</span>
           </span>
         </div>
-        {!reduce && <LeverageSlider className="mt-2" value={lev} onChange={setLev} />}
+        {!reduce && lockedLev === null && <LeverageSlider className="mt-2" value={lev} onChange={setLev} />}
       </div>
 
       {type === "limit" && (

@@ -1043,7 +1043,7 @@ export function PriceChart({
   const submitTicket = async () => {
     if (!ticket || !onPlaceOrder) return;
     setBusy(true);
-    const ok = await onPlaceOrder({ side: ticket.side, sizeUsdt: ticket.size, leverage: ticket.lev, limitPrice: ticket.type === "limit" ? ticket.entry : null, tp: ticket.tp, sl: ticket.sl });
+    const ok = await onPlaceOrder({ side: ticket.side, sizeUsdt: ticket.size, leverage: positions.find((p) => p.symbol === symbol)?.leverage ?? ticket.lev, limitPrice: ticket.type === "limit" ? ticket.entry : null, tp: ticket.tp, sl: ticket.sl });
     setBusy(false);
     if (ok) setTicket(null);
   };
@@ -1085,7 +1085,9 @@ export function PriceChart({
   };
 
   const sel = shapes.find((s) => s.id === selected) ?? null;
-  const activeTicket = ticket && ticket.symbol === symbol ? ticket : null;
+  // 이 종목에 열린 포지션이 있으면 그 레버리지로 고정
+  const lockedLev = positions.find((p) => p.symbol === symbol)?.leverage ?? null;
+  const activeTicket = ticket && ticket.symbol === symbol ? (lockedLev !== null ? { ...ticket, lev: lockedLev } : ticket) : null;
   const hint = tool === "order" ? "주문할 가격을 클릭하세요 — 현재가보다 아래면 롱, 위면 숏 지정가가 됩니다" : tool ? (tool === "hline" ? "차트를 클릭해 수평선을 놓으세요" : draft?.c ? "세 번째 점(되돌림 끝)을 클릭하세요" : draft ? "두 번째 점을 클릭하세요" : "첫 번째 점을 클릭하세요 (끌어서 그려도 됩니다)") : null;
   const btn = (on: boolean) => cn("rounded-md px-2 py-1 text-xs font-medium transition-colors", on ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted");
 
@@ -1338,7 +1340,7 @@ export function PriceChart({
         )}
 
         {activeTicket && (
-          <TicketPanel t={activeTicket} set={setTicket} mark={price} balance={balance} loggedIn={loggedIn} busy={busy} onSubmit={submitTicket} onClose={() => setTicket(null)} />
+          <TicketPanel t={activeTicket} locked={lockedLev !== null} set={setTicket} mark={price} balance={balance} loggedIn={loggedIn} busy={busy} onSubmit={submitTicket} onClose={() => setTicket(null)} />
         )}
         {closeId && positions.find((x) => x.id === closeId) && (
           <div className="absolute right-16 top-2 z-20 w-64 rounded-xl border bg-card p-3 shadow-lg">
@@ -1488,7 +1490,7 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
 
 
 /** 차트 주문 설정 패널: 차트의 진입·익절·손절 선과 숫자가 서로 연동됩니다. */
-function TicketPanel({ t, set, mark, balance, loggedIn, busy, onSubmit, onClose }: { t: Ticket; set: (t: Ticket) => void; mark?: number; balance: number; loggedIn: boolean; busy: boolean; onSubmit: () => void; onClose: () => void }) {
+function TicketPanel({ t, locked, set, mark, balance, loggedIn, busy, onSubmit, onClose }: { t: Ticket; locked: boolean; set: (t: Ticket) => void; mark?: number; balance: number; loggedIn: boolean; busy: boolean; onSubmit: () => void; onClose: () => void }) {
   const entry = t.type === "market" ? (mark ?? t.entry) : t.entry;
   const dir = t.side === "long" ? 1 : -1;
   const pnl = (v: number) => dir * ((v - entry) / entry) * t.size;
@@ -1573,7 +1575,11 @@ function TicketPanel({ t, set, mark, balance, loggedIn, busy, onSubmit, onClose 
       </div>
       <div className="space-y-1 text-xs">
         <span className="text-muted-foreground">레버리지</span>
-        <LeverageSlider value={t.lev} onChange={(l) => set({ ...t, lev: l })} />
+        {locked ? (
+          <p className="font-semibold tabular-nums" title="이 종목에 열린 포지션이 있어 레버리지가 고정됩니다.">{t.lev}x <span className="font-normal text-muted-foreground">🔒 포지션 고정</span></p>
+        ) : (
+          <LeverageSlider value={t.lev} onChange={(l) => set({ ...t, lev: l })} />
+        )}
       </div>
       {level("tp", "익절")}
       {level("sl", "손절")}
