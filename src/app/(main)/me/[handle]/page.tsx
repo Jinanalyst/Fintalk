@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bookmark, CalendarClock, FileText, PencilLine, Settings, Star } from "lucide-react";
+import { Bookmark, CalendarClock, ChartCandlestick, FileText, PencilLine, Settings, Star } from "lucide-react";
+import { PaperDashboard } from "@/components/trade/paper-dashboard";
+import { getTradeStats } from "@/lib/data/trade";
+import { computeStats, sampleTrades } from "@/lib/trade-stats";
+import { START_BALANCE } from "@/lib/trade";
 import { Card, SampleBadge } from "@/components/common/bits";
 import { PostCard } from "@/components/feed/cards";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -22,6 +26,7 @@ const TABS = [
   { k: "scheduled", l: "예약 발행", i: CalendarClock },
   { k: "saved", l: "저장한 글", i: Bookmark },
   { k: "watchlist", l: "관심 종목", i: Star },
+  { k: "paper", l: "모의투자", i: ChartCandlestick },
   { k: "settings", l: "설정", i: Settings },
 ];
 
@@ -57,6 +62,19 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
   const watch = live
     ? await listWatchSymbols(me!.id)
     : ["BTC", "005930", "NVDA"];
+
+  // 모의투자 탭을 열었을 때만 거래 통계를 조회합니다. (Supabase 미연결이면 샘플 거래로 미리보기)
+  let paper: { stats: ReturnType<typeof computeStats>; trades: ReturnType<typeof sampleTrades>; sample: boolean } | null = null;
+  if (tab === "paper") {
+    if (live) {
+      const d = await getTradeStats();
+      const t = d ?? { balance: START_BALANCE, positions: [], trades: [], prices: {} };
+      paper = { stats: computeStats(t.trades, t.positions, t.prices, t.balance), trades: t.trades, sample: false };
+    } else {
+      const trades = sampleTrades();
+      paper = { stats: computeStats(trades, [], {}, START_BALANCE + trades.reduce((a, x) => a + x.pnl, 0)), trades, sample: true };
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -143,6 +161,8 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
           </ul>
         </Card>
       )}
+
+      {tab === "paper" && paper && <PaperDashboard stats={paper.stats} trades={paper.trades} sample={paper.sample} />}
 
       {tab === "settings" && (
         <div className="space-y-4">

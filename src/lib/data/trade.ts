@@ -24,6 +24,29 @@ const toCloseOrder = (r: Record<string, unknown>) => ({ ...r, price: n(r.price),
 const toTrade = (r: Record<string, unknown>) =>
   ({ ...r, qty: n(r.qty), entry_price: n(r.entry_price), exit_price: n(r.exit_price), margin: n(r.margin), pnl: n(r.pnl), fee: n(r.fee) }) as unknown as ClosedTrade;
 
+/** 대시보드용: 로그인한 본인의 전체 거래(최대 1000건)·잔고·열린 포지션·시세. 로그인 전/미연결이면 null. */
+export async function getTradeStats(): Promise<{ balance: number; positions: Position[]; trades: ClosedTrade[]; prices: Record<string, number> } | null> {
+  if (!isSupabaseConfigured) return null;
+  const sb = await createClient();
+  const [{ data: auth }, { data: pr }] = await Promise.all([sb.auth.getClaims(), sb.from("paper_prices").select("symbol,price")]);
+  const uid = auth?.claims?.sub;
+  if (!uid) return null;
+  const prices: Record<string, number> = {};
+  for (const r of pr ?? []) prices[r.symbol] = Number(r.price);
+  const [acc, pos, trd] = await Promise.all([
+    sb.from("paper_accounts").select("balance").eq("user_id", uid).maybeSingle(),
+    sb.from("paper_positions").select("*"),
+    // 최근 1000건 (RLS 로 본인 것만)
+    sb.from("paper_trades").select("*").order("closed_at", { ascending: false }).limit(1000),
+  ]);
+  return {
+    balance: acc.data ? Number(acc.data.balance) : START_BALANCE,
+    positions: (pos.data ?? []).map(toPos),
+    trades: (trd.data ?? []).map(toTrade),
+    prices,
+  };
+}
+
 export async function getTradeData(): Promise<TradeData> {
   if (!isSupabaseConfigured) return EMPTY;
   const sb = await createClient();
