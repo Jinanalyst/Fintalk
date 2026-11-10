@@ -20,7 +20,7 @@ import {
   type SeriesType,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { AlignJustify, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
+import { AlignJustify, Camera, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Copy, Download, ExternalLink, Link2, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, LINE_PALETTE, MAX_LINES, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, pricePrecision, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
@@ -314,6 +314,106 @@ export function PriceChart({
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, [fibMenu]);
+  // 차트 스냅샷 메뉴 (이미지 다운로드/복사, 링크 복사, 새 탭, X 게시)
+  const [shotPos, setShotPos] = useState<{ top: number; left: number } | null>(null);
+  const [shotNote, setShotNote] = useState<string | null>(null);
+  const shotRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!shotPos) return;
+    const close = (e: PointerEvent) => {
+      if (!shotRef.current?.contains(e.target as Node)) setShotPos(null);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [shotPos]);
+  const note = (t: string) => {
+    setShotNote(t);
+    setTimeout(() => setShotNote(null), 2500);
+  };
+  /** 차트 캔버스 + 그려 둔 선(SVG)을 한 장의 PNG 로 합칩니다. */
+  const captureShot = async (): Promise<Blob | null> => {
+    const c = chart.current;
+    const el = box.current;
+    if (!c || !el) return null;
+    const shot = c.takeScreenshot();
+    const out = document.createElement("canvas");
+    out.width = shot.width;
+    out.height = shot.height;
+    const ctx = out.getContext("2d");
+    if (!ctx) return null;
+    const bg = getComputedStyle(document.body).backgroundColor;
+    ctx.fillStyle = bg && bg !== "rgba(0, 0, 0, 0)" ? bg : "#ffffff";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(shot, 0, 0);
+    const svg = svgRef.current;
+    if (svg) {
+      try {
+        const r = el.getBoundingClientRect();
+        const sr = svg.getBoundingClientRect();
+        const k = shot.width / r.width;
+        const clone = svg.cloneNode(true) as SVGSVGElement;
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clone.setAttribute("width", String(sr.width));
+        clone.setAttribute("height", String(sr.height));
+        const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml" }));
+        const img = new Image();
+        await new Promise<void>((ok, no) => {
+          img.onload = () => ok();
+          img.onerror = () => no();
+          img.src = url;
+        });
+        ctx.drawImage(img, (sr.left - r.left) * k, (sr.top - r.top) * k, sr.width * k, sr.height * k);
+        URL.revokeObjectURL(url);
+      } catch {
+        /* 그린 선을 못 합쳐도 차트 이미지는 저장 */
+      }
+    }
+    return new Promise((ok) => out.toBlob((b) => ok(b), "image/png"));
+  };
+  const copyShot = async () => {
+    const blob = await captureShot();
+    if (!blob) return false;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const shotAction = async (kind: "download" | "copy" | "link" | "tab" | "x") => {
+    setShotPos(null);
+    try {
+      if (kind === "download") {
+        const blob = await captureShot();
+        if (!blob) return note("이미지를 만들지 못했습니다.");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${symbol}-${interval}-${Date.now()}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      } else if (kind === "copy") {
+        note((await copyShot()) ? "이미지를 복사했습니다." : "이미지를 복사하지 못했습니다.");
+      } else if (kind === "link") {
+        await navigator.clipboard.writeText(location.href);
+        note("링크를 복사했습니다.");
+      } else if (kind === "tab") {
+        const w = window.open("", "_blank");
+        const blob = await captureShot();
+        if (!blob || !w) {
+          w?.close();
+          return note("새 탭을 열지 못했습니다.");
+        }
+        w.location.href = URL.createObjectURL(blob);
+      } else {
+        const copied = await copyShot();
+        const text = `${symbol} ${INTERVAL_LABEL[interval]} 차트`;
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(location.href)}`, "_blank", "noopener");
+        if (copied) note("이미지를 복사했습니다. 게시글에 붙여넣기(Ctrl+V) 하세요.");
+      }
+    } catch {
+      note("실행하지 못했습니다.");
+    }
+  };
   const [draft, setDraftState] = useState<Draft | null>(null);
   const draftRef = useRef<Draft | null>(null);
   const [layout, setLayout] = useState<Layout>(EMPTY_LAYOUT);
@@ -1140,6 +1240,42 @@ export function PriceChart({
           >
             <span className={showTrades ? "text-up" : ""}>B</span> <span className={showTrades ? "text-down" : ""}>S</span>
           </button>
+          <div ref={shotRef} className="relative ml-0.5">
+            <button
+              type="button"
+              title="차트 스냅샷"
+              aria-label="차트 스냅샷"
+              aria-expanded={!!shotPos}
+              onClick={(e) => {
+                if (shotPos) return setShotPos(null);
+                const r = e.currentTarget.getBoundingClientRect();
+                setShotPos({ top: r.bottom + 4, left: Math.max(8, Math.min(r.left, window.innerWidth - 232)) });
+              }}
+              className={cn("flex size-6 items-center justify-center rounded-md border transition-colors", shotPos ? "border-foreground" : "border-transparent text-muted-foreground hover:bg-muted")}
+            >
+              <Camera className="size-3.5" />
+            </button>
+            {shotPos && (
+              <div style={{ top: shotPos.top, left: shotPos.left }} className="fixed z-50 w-56 rounded-xl border bg-card p-1 text-sm shadow-lg">
+                <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground">차트 스냅샷</p>
+                {(
+                  [
+                    ["download", "이미지 다운로드", <Download key="d" className="size-4" />],
+                    ["copy", "이미지 복사", <Copy key="c" className="size-4" />],
+                    ["link", "링크 복사", <Link2 key="l" className="size-4" />],
+                    ["tab", "새 탭에서 열기", <ExternalLink key="t" className="size-4" />],
+                    ["x", "X에 게시", <span key="x" className="flex size-4 items-center justify-center text-[13px] font-black leading-none">𝕏</span>],
+                  ] as const
+                ).map(([k, label, icon]) => (
+                  <button key={k} type="button" onClick={() => void shotAction(k)} className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-muted">
+                    {icon}
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {shotNote && <span role="status" className="text-[11px] text-muted-foreground">{shotNote}</span>}
         </div>
       </div>
 
