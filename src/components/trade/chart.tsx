@@ -113,6 +113,14 @@ type Anchor = { t: number; p: number };
 type Shape = { id: string; kind: ToolKind; a: Anchor; b: Anchor; c?: Anchor; color: string; width: number };
 type Item = { id: string; kind: ToolKind; x1: number; y1: number; x2: number; y2: number; hx1: number; hy1: number; hx2: number; hy2: number; hx3?: number; hy3?: number; levels?: { y: number; text: string }[]; lx?: number; rx?: number; color: string; width: number; label?: string; draft?: boolean };
 /** 차트에서 바로 거는 주문(미리보기). 진입·익절·손절 선을 끌어서 정한 뒤 확정합니다. */
+/** 익절·손절선 제목: 해당 가격에 닿을 때의 예상 손익(수수료 포함)을 함께 보여 줍니다. */
+function tpSlTitle(kind: "tp" | "sl", pos: Position, price: number): string {
+  const fee = pos.qty * price * FEE_RATE;
+  const pnl = unrealizedPnl(pos, price) - fee;
+  const roe = (pnl / pos.margin) * 100;
+  return `${kind === "tp" ? "익절" : "손절"} ↕ ${pnl >= 0 ? "+" : ""}${fmtUsd(pnl)} (${roe >= 0 ? "+" : ""}${roe.toFixed(1)}%)`;
+}
+
 type Ticket = { symbol: string; side: Side; type: "limit" | "market"; entry: number; size: number; lev: number; tp: number | null; sl: number | null };
 type Ghost = { posId: string; kind: "tp" | "sl"; price: number };
 export type TicketOrder = { side: Side; sizeUsdt: number; leverage: number; limitPrice: number | null; tp: number | null; sl: number | null };
@@ -599,8 +607,8 @@ export function PriceChart({
       const line = add(pos.entry_price, `${pos.side === "long" ? "롱" : "숏"} ${pos.leverage}x`, pos.side === "long" ? up : down, LineStyle.Solid, 2);
       entryLines.current.push({ line, pos });
       add(pos.liq_price, "청산가", down, LineStyle.Dashed);
-      if (pos.tp) dragLines.current.push({ line: add(pos.tp, "익절 ↕", up, LineStyle.Dashed), pos, kind: "tp" });
-      if (pos.sl) dragLines.current.push({ line: add(pos.sl, "손절 ↕", down, LineStyle.Dashed), pos, kind: "sl" });
+      if (pos.tp) dragLines.current.push({ line: add(pos.tp, tpSlTitle("tp", pos, pos.tp), up, LineStyle.Dashed), pos, kind: "tp" });
+      if (pos.sl) dragLines.current.push({ line: add(pos.sl, tpSlTitle("sl", pos, pos.sl), down, LineStyle.Dashed), pos, kind: "sl" });
     }
     for (const o of overlay.current.orders) {
       add(o.price, `미체결 ${o.side === "long" ? "롱" : "숏"}`, text, LineStyle.Dotted);
@@ -688,7 +696,7 @@ export function PriceChart({
       if (!s) return;
       if (drag) {
         const p = s.coordinateToPrice(yOf(e));
-        if (p !== null && p > 0) drag.line.applyOptions({ price: p as number });
+        if (p !== null && p > 0) drag.line.applyOptions({ price: p as number, title: tpSlTitle(drag.kind, drag.pos, p as number) });
         return;
       }
       el.style.cursor = !toolRef.current && onTpSlRef.current && hit(yOf(e)) ? "ns-resize" : "";
