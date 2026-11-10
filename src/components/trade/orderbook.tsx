@@ -70,12 +70,20 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
   const max = Math.max(1, ...asks.map((l) => l[1]), ...bids.map((l) => l[1]));
   const spread = asks[0] && bids[0] ? asks[0][0] - bids[0][0] : null;
 
+  // 현재가 대비 그 호가까지 가격이 움직여야 하는 비율(%)
+  const ref = mark ?? (asks[0] && bids[0] ? (asks[0][0] + bids[0][0]) / 2 : 0);
+  const pct = (p: number) => {
+    if (!ref) return "";
+    const v = ((p - ref) / ref) * 100;
+    return `${v >= 0 ? "+" : ""}${v.toFixed(Math.abs(v) < 0.1 ? 3 : 2)}%`;
+  };
+
   const row = (l: Level, side: "ask" | "bid") => (
     <button
       key={`${side}${l[0]}`}
       type="button"
       onClick={() => onPick(l[0])}
-      className="relative grid w-full grid-cols-2 px-2 py-[3px] text-xs tabular-nums hover:bg-muted"
+      className="relative grid w-full grid-cols-[1fr_auto_1fr] gap-2 px-2 py-[3px] text-xs tabular-nums hover:bg-muted"
     >
       <span
         aria-hidden
@@ -83,6 +91,7 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
         style={{ width: `${(l[1] / max) * 100}%` }}
       />
       <span className={cn("relative text-left", side === "ask" ? "text-down" : "text-up")}>{fmtPrice(l[0])}</span>
+      <span className={cn("relative text-right text-[11px]", side === "ask" ? "text-down" : "text-up")}>{pct(l[0])}</span>
       <span className="relative text-right">{fmtQty(l[1])}</span>
     </button>
   );
@@ -90,8 +99,9 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-xs">
       <p className="border-b px-3 py-2 text-sm font-semibold">호가창</p>
-      <div className="grid grid-cols-2 px-2 py-1.5 text-[11px] text-muted-foreground">
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 px-2 py-1.5 text-[11px] text-muted-foreground">
         <span>가격(USDT)</span>
+        <span className="text-right">현재가 대비</span>
         <span className="text-right">수량</span>
       </div>
       {!book ? (
