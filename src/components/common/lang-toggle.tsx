@@ -118,13 +118,13 @@ export function LangToggle() {
     <Button
       variant="ghost"
       size="lg"
-      className="notranslate gap-1 px-2"
+      className="notranslate gap-1 px-2 max-sm:size-9 max-sm:px-0"
       aria-label={en ? "한국어로 보기" : "View in English"}
       title={en ? "한국어로 보기" : "View in English (machine translation)"}
       onClick={() => setLang(!en)}
     >
       <Languages className="size-[18px]" />
-      <span className="text-xs font-semibold">{en ? "한국어" : "EN"}</span>
+      <span className="text-xs font-semibold max-sm:hidden">{en ? "한국어" : "EN"}</span>
     </Button>
   );
 }
