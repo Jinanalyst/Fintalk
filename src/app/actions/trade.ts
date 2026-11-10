@@ -32,6 +32,7 @@ export async function placeOrderAction(input: {
   side: string;
   sizeUsdt: number;
   leverage: number;
+  marginMode?: string;
   limitPrice?: number | null;
   tp?: number | null;
   sl?: number | null;
@@ -46,6 +47,8 @@ export async function placeOrderAction(input: {
   const tp = num(input.tp);
   const sl = num(input.sl);
   if (![size, lev].every(Number.isFinite) || lev < 1 || lev > MAX_LEVERAGE) return fail("주문 값이 올바르지 않습니다.");
+  const mode = input.marginMode ?? "isolated";
+  if (mode !== "isolated" && mode !== "cross") return fail("마진 모드가 올바르지 않습니다.");
   for (const v of [limit, tp, sl]) if (v !== null && !(Number.isFinite(v) && v > 0)) return fail("가격이 올바르지 않습니다.");
 
   await refreshPrices(sb);
@@ -57,6 +60,7 @@ export async function placeOrderAction(input: {
     p_limit: limit,
     p_tp: tp,
     p_sl: sl,
+    p_margin_mode: mode,
   });
   if (error) return fail(dbMsg(error.message, error.code));
   revalidatePath("/trade");

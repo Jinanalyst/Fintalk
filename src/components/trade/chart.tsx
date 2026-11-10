@@ -601,9 +601,10 @@ export function PriceChart({
       return l;
     };
     for (const pos of overlay.current.positions) {
-      const line = add(pos.entry_price, `${pos.side === "long" ? "롱" : "숏"} ${pos.leverage}x`, pos.side === "long" ? up : down, LineStyle.Solid, 2);
+      const line = add(pos.entry_price, `${pos.side === "long" ? "롱" : "숏"} ${pos.margin_mode === "cross" ? "교차" : "격리"} ${pos.leverage}x`, pos.side === "long" ? up : down, LineStyle.Solid, 2);
       entryLines.current.push({ line, pos });
-      add(pos.liq_price, "청산가", down, LineStyle.Dashed);
+      // 교차 롱은 담보가 충분하면 청산가가 0 이하(=청산 없음)일 수 있어 선을 그리지 않습니다.
+      if (!(pos.margin_mode === "cross" && pos.side === "long" && pos.liq_price <= 0.00000002)) add(pos.liq_price, "청산가", down, LineStyle.Dashed);
       if (pos.tp) dragLines.current.push({ line: add(pos.tp, tpSlTitle("tp", pos, pos.tp), up, LineStyle.Dashed), pos, kind: "tp" });
       if (pos.sl) dragLines.current.push({ line: add(pos.sl, tpSlTitle("sl", pos, pos.sl), down, LineStyle.Dashed), pos, kind: "sl" });
     }
@@ -871,7 +872,7 @@ export function PriceChart({
     }
     for (const { line, pos } of entryLines.current) {
       const pnl = unrealizedPnl(pos, price);
-      line.applyOptions({ title: `${pos.side === "long" ? "롱" : "숏"} ${pos.leverage}x  ${pnl >= 0 ? "+" : ""}${fmtUsd(pnl)}` });
+      line.applyOptions({ title: `${pos.side === "long" ? "롱" : "숏"} ${pos.margin_mode === "cross" ? "교차" : "격리"} ${pos.leverage}x  ${pnl >= 0 ? "+" : ""}${fmtUsd(pnl)}` });
     }
   }, [price, interval, kind]);
 

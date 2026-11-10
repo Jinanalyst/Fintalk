@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { createShareAction } from "@/app/actions/share";
 import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, reduceOnlyAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
-import { FEE_RATE, REASON_LABEL, SYMBOLS, fmtPrice, fmtUsd, liqPrice, symbolLabel, unrealizedPnl, type CloseOrder, type Position, type Side } from "@/lib/trade";
+import { FEE_RATE, MARGIN_MODE_LABEL, REASON_LABEL, SYMBOLS, crossLiqPrice, fmtPrice, fmtUsd, liqPrice, symbolLabel, unrealizedPnl, type CloseOrder, type MarginMode, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
@@ -232,6 +232,10 @@ export function TradeTerminal({ data }: { data: TradeData }) {
   }, [data.closeOrders, data.positions, symbol]);
   const symPositions = useMemo(() => data.positions.filter((p) => p.symbol === symbol), [data.positions, symbol]);
   const symOrders = useMemo(() => data.orders.filter((o) => o.symbol === symbol), [data.orders, symbol]);
+  // 마진 모드: 이 종목에 열린 포지션·주문이 있으면 그 모드로 고정 (격리/교차를 섞을 수 없음)
+  const [modeInput, setModeInput] = useState<MarginMode>("isolated");
+  const lockedMode: MarginMode | null = symPositions[0]?.margin_mode ?? symOrders[0]?.margin_mode ?? null;
+  const marginMode = lockedMode ?? modeInput;
 
   // 표의 종목명을 누르면 해당 종목 차트·포지션 현황으로 전환하고 차트 위치로 스크롤합니다.
   const selectSymbol = (s: string) => {
@@ -328,7 +332,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
                 balance={data.balance}
                 loggedIn={data.loggedIn}
                 onPlaceOrder={async (o) => {
-                  const r = await placeOrderAction({ symbol, side: o.side, sizeUsdt: o.sizeUsdt, leverage: o.leverage, limitPrice: o.limitPrice, tp: o.tp, sl: o.sl });
+                  const r = await placeOrderAction({ symbol, side: o.side, sizeUsdt: o.sizeUsdt, leverage: o.leverage, marginMode, limitPrice: o.limitPrice, tp: o.tp, sl: o.sl });
                   toast.show(r.ok ? (r.status === "open" ? "지정가 주문을 등록했습니다." : "주문이 체결되었습니다.") : r.error);
                   return r.ok;
                 }}
@@ -348,7 +352,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
         <Splitter v="--of" axis="x" dir={-1} label="호가창과 주문창 너비 조절" />
 
         <div className="order-2 min-w-0 md:order-none">
-          <OrderForm symbol={symbol} mark={mark} positions={symPositions} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
+          <OrderForm symbol={symbol} mark={mark} positions={symPositions} allPositions={data.positions} prices={prices} marginMode={marginMode} lockedMode={lockedMode} onMarginMode={setModeInput} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
         </div>
 
         <Splitter v="--ch" axis="y" dir={1} label="차트 높이 조절" className="xl:col-span-5 h-3" />
@@ -422,7 +426,7 @@ function Stat({ title, value, tone }: { title: string; value: string; tone?: str
 
 type Run = (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg?: string) => void;
 
-function OrderForm({ symbol, mark, positions, balance, loggedIn, pending, run, picked }: { symbol: string; mark?: number; positions: Position[]; balance: number; loggedIn: boolean; pending: boolean; run: Run; picked: { price: number; n: number } | null }) {
+function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, lockedMode, onMarginMode, balance, loggedIn, pending, run, picked }: { symbol: string; mark?: number; positions: Position[]; allPositions: Position[]; prices: Record<string, number>; marginMode: MarginMode; lockedMode: MarginMode | null; onMarginMode: (m: MarginMode) => void; balance: number; loggedIn: boolean; pending: boolean; run: Run; picked: { price: number; n: number } | null }) {
   const [type, setType] = useState<"market" | "limit">("market");
   const [size, setSize] = useState("");
   const [levInput, setLev] = useState(10);
@@ -485,7 +489,7 @@ function OrderForm({ symbol, mark, positions, balance, loggedIn, pending, run, p
       return;
     }
     run(
-      () => placeOrderAction({ symbol, side, sizeUsdt: sizeN, leverage: lev, limitPrice: type === "limit" ? Number(limit) : null, tp: tpP, sl: slP }),
+      () => placeOrderAction({ symbol, side, sizeUsdt: sizeN, leverage: lev, marginMode, limitPrice: type === "limit" ? Number(limit) : null, tp: tpP, sl: slP }),
       type === "limit" ? "지정가 주문을 등록했습니다." : "주문이 체결되었습니다.",
     );
   };
@@ -493,7 +497,14 @@ function OrderForm({ symbol, mark, positions, balance, loggedIn, pending, run, p
   const disabled = pending || !loggedIn || sizeN < (reduce ? 0.01 : 10) || (type === "limit" && !(Number(limit) > 0));
   // 리듀스 온리: 줄일 포지션이 없는 쪽 버튼은 비활성화
   const noTarget = (side: Side) => reduce && notional(side === "long" ? "short" : "long") <= 0;
-  const dash = (v: string) => (refPrice > 0 && sizeN > 0 ? v : "N/A");
+  // 예상 청산가: 격리는 진입가·레버리지로, 교차는 잔고와 다른 교차 포지션까지 합쳐서 계산
+  const crossPositions = allPositions.filter((p) => p.margin_mode === "cross");
+  const estLiq = (side: Side): string => {
+    if (!(refPrice > 0 && sizeN > 0)) return "N/A";
+    if (marginMode === "isolated") return fmtPrice(liqPrice(side, refPrice, lev));
+    const v = crossLiqPrice({ side, entry: refPrice, sizeUsdt: sizeN, leverage: lev, balance, positions: crossPositions, prices });
+    return v === null ? "청산 없음" : fmtPrice(v);
+  };
 
   return (
     <Card className="space-y-3">
@@ -506,7 +517,30 @@ function OrderForm({ symbol, mark, positions, balance, loggedIn, pending, run, p
         ))}
       </div>
 
-      {/* 레버리지 (맨 위) */}
+      {/* 마진 모드 */}
+      <div>
+        <div className="grid grid-cols-2 gap-1 rounded-lg border bg-muted/40 p-1 text-xs font-medium">
+          {(["isolated", "cross"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              disabled={lockedMode !== null && lockedMode !== m}
+              onClick={() => onMarginMode(m)}
+              className={cn("rounded-md py-1.5 disabled:cursor-not-allowed disabled:opacity-40", marginMode === m ? "bg-foreground text-background" : "text-muted-foreground")}
+            >
+              {MARGIN_MODE_LABEL[m]}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+          {lockedMode !== null && <span title="이 종목에 열린 포지션·주문이 있어 마진 모드가 고정됩니다.">🔒 </span>}
+          {marginMode === "isolated"
+            ? "격리: 이 포지션에 넣은 증거금만 위험합니다. 청산돼도 잔고는 그대로예요."
+            : "교차: 주문 가능 잔고와 교차 포지션의 손익 전체가 담보입니다. 청산가가 더 멀지만, 청산되면 교차 포지션이 모두 정리되고 잔고도 0이 됩니다."}
+        </p>
+      </div>
+
+      {/* 레버리지 */}
       <div>
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
@@ -632,9 +666,9 @@ function OrderForm({ symbol, mark, positions, balance, loggedIn, pending, run, p
         <div className="flex justify-between">
           <dt className="text-muted-foreground underline decoration-dashed underline-offset-4">청산가 (예상)</dt>
           <dd className="text-right tabular-nums">
-            <span className="text-up">롱</span> {dash(fmtPrice(liqPrice("long", refPrice, lev)))}
+            <span className="text-up">롱</span> {estLiq("long")}
             <br />
-            <span className="text-down">숏</span> {dash(fmtPrice(liqPrice("short", refPrice, lev)))}
+            <span className="text-down">숏</span> {estLiq("short")}
           </dd>
         </div>
       </dl>
@@ -735,12 +769,14 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
             <Fragment key={p.id}>
             <tr className="border-t align-top">
               <td className={td}>
-                <SymLink sym={p.symbol} current={current} onSelect={onSelect} /> <SideTag side={p.side} /> <span className="text-xs text-muted-foreground">{p.leverage}x</span>
+                <SymLink sym={p.symbol} current={current} onSelect={onSelect} /> <SideTag side={p.side} /> <span className="text-xs text-muted-foreground">{MARGIN_MODE_LABEL[p.margin_mode]} {p.leverage}x</span>
               </td>
               <td className={td}>{fmtUsd(p.qty * p.entry_price)}</td>
               <td className={td}>{fmtPrice(p.entry_price)}</td>
               <td className={cn(td, "notranslate")}>{fmtPrice(m)}</td>
-              <td className={cn(td, "text-down")}>{fmtPrice(p.liq_price)}</td>
+              <td className={cn(td, "text-down")} title={p.margin_mode === "cross" ? "교차: 다른 교차 포지션 가격이 지금 그대로라고 가정한 청산가입니다." : undefined}>
+                {p.margin_mode === "cross" && p.side === "long" && p.liq_price <= 0.00000002 ? "—" : fmtPrice(p.liq_price)}
+              </td>
               <td className={td}>
                 {editing === p.id ? (
                   <span className="flex gap-1">
@@ -831,7 +867,7 @@ function OrdersTable({ orders, closeOrders, positions, pending, run, current, on
         })}
         {orders.map((o) => (
           <tr key={o.id} className="border-t">
-            <td className={td}><SymLink sym={o.symbol} current={current} onSelect={onSelect} /> <SideTag side={o.side} /> <span className="text-xs text-muted-foreground">{o.leverage}x</span></td>
+            <td className={td}><SymLink sym={o.symbol} current={current} onSelect={onSelect} /> <SideTag side={o.side} /> <span className="text-xs text-muted-foreground">{MARGIN_MODE_LABEL[o.margin_mode]} {o.leverage}x</span></td>
             <td className={td}>{fmtPrice(o.price)}</td>
             <td className={td}>{fmtUsd(o.qty * o.price)}</td>
             <td className={td}>{o.tp ? fmtPrice(o.tp) : "—"} / {o.sl ? fmtPrice(o.sl) : "—"}</td>

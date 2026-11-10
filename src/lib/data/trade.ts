@@ -17,9 +17,9 @@ const EMPTY: TradeData = { loggedIn: false, balance: START_BALANCE, positions: [
 // numeric 컬럼은 문자열로 올 수 있어 숫자로 변환합니다.
 const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 const toPos = (r: Record<string, unknown>) =>
-  ({ ...r, qty: n(r.qty), entry_price: n(r.entry_price), margin: n(r.margin), tp: n(r.tp), sl: n(r.sl), liq_price: n(r.liq_price) }) as unknown as Position;
+  ({ ...r, margin_mode: r.margin_mode === "cross" ? "cross" : "isolated", qty: n(r.qty), entry_price: n(r.entry_price), margin: n(r.margin), tp: n(r.tp), sl: n(r.sl), liq_price: n(r.liq_price) }) as unknown as Position;
 const toOrder = (r: Record<string, unknown>) =>
-  ({ ...r, price: n(r.price), qty: n(r.qty), margin: n(r.margin), tp: n(r.tp), sl: n(r.sl) }) as unknown as Order;
+  ({ ...r, margin_mode: r.margin_mode === "cross" ? "cross" : "isolated", price: n(r.price), qty: n(r.qty), margin: n(r.margin), tp: n(r.tp), sl: n(r.sl) }) as unknown as Order;
 const toCloseOrder = (r: Record<string, unknown>) => ({ ...r, price: n(r.price), qty: n(r.qty) }) as unknown as CloseOrder;
 const toTrade = (r: Record<string, unknown>) =>
   ({ ...r, qty: n(r.qty), entry_price: n(r.entry_price), exit_price: n(r.exit_price), margin: n(r.margin), pnl: n(r.pnl), fee: n(r.fee) }) as unknown as ClosedTrade;

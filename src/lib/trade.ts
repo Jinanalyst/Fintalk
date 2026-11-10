@@ -24,6 +24,10 @@ export const MAX_LEVERAGE = 150;
 
 export type Side = "long" | "short";
 
+/** 마진 모드: 격리(포지션별 증거금만 위험) / 교차(잔고 전체가 담보) */
+export type MarginMode = "isolated" | "cross";
+export const MARGIN_MODE_LABEL: Record<MarginMode, string> = { isolated: "격리", cross: "교차" };
+
 export type Position = {
   id: string;
   symbol: string;
@@ -31,6 +35,7 @@ export type Position = {
   qty: number;
   entry_price: number;
   leverage: number;
+  margin_mode: MarginMode;
   margin: number;
   tp: number | null;
   sl: number | null;
@@ -45,6 +50,7 @@ export type Order = {
   price: number;
   qty: number;
   leverage: number;
+  margin_mode: MarginMode;
   margin: number;
   tp: number | null;
   sl: number | null;
@@ -121,6 +127,40 @@ export async function fetchPrices(): Promise<Record<string, number> | null> {
   return null;
 }
 
-/** 예상 청산가 (DB 의 _paper_liq_price 와 같은 식: 유지증거금률 0.5%) */
+/** 유지증거금률 (DB 와 같은 값) */
+export const MAINT_RATE = 0.005;
+
+/** 격리 예상 청산가 (DB 의 _paper_liq_price 와 같은 식: 유지증거금률 0.5%) */
 export const liqPrice = (side: Side, entry: number, leverage: number) =>
-  side === "long" ? entry * (1 - 1 / leverage + 0.005) : entry * (1 + 1 / leverage - 0.005);
+  side === "long" ? entry * (1 - 1 / leverage + MAINT_RATE) : entry * (1 + 1 / leverage - MAINT_RATE);
+
+/**
+ * 교차 예상 청산가 (DB 의 _paper_refresh_cross_liq 와 같은 식).
+ * 담보 = 잔고 + Σ(증거금 + 미실현 손익),  유지증거금 = Σ(명목가치 × 0.5%).
+ * 다른 교차 포지션의 가격은 현재 시세 그대로라고 가정하고, 새 주문(규모 sizeUsdt, 레버리지 lev, 진입가 entry)을 더했을 때의 청산가를 구합니다.
+ * 롱이 0 이하가 되면 청산되지 않는 것이므로 null.
+ */
+export function crossLiqPrice(opts: {
+  side: Side;
+  entry: number;
+  sizeUsdt: number;
+  leverage: number;
+  balance: number;
+  /** 이미 열려 있는 교차 포지션 */
+  positions: Pick<Position, "symbol" | "side" | "qty" | "entry_price" | "margin">[];
+  prices: Record<string, number>;
+  fee?: number;
+}): number | null {
+  const { side, entry, sizeUsdt, leverage, balance, positions, prices } = opts;
+  if (!(entry > 0 && sizeUsdt > 0 && leverage >= 1)) return null;
+  const q = sizeUsdt / entry;
+  const newMargin = sizeUsdt / leverage;
+  // 새 주문의 증거금·수수료는 잔고에서 빠지고 증거금은 담보로 다시 들어갑니다.
+  let w = balance - newMargin - (opts.fee ?? sizeUsdt * FEE_RATE) + newMargin;
+  for (const p of positions) {
+    const m = prices[p.symbol] ?? p.entry_price;
+    w += p.margin + unrealizedPnl(p, m) - p.qty * m * MAINT_RATE;
+  }
+  const x = side === "long" ? (entry * q - w) / (q * (1 - MAINT_RATE)) : (w + entry * q) / (q * (1 + MAINT_RATE));
+  return x > 0 ? x : null;
+}
