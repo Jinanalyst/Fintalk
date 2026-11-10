@@ -112,6 +112,11 @@ export type IndCfg = {
 export const MA_COLORS = ["#f0b90b", "#a855f7", "#14b8a6"];
 export const EMA_COLORS = ["#3b82f6", "#f97316", "#ec4899"];
 
+/** 추가한 선에 돌려 쓰는 색 */
+export const LINE_PALETTE = ["#f0b90b", "#a855f7", "#14b8a6", "#3b82f6", "#f97316", "#ec4899", "#22c55e", "#ef4444", "#06b6d4", "#eab308"];
+/** MA·EMA 각각 최대 개수 */
+export const MAX_LINES = 10;
+
 export const DEFAULT_COLORS: Record<string, string> = {
   ma0: MA_COLORS[0], ma1: MA_COLORS[1], ma2: MA_COLORS[2],
   ema0: EMA_COLORS[0], ema1: EMA_COLORS[1], ema2: EMA_COLORS[2],
@@ -150,11 +155,15 @@ const num = (v: unknown, fallback: number, min: number, max: number) => {
 /** 저장된 값이 깨졌거나 범위를 벗어나도 안전하게 기본값으로 되돌립니다. */
 export function mergeCfg(raw: unknown): IndCfg {
   const r = (raw ?? {}) as Partial<Record<keyof IndCfg, unknown>>;
-  const lines = (src: unknown, def: MaLine[]): MaLine[] =>
-    def.map((d, i) => {
-      const x = (Array.isArray(src) ? src[i] : undefined) as Partial<MaLine> | undefined;
+  // 저장된 배열이 있으면 그 개수 그대로(사용자가 추가·삭제한 선), 없으면 기본값
+  const lines = (src: unknown, def: MaLine[]): MaLine[] => {
+    if (!Array.isArray(src)) return def.map((d) => ({ ...d }));
+    return src.slice(0, MAX_LINES).map((raw, i) => {
+      const x = raw as Partial<MaLine> | undefined;
+      const d = def[i] ?? { period: 20, on: true };
       return { period: Math.trunc(num(x?.period, d.period, 1, 500)), on: typeof x?.on === "boolean" ? x.on : d.on };
     });
+  };
   const b = (r.boll ?? {}) as Record<string, unknown>;
   const rs = (r.rsi ?? {}) as Record<string, unknown>;
   const m = (r.macd ?? {}) as Record<string, unknown>;
@@ -166,14 +175,23 @@ export function mergeCfg(raw: unknown): IndCfg {
   const rd = (r.dashed ?? {}) as Record<string, unknown>;
   const dashed: Record<string, boolean> = {};
   for (const k of Object.keys(DEFAULT_DASHED)) dashed[k] = typeof rd[k] === "boolean" ? (rd[k] as boolean) : DEFAULT_DASHED[k];
+  const ma = lines(r.ma, DEFAULT_CFG.ma);
+  const emaL = lines(r.ema, DEFAULT_CFG.ema);
+  // 추가된 선(ma3~, ema3~)의 색·점선도 채워 둡니다.
+  for (const [key, arr] of [["ma", ma], ["ema", emaL]] as const)
+    arr.forEach((_, i) => {
+      const k = `${key}${i}`;
+      colors[k] = typeof rc[k] === "string" && /^#[0-9a-fA-F]{6}$/.test(rc[k] as string) ? (rc[k] as string) : (DEFAULT_COLORS[k] ?? LINE_PALETTE[i % LINE_PALETTE.length]);
+      dashed[k] = typeof rd[k] === "boolean" ? (rd[k] as boolean) : (DEFAULT_DASHED[k] ?? false);
+    });
   const rcd = (r.candle ?? {}) as Record<string, unknown>;
   const hex = (v: unknown) => (typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v) ? v : "");
   return {
     colors,
     dashed,
     candle: { up: hex(rcd.up), down: hex(rcd.down) },
-    ma: lines(r.ma, DEFAULT_CFG.ma),
-    ema: lines(r.ema, DEFAULT_CFG.ema),
+    ma,
+    ema: emaL,
     boll: { period: Math.trunc(num(b.period, 20, 2, 500)), mult: num(b.mult, 2, 0.1, 10) },
     rsi: { period: Math.trunc(num(rs.period, 14, 2, 200)) },
     macd: fast < slow ? { fast, slow, signal: Math.trunc(num(m.signal, 9, 1, 200)) } : { ...DEFAULT_CFG.macd },

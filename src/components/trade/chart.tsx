@@ -22,7 +22,7 @@ import {
 } from "lightweight-charts";
 import { AlignJustify, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DEFAULT_CFG, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
+import { DEFAULT_CFG, LINE_PALETTE, MAX_LINES, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, pricePrecision, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
@@ -1415,9 +1415,39 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
   const themeUp = themeCss?.getPropertyValue("--up").trim() || "#16a34a";
   const themeDown = themeCss?.getPropertyValue("--down").trim() || "#dc2626";
   const hex6 = (c: string, fb: string) => (/^#[0-9a-fA-F]{6}$/.test(c) ? c : fb);
+  const addLine = (key: "ma" | "ema") => {
+    const n = cfg[key].length;
+    if (n >= MAX_LINES) return;
+    const last = cfg[key][n - 1]?.period ?? 10;
+    const period = Math.min(500, Math.round(last * 1.5) + 1);
+    setCfg({
+      ...cfg,
+      [key]: [...cfg[key], { period, on: true }],
+      colors: { ...cfg.colors, [`${key}${n}`]: LINE_PALETTE[(n + (key === "ema" ? 3 : 0)) % LINE_PALETTE.length] },
+      dashed: { ...cfg.dashed, [`${key}${n}`]: false },
+    });
+  };
+  const removeLine = (key: "ma" | "ema", idx: number) => {
+    const n = cfg[key].length;
+    const colors = { ...cfg.colors };
+    const dashed = { ...cfg.dashed };
+    // 뒤의 선들의 색·점선 설정을 한 칸씩 당깁니다.
+    for (let j = idx; j < n - 1; j++) {
+      colors[`${key}${j}`] = colors[`${key}${j + 1}`];
+      dashed[`${key}${j}`] = dashed[`${key}${j + 1}`];
+    }
+    delete colors[`${key}${n - 1}`];
+    delete dashed[`${key}${n - 1}`];
+    setCfg({ ...cfg, [key]: cfg[key].filter((_, j) => j !== idx), colors, dashed });
+  };
   const lineGroup = (key: "ma" | "ema", title: string) => (
     <section>
-      <h4 className="mb-1 text-xs font-semibold">{title}</h4>
+      <div className="mb-1 flex items-center justify-between">
+        <h4 className="text-xs font-semibold">{title}</h4>
+        <button type="button" disabled={cfg[key].length >= MAX_LINES} onClick={() => addLine(key)} className="text-[11px] text-muted-foreground underline-offset-2 hover:underline disabled:opacity-40">
+          + 추가
+        </button>
+      </div>
       <div className="space-y-1">
         {cfg[key].map((l, i) => (
           <div key={i} className="flex items-center gap-2 text-xs">
@@ -1426,6 +1456,9 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
             <span className="w-8 text-muted-foreground">기간</span>
             <NumField label={`${title} ${i + 1} 기간`} value={l.period} min={1} max={500} onCommit={(n) => setCfg({ ...cfg, [key]: cfg[key].map((x, j) => (j === i ? { ...x, period: n } : x)) })} />
             <DashToggle on={cfg.dashed[`${key}${i}`]} label={`${title} ${i + 1} 점선`} onChange={(v) => setDash(`${key}${i}`, v)} />
+            <button type="button" onClick={() => removeLine(key, i)} aria-label={`${title} ${i + 1} 삭제`} className="shrink-0 text-muted-foreground hover:text-foreground">
+              ×
+            </button>
           </div>
         ))}
       </div>
