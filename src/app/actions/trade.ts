@@ -27,6 +27,15 @@ function dbMsg(m: string, code?: string) {
 
 const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
 
+/** 최신 시세로 지정가 체결·익절/손절/강제청산을 즉시 점검합니다. (크론을 기다리지 않고 화면에서 가격이 닿았을 때 호출) */
+export async function syncTradeAction(): Promise<Result> {
+  const sb = await authed();
+  if (!sb) return fail("로그인이 필요합니다.");
+  await refreshPrices(sb);
+  revalidatePath("/trade");
+  return { ok: true };
+}
+
 export async function placeOrderAction(input: {
   symbol: string;
   side: string;

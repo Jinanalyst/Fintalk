@@ -9,7 +9,7 @@ import { Card } from "@/components/common/bits";
 import { useToast } from "@/components/common/toast";
 import { Button } from "@/components/ui/button";
 import { createShareAction } from "@/app/actions/share";
-import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, reduceOnlyAction, placeOrderAction, resetAccountAction, setTpSlAction } from "@/app/actions/trade";
+import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, reduceOnlyAction, placeOrderAction, resetAccountAction, setTpSlAction, syncTradeAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
 import { FEE_RATE, MARGIN_MODE_LABEL, REASON_LABEL, SYMBOLS, crossLiqPrice, fmtPrice, fmtUsd, liqPrice, symbolLabel, unrealizedPnl, type CloseOrder, type MarginMode, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
@@ -226,6 +226,32 @@ export function TradeTerminal({ data }: { data: TradeData }) {
       /* 무시 */
     }
   }, []);
+  // 실시간 시세가 익절·손절·청산가·지정가에 닿으면 DB 를 바로 점검해 포지션을 종료합니다. (크론 주기를 기다리지 않음)
+  const lastSync = useRef(0);
+  useEffect(() => {
+    if (!data.loggedIn) return;
+    const hit = (side: Side, px: number | undefined, level: number | null | undefined, dir: "up" | "down") => {
+      if (!px || !level) return false;
+      return (dir === "up") === (side === "long") ? px >= level : px <= level;
+    };
+    let crossed = false;
+    for (const p of data.positions) {
+      const px = prices[p.symbol];
+      if (hit(p.side, px, p.sl, "down") || hit(p.side, px, p.tp, "up") || (p.margin_mode === "isolated" && hit(p.side, px, p.liq_price, "down"))) crossed = true;
+    }
+    for (const o of data.orders) {
+      const px = prices[o.symbol];
+      if (px && (o.side === "long" ? px <= o.price : px >= o.price)) crossed = true;
+    }
+    for (const c of data.closeOrders) {
+      const pos = data.positions.find((x) => x.id === c.position_id);
+      const px = pos && prices[pos.symbol];
+      if (pos && px && (pos.side === "long" ? px >= c.price : px <= c.price)) crossed = true;
+    }
+    if (!crossed || Date.now() - lastSync.current < 3000) return;
+    lastSync.current = Date.now();
+    syncTradeAction().then(() => router.refresh());
+  }, [prices, data, router]);
   const symCloseOrders = useMemo(() => {
     const ids = new Set(data.positions.filter((p) => p.symbol === symbol).map((p) => p.id));
     return data.closeOrders.filter((c) => ids.has(c.position_id));
@@ -364,7 +390,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           {(
             [
               ["positions", `포지션 ${data.positions.length}`],
-              ["orders", `미체결 ${data.orders.length + data.closeOrders.length}`],
+              ["orders", `미체결 ${data.orders.length + data.closeOrders.length + data.positions.filter((p) => p.tp || p.sl).length}`],
               ["history", "거래 내역"],
             ] as const
           ).map(([k, t]) => (
@@ -840,13 +866,28 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
 }
 
 function OrdersTable({ orders, closeOrders, positions, pending, run, current, onSelect }: { orders: TradeData["orders"]; closeOrders: CloseOrder[]; positions: Position[]; pending: boolean; run: Run } & Pick) {
-  if (!orders.length && !closeOrders.length) return <Empty text="미체결 주문이 없습니다." />;
+  const tpslPositions = positions.filter((p) => p.tp || p.sl);
+  if (!orders.length && !closeOrders.length && !tpslPositions.length) return <Empty text="미체결 주문이 없습니다." />;
   return (
     <table className="w-full min-w-[560px]">
       <thead>
         <tr>{["종목", "지정가", "규모", "익절 / 손절", "예약 증거금", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
       </thead>
       <tbody>
+        {tpslPositions.map((p) => (
+          <tr key={`tpsl-${p.id}`} className="border-t">
+            <td className={td}><SymLink sym={p.symbol} current={current} onSelect={onSelect} /> <SideTag side={p.side} /> <span className="rounded bg-muted px-1 text-[11px]">익절/손절</span></td>
+            <td className={td}>—</td>
+            <td className={td}>{fmtUsd(p.qty * p.entry_price)}</td>
+            <td className={td}>{p.tp ? fmtPrice(p.tp) : "—"} / {p.sl ? fmtPrice(p.sl) : "—"}</td>
+            <td className={td}>—</td>
+            <td className={td}>
+              <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => setTpSlAction(p.id, null, null), "익절/손절을 취소했습니다.")}>
+                <X /> 취소
+              </Button>
+            </td>
+          </tr>
+        ))}
         {closeOrders.map((c) => {
           const pos = positions.find((x) => x.id === c.position_id);
           if (!pos) return null;
