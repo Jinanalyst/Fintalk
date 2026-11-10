@@ -865,6 +865,36 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
   );
 }
 
+/** 미체결 탭의 익절/손절 칸: 눌러서 값을 고치고 저장합니다. (차트에서 선을 끌어 바꿀 수도 있음) */
+function TpSlCells({ p, pending, run }: { p: Position; pending: boolean; run: Run }) {
+  const [editing, setEditing] = useState(false);
+  const [tp, setTp] = useState("");
+  const [sl, setSl] = useState("");
+  const save = () => {
+    const t = tp.trim() ? Number(tp) : null;
+    const l = sl.trim() ? Number(sl) : null;
+    if ((t !== null && !(t > 0)) || (l !== null && !(l > 0))) return;
+    run(() => setTpSlAction(p.id, t, l), "저장했습니다.");
+    setEditing(false);
+  };
+  return (
+    <td className={td}>
+      {editing ? (
+        <span className="flex items-center gap-1">
+          <input autoFocus className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="익절" value={tp} onChange={(e) => setTp(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
+          <input className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="손절" value={sl} onChange={(e) => setSl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
+          <Button size="xs" disabled={pending} onClick={save}>저장</Button>
+          <Button variant="ghost" size="xs" onClick={() => setEditing(false)}>닫기</Button>
+        </span>
+      ) : (
+        <button type="button" title="눌러서 수정" className="hover:underline" onClick={() => { setTp(p.tp ? String(p.tp) : ""); setSl(p.sl ? String(p.sl) : ""); setEditing(true); }}>
+          {p.tp ? fmtPrice(p.tp) : "—"} / {p.sl ? fmtPrice(p.sl) : "—"} <span className="text-[11px] text-muted-foreground">✎</span>
+        </button>
+      )}
+    </td>
+  );
+}
+
 function OrdersTable({ orders, closeOrders, positions, pending, run, current, onSelect }: { orders: TradeData["orders"]; closeOrders: CloseOrder[]; positions: Position[]; pending: boolean; run: Run } & Pick) {
   const tpslPositions = positions.filter((p) => p.tp || p.sl);
   if (!orders.length && !closeOrders.length && !tpslPositions.length) return <Empty text="미체결 주문이 없습니다." />;
@@ -879,7 +909,7 @@ function OrdersTable({ orders, closeOrders, positions, pending, run, current, on
             <td className={td}><SymLink sym={p.symbol} current={current} onSelect={onSelect} /> <SideTag side={p.side} /> <span className="rounded bg-muted px-1 text-[11px]">익절/손절</span></td>
             <td className={td}>—</td>
             <td className={td}>{fmtUsd(p.qty * p.entry_price)}</td>
-            <td className={td}>{p.tp ? fmtPrice(p.tp) : "—"} / {p.sl ? fmtPrice(p.sl) : "—"}</td>
+            <TpSlCells p={p} pending={pending} run={run} />
             <td className={td}>—</td>
             <td className={td}>
               <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => setTpSlAction(p.id, null, null), "익절/손절을 취소했습니다.")}>
