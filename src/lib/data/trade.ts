@@ -74,3 +74,35 @@ export async function getTradeData(): Promise<TradeData> {
     prices,
   };
 }
+
+export type LeaderRow = {
+  id: string; nickname: string; avatar: string | null; rank: number;
+  trades: number; wins: number; losses: number; pnl: number;
+  /** 시작 자금 대비 실현 수익률 (%) */
+  returnPct: number;
+  /** 승률 (%), 승·패가 없으면 null */
+  winRate: number | null;
+};
+
+export type LeaderPeriod = "week" | "month" | "all";
+const PERIOD_DAYS: Record<LeaderPeriod, number | null> = { week: 7, month: 30, all: null };
+
+/** 모의투자 리더보드 (기간별 실현 손익 순). 미연결이거나 마이그레이션 전이면 빈 목록. */
+export async function getLeaderboard(period: LeaderPeriod): Promise<LeaderRow[]> {
+  if (!isSupabaseConfigured) return [];
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("paper_leaderboard", { p_days: PERIOD_DAYS[period], p_min_trades: 3, p_limit: 100 });
+  if (error || !data) {
+    if (error) console.error("[paper_leaderboard]", error.message);
+    return [];
+  }
+  return (data as Record<string, unknown>[]).map((r, i) => {
+    const wins = Number(r.wins), losses = Number(r.losses), pnl = Number(r.pnl);
+    return {
+      id: String(r.id), nickname: String(r.nickname), avatar: (r.avatar_url as string | null) ?? null, rank: i + 1,
+      trades: Number(r.trades), wins, losses, pnl,
+      returnPct: (pnl / START_BALANCE) * 100,
+      winRate: wins + losses ? (wins / (wins + losses)) * 100 : null,
+    };
+  });
+}

@@ -13,7 +13,16 @@ import {
   Bookmark,
   Star,
   Settings,
+  ChevronDown,
+  Trophy,
+  UserRound,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { BOARD_CATEGORIES } from "@/lib/sample-data";
 
@@ -29,25 +38,48 @@ export const MAIN_NAV = [
 export const isActive = (pathname: string, href: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 
+const TRADE_MENU = [
+  { href: "/trade", label: "거래 터미널", desc: "차트 보며 모의 주문", icon: CandlestickChart },
+  { href: "/trade/leaderboard", label: "리더보드", desc: "이용자별 수익률 순위", icon: Trophy },
+  { href: "/me?tab=paper", label: "내 성과", desc: "수익률 · 승률 · PnL 곡선", icon: UserRound },
+] as const;
+
+const topLink = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors";
+const topOn = "bg-brand-soft text-brand";
+const topOff = "text-muted-foreground hover:bg-muted hover:text-foreground";
+
 /** 상단 PC 가로 메뉴 */
 export function TopNav() {
   const pathname = usePathname();
   return (
     <nav className="hidden items-center gap-1 lg:flex" aria-label="주요 메뉴">
-      {MAIN_NAV.map((n) => (
-        <Link
-          key={n.href}
-          href={n.href}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            isActive(pathname, n.href)
-              ? "bg-brand-soft text-brand"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-          )}
-        >
-          {n.label}
-        </Link>
-      ))}
+      {MAIN_NAV.map((n) =>
+        n.href === "/trade" ? (
+          <DropdownMenu key={n.href}>
+            <DropdownMenuTrigger
+              className={cn(topLink, "inline-flex items-center gap-1 outline-none", isActive(pathname, n.href) ? topOn : topOff)}
+            >
+              {n.label}
+              <ChevronDown className="size-3.5" aria-hidden />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={6} className="w-60 p-2">
+              {TRADE_MENU.map((m) => (
+                <DropdownMenuItem key={m.href} render={<Link href={m.href} />} className="gap-3 px-2.5 py-2">
+                  <m.icon className="size-5 text-muted-foreground" />
+                  <span className="flex flex-col">
+                    <span className="text-sm font-semibold">{m.label}</span>
+                    <span className="text-xs text-muted-foreground">{m.desc}</span>
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Link key={n.href} href={n.href} className={cn(topLink, isActive(pathname, n.href) ? topOn : topOff)}>
+            {n.label}
+          </Link>
+        ),
+      )}
     </nav>
   );
 }
@@ -94,20 +126,35 @@ export function SidebarNav({ onNavigate, showMain = true }: { onNavigate?: () =>
     <div className="space-y-5">
       <nav aria-label="사이드 메뉴" className={cn("space-y-0.5", !showMain && "hidden")}>
         {MAIN_NAV.map((n) => (
-          <Link
-            key={n.href}
-            href={n.href}
-            onClick={onNavigate}
-            className={cn(
-              item,
-              isActive(pathname, n.href)
-                ? "bg-brand-soft text-brand"
-                : "text-foreground/80 hover:bg-muted",
+          <div key={n.href}>
+            <Link
+              href={n.href}
+              onClick={onNavigate}
+              className={cn(
+                item,
+                (n.href === "/trade" ? pathname === n.href : isActive(pathname, n.href))
+                  ? "bg-brand-soft text-brand"
+                  : "text-foreground/80 hover:bg-muted",
+              )}
+            >
+              <n.icon className="size-[18px]" />
+              {n.label}
+            </Link>
+            {n.href === "/trade" && (
+              <Link
+                href="/trade/leaderboard"
+                onClick={onNavigate}
+                className={cn(
+                  item,
+                  "ml-5 py-1.5",
+                  pathname === "/trade/leaderboard" ? "bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Trophy className="size-4" />
+                리더보드
+              </Link>
             )}
-          >
-            <n.icon className="size-[18px]" />
-            {n.label}
-          </Link>
+          </div>
         ))}
       </nav>
 
