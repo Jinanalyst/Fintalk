@@ -12,7 +12,10 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const secret = process.env.TRADE_TICK_SECRET;
   if (!isSupabaseConfigured || !secret) return Response.json({ error: "not configured" }, { status: 503 });
-  if (req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "unauthorized" }, { status: 401 });
+  const header = req.headers.get("authorization");
+  if (!header) return Response.json({ error: "unauthorized", reason: "missing Authorization header" }, { status: 401 });
+  const token = header.replace(/^bearer\s+/i, "").trim();
+  if (token !== secret.trim()) return Response.json({ error: "unauthorized", reason: "secret mismatch" }, { status: 401 });
 
   const prices = await fetchPrices();
   if (!prices) return Response.json({ error: "price feed unavailable" }, { status: 502 });
