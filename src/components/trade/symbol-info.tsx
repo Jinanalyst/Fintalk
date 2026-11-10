@@ -98,7 +98,7 @@ export function SymbolInfo({ symbol, mark }: { symbol: string; mark?: number }) 
   const oiUsdt = i.oi !== undefined && (i.mark ?? price) ? i.oi * (i.mark ?? price!) : undefined;
 
   return (
-    <div className="notranslate flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-3 py-2.5 lg:flex-nowrap">
+    <div className="notranslate flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-3 py-2.5">
       <div className="flex shrink-0 items-center gap-2">
         <div>
           <p className="flex items-center gap-1 whitespace-nowrap text-sm font-bold leading-tight">
