@@ -20,12 +20,22 @@ const COOKIE = "googtrans";
 
 const isEnglish = () => /(?:^|;\s*)googtrans=\/ko\/en/.test(document.cookie);
 
-const setLang = (en: boolean) => {
-  const host = location.hostname;
-  const expire = "expires=Thu, 01 Jan 1970 00:00:00 GMT";
-  // 도메인 지정/미지정 쿠키를 모두 정리한 뒤 다시 설정합니다.
+/** googtrans 쿠키를 도메인·상위 도메인·점(.) 접두 변형까지 모두 지웁니다. (구글이 상위 도메인에 따로 심는 경우가 있음) */
+const clearCookie = () => {
+  const expire = "expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0";
+  const parts = location.hostname.split(".");
+  const domains = new Set<string>([location.hostname, `.${location.hostname}`]);
+  for (let i = 1; i < parts.length - 1; i++) {
+    const d = parts.slice(i).join(".");
+    domains.add(d);
+    domains.add(`.${d}`);
+  }
   document.cookie = `${COOKIE}=; ${expire}; path=/`;
-  document.cookie = `${COOKIE}=; ${expire}; path=/; domain=${host}`;
+  for (const d of domains) document.cookie = `${COOKIE}=; ${expire}; path=/; domain=${d}`;
+};
+
+const setLang = (en: boolean) => {
+  clearCookie();
   if (en) document.cookie = `${COOKIE}=/ko/en; path=/; max-age=31536000`;
   location.reload();
 };
