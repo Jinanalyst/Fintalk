@@ -390,7 +390,7 @@ export function PriceChart({
         if (!blob) return note("이미지를 만들지 못했습니다.");
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `${symbol}-${interval}-${Date.now()}.png`;
+        a.download = `${symbol}-${interval}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       } else if (kind === "copy") {
@@ -416,6 +416,9 @@ export function PriceChart({
       note("실행하지 못했습니다.");
     }
   };
+  // 차트 위에서 바로 쓰는 텍스트 입력 (id 가 있으면 기존 글 수정)
+  const [textEdit, setTextEdit] = useState<{ id: string | null; anchor: Anchor; x: number; y: number; value: string; size: number } | null>(null);
+  const textDone = useRef(false);
   const [draft, setDraftState] = useState<Draft | null>(null);
   const draftRef = useRef<Draft | null>(null);
   const [layout, setLayout] = useState<Layout>(EMPTY_LAYOUT);
@@ -1011,9 +1014,25 @@ export function PriceChart({
     [updateShapes, setDraft],
   );
 
+  const finishText = (save: boolean) => {
+    const te = textEdit;
+    if (!te || textDone.current) return;
+    textDone.current = true;
+    setTextEdit(null);
+    const t = te.value.trim().slice(0, 100);
+    if (!save || !t) return setTool(null);
+    if (te.id) updateShapes((l) => l.map((x) => (x.id === te.id ? { ...x, text: t } : x)));
+    else commit("text", te.anchor, te.anchor, undefined, { text: t });
+    setTool(null);
+  };
+
   const placeDown = (e: React.PointerEvent) => {
     if (!tool) return;
     e.stopPropagation();
+    if (textEdit) {
+      e.preventDefault();
+      return finishText(true); // 입력 중에 빈 곳을 누르면 입력 확정
+    }
     const { x, y } = rel(e);
     const pt = toAnchor(x, y);
     if (!pt) return;
@@ -1040,9 +1059,9 @@ export function PriceChart({
     const d = draftRef.current;
     if (tool === "hline") return commit("hline", pt, pt);
     if (tool === "text") {
-      const t = window.prompt("차트에 넣을 텍스트를 입력하세요")?.trim();
-      if (!t) return setTool(null);
-      return commit("text", pt, pt, undefined, { text: t.slice(0, 100) });
+      e.preventDefault(); // 입력창이 포커스를 잃지 않게
+      textDone.current = false;
+      return setTextEdit({ id: null, anchor: pt, x, y, value: "", size: 15 });
     }
     if (tool === "brush") return setDraft({ kind: "brush", a: pt, b: pt, pts: [pt], down: true, sx: e.clientX, sy: e.clientY, moved: false });
     if (d && d.kind === "fibext") {
@@ -1410,8 +1429,9 @@ export function PriceChart({
                       onPointerDown={(e) => startDrag(e, it, "move")}
                       onDoubleClick={() => {
                         if (tool) return;
-                        const t = window.prompt("텍스트 수정", it.text)?.trim();
-                        if (t) updateShapes((l) => l.map((x) => (x.id === it.id ? { ...x, text: t.slice(0, 100) } : x)));
+                        textDone.current = false;
+                        setSelected(it.id);
+                        setTextEdit({ id: it.id, anchor: { t: 0, p: 0 }, x: it.x1, y: it.y1, value: it.text ?? "", size: it.width === 1 ? 12 : it.width === 3 ? 20 : 15 });
                       }}
                     >
                       {it.text}
@@ -1509,6 +1529,25 @@ export function PriceChart({
             ) : null,
           )}
         </svg>
+
+        {textEdit && (
+          <input
+            autoFocus
+            value={textEdit.value}
+            maxLength={100}
+            placeholder="텍스트 입력 후 Enter"
+            aria-label="차트 텍스트"
+            onChange={(e) => setTextEdit((t) => (t ? { ...t, value: e.target.value } : t))}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") finishText(true);
+              else if (e.key === "Escape") finishText(false);
+            }}
+            onBlur={() => finishText(true)}
+            style={{ left: textEdit.x, top: textEdit.y - textEdit.size - 6, fontSize: textEdit.size, width: Math.max(140, textEdit.value.length * textEdit.size * 0.8 + 24) }}
+            className="absolute z-30 max-w-[calc(100%-16px)] rounded border border-brand bg-card/95 px-1.5 py-0.5 font-bold text-foreground outline-none shadow-sm"
+          />
+        )}
 
         {hint && <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border bg-card/90 px-2 py-1 text-xs shadow-xs">{hint} · Esc 취소</div>}
 
