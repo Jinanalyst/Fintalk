@@ -31,10 +31,13 @@ const pnlCls = (n: number) => (n >= 0 ? "text-up" : "text-down");
 const signed = (n: number) => `${n >= 0 ? "+" : ""}${fmtUsd(n)}`;
 const label = symbolLabel;
 
+const PAGE = 60;
+
 /** 바이낸스 선물 전 종목 검색. 시세가 들어온 종목(prices)이 곧 거래 가능한 종목입니다. */
 function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Record<string, number>; onPick: (s: string) => void }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [shown, setShown] = useState(PAGE);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -51,12 +54,14 @@ function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Reco
       .map((sym) => ({ sym, label: symbolLabel(sym), name: names.get(sym) ?? "" }))
       .sort((a, b) => (names.has(b.sym) ? 1 : 0) - (names.has(a.sym) ? 1 : 0) || a.label.localeCompare(b.label));
   }, [prices]);
-  const results = useMemo(() => {
+  const matches = useMemo(() => {
     const k = q.trim().toLowerCase();
     const list = k ? all.filter((x) => x.label.toLowerCase().includes(k) || x.name.includes(k)) : all;
     // 입력과 코드가 정확히/앞부분이 같은 종목을 위로
-    return (k ? [...list].sort((a, b) => Number(b.label.toLowerCase().startsWith(k)) - Number(a.label.toLowerCase().startsWith(k))) : list).slice(0, 60);
+    return (k ? [...list].sort((a, b) => Number(b.label.toLowerCase().startsWith(k)) - Number(a.label.toLowerCase().startsWith(k))) : list);
   }, [all, q]);
+  // 스크롤이 끝에 가까워질 때마다 더 불러와 전 종목을 볼 수 있게 합니다.
+  const results = useMemo(() => matches.slice(0, shown), [matches, shown]);
 
   const inDefault = SYMBOLS.some((x) => x.symbol === symbol);
   return (
@@ -70,6 +75,7 @@ function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Reco
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
+            setShown(PAGE);
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
@@ -87,7 +93,12 @@ function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Reco
         />
       </label>
       {open && (
-        <ul className="absolute left-0 top-full z-30 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border bg-popover p-1 text-xs shadow-lg">
+        <ul
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) setShown((n) => (n < matches.length ? n + PAGE : n));
+          }}
+          className="absolute left-0 top-full z-30 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border bg-popover p-1 text-xs shadow-lg">
           {results.length === 0 && <li className="px-2 py-3 text-center text-muted-foreground">{all.length === 0 ? "시세를 불러오는 중…" : "검색 결과가 없습니다."}</li>}
           {results.map((x) => (
             <li key={x.sym}>
