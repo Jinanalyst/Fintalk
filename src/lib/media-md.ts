@@ -91,7 +91,18 @@ export function plainParagraphs(body: string): string[] {
   const text = body
     .split("\n")
     .filter((l) => !mediaOf(l) && !youtubeIdOf(l))
-    .map((l) => l.replace(/^(#{2,3} |> |[-*] |\d+\. )/, "").replace(/^---+$/, "").replace(/\*\*([^*\n]+)\*\*/g, "$1"))
+    .map((l) =>
+      l
+        // 줄 앞 기호: 제목(#~######, 공백 유무·여러 칸 무관), 인용, 목록, 번호, 구분선
+        .replace(/^\s{0,3}(#{1,6}\s+|#{2,6}|>+\s*|[-*+]\s+|\d+[.)]\s+)/, "")
+        .replace(/^\s*(-{3,}|\*{3,}|_{3,})\s*$/, "")
+        // 인라인 기호: 링크·이미지, 굵게/기울임/취소선, 코드
+        .replace(/!?\[([^\]\n]*)\]\([^)\n]*\)/g, "$1")
+        .replace(/(\*\*|__)(.+?)\1/g, "$2")
+        .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, "$1$2")
+        .replace(/~~([^~\n]+)~~/g, "$1")
+        .replace(/`([^`\n]+)`/g, "$1"),
+    )
     .join("\n");
   const paras = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   return paras.length ? paras : [""];
