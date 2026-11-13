@@ -87,7 +87,8 @@ export function TopNav() {
 /** 모바일 하단 내비게이션 */
 export function BottomNav() {
   const pathname = usePathname();
-  const items = MAIN_NAV;
+  // 하단 메뉴는 5칸 고정: 리워드는 상단 햄버거 메뉴(사이드 시트)와 푸터에서 접근
+  const items = MAIN_NAV.filter((n) => n.href !== "/rewards");
   return (
     <nav
       aria-label="하단 메뉴"
