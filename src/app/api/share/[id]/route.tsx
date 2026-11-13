@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getShare } from "@/lib/data/share";
 import { fmtPrice, fmtUsd } from "@/lib/trade";
 
-export const size = { width: 1200, height: 630 };
+const size = { width: 1200, height: 630 };
 
 /** 카드에 쓰는 글자만 담은 작은 한글 폰트를 받아옵니다. 실패하면 기본 폰트로 그립니다. */
 async function loadFont(text: string): Promise<ArrayBuffer | null> {
