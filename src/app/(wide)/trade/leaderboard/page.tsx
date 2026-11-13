@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "모의투자 리더보드",
   description: "모의투자 실현 수익률로 겨루는 이용자 순위입니다.",
+  alternates: { canonical: "/trade/leaderboard" },
 };
 
 export const dynamic = "force-dynamic";

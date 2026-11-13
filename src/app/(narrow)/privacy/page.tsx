@@ -4,6 +4,7 @@ import { Clause, LegalPage, OPERATOR } from "@/components/common/legal";
 export const metadata: Metadata = {
   title: "개인정보처리방침",
   description: "핀톡 개인정보처리방침",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {

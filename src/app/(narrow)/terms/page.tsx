@@ -4,6 +4,7 @@ import { Clause, LegalPage, OPERATOR } from "@/components/common/legal";
 export const metadata: Metadata = {
   title: "이용약관",
   description: "핀톡 서비스 이용약관",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {

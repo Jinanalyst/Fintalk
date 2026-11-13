@@ -10,6 +10,7 @@ import { BOARD_CATEGORIES, POST_TYPES, boardLabel, tickerName, type PostType, ty
 export const metadata: Metadata = {
   title: "커뮤니티",
   description: "주식, 암호화폐, 거시경제, 투자 전략까지. 투자자들의 생각과 질문을 자유롭게 나눠보세요.",
+  alternates: { canonical: "/community" },
 };
 
 const SORTS: { slug: SortKey; label: string }[] = [

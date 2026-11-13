@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 export const metadata: Metadata = {
   title: "모의투자",
   description: "10,000 USDT 가상 자금으로 암호화폐 선물 거래를 연습해 보세요. 실제 자금은 사용되지 않습니다.",
+  alternates: { canonical: "/trade" },
 };
 
 export const dynamic = "force-dynamic";

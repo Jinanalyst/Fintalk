@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: PageProps<"/community/[id]">)
   const p = live?.post ?? (isSupabaseConfigured ? undefined : getPost(id));
   if (!p) return {};
   const desc = p.body[0].slice(0, 120);
-  return { title: p.title, description: desc, openGraph: { title: p.title, description: desc, type: "article" } };
+  return { title: p.title, description: desc, alternates: { canonical: `/community/${id}` }, openGraph: { title: p.title, description: desc, type: "article" } };
 }
 
 export default async function PostDetail({ params }: PageProps<"/community/[id]">) {

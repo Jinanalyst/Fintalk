@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, MessageCircleQuestion, PenLine } from "lucide-react";
 import { Pills, SampleBadge, SectionHeader } from "@/components/common/bits";
@@ -8,6 +9,8 @@ import { getCurrentUser, listPosts, listWaitingQuestions } from "@/lib/data/comm
 import { listFollowingIds } from "@/lib/data/creators";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { INSIGHT_TYPES, boardLabel } from "@/lib/sample-data";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 type Tab = "hot" | "new" | "following";
 

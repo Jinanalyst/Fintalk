@@ -9,6 +9,7 @@ import { INSIGHT_TYPES, POST_TYPES, type Category, type PostType } from "@/lib/s
 export const metadata: Metadata = {
   title: "인사이트",
   description: "국내 주식, 미국 주식, 암호화폐 투자자들이 쓴 양질의 분석 콘텐츠를 만나보세요.",
+  alternates: { canonical: "/insights" },
 };
 
 const CATS: Category[] = [

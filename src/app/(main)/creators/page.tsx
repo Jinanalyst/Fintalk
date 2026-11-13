@@ -10,6 +10,7 @@ import { INTEREST_OPTIONS, fmtNum } from "@/lib/sample-data";
 export const metadata: Metadata = {
   title: "크리에이터",
   description: "분야별 금융 크리에이터를 찾아 팔로우하고, 양질의 분석을 받아보세요.",
+  alternates: { canonical: "/creators" },
 };
 
 const SORTS: { slug: CreatorSort; label: string }[] = [

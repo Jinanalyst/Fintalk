@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: PageProps<"/share/[id]">): Pr
   const coin = s.symbol.replace("USDT", "");
   const title = `${s.nickname}님의 ${coin} ${s.side === "long" ? "롱" : "숏"} ${s.leverage}x ${s.roe >= 0 ? "+" : ""}${s.roe.toFixed(2)}% (모의투자)`;
   const description = `핀톡 모의투자 · ${s.closed ? "종료" : "진행 중"} · 손익 ${s.pnl >= 0 ? "+" : ""}${fmtUsd(s.pnl)} USDT. 가상 자금 기록이며 실제 수익이 아닙니다.`;
-  return { title, description, openGraph: { title, description, type: "article", images: [{ url: `/api/share/${s.id}`, width: 1200, height: 630 }] }, twitter: { card: "summary_large_image", title, description, images: [`/api/share/${s.id}`] } };
+  return { title, description, alternates: { canonical: `/share/${id}` }, openGraph: { title, description, type: "article", images: [{ url: `/api/share/${s.id}`, width: 1200, height: 630 }] }, twitter: { card: "summary_large_image", title, description, images: [`/api/share/${s.id}`] } };
 }
 
 export default async function SharePage({ params }: PageProps<"/share/[id]">) {

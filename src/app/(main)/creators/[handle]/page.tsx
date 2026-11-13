@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: PageProps<"/creators/[handle]
   const { handle } = await params;
   const c = await loadProfile(handle);
   if (!c) return {};
-  return { title: `${c.name} (@${c.handle})`, description: c.bio };
+  return { title: `${c.name} (@${c.handle})`, description: c.bio, alternates: { canonical: `/creators/${handle}` } };
 }
 
 export default async function CreatorProfile({ params }: PageProps<"/creators/[handle]">) {
