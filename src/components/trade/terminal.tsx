@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { createShareAction } from "@/app/actions/share";
 import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, reduceOnlyAction, placeOrderAction, resetAccountAction, setTpSlAction, syncTradeAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
-import { FEE_RATE, MARGIN_MODE_LABEL, REASON_LABEL, SYMBOLS, crossLiqPrice, fmtPrice, fmtUsd, liqPrice, symbolLabel, unrealizedPnl, type CloseOrder, type MarginMode, type Position, type Side } from "@/lib/trade";
+import { FEE_RATE, MAINT_RATE, MARGIN_MODE_LABEL, REASON_LABEL, SYMBOLS, crossLiqPrice, fmtPrice, fmtUsd, liqPrice, symbolLabel, unrealizedPnl, type CloseOrder, type MarginMode, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
@@ -238,6 +238,18 @@ export function TradeTerminal({ data }: { data: TradeData }) {
     for (const p of data.positions) {
       const px = prices[p.symbol];
       if (hit(p.side, px, p.sl, "down") || hit(p.side, px, p.tp, "up") || (p.margin_mode === "isolated" && hit(p.side, px, p.liq_price, "down"))) crossed = true;
+    }
+    // 교차 마진: 계좌 담보(잔고 + Σ증거금 + Σ미실현손익) <= 유지증거금(Σ명목가치×0.5%) 이면 서버가 전부 강제청산하므로 바로 점검을 요청합니다. (DB paper_tick 과 같은 조건)
+    const cross = data.positions.filter((p) => p.margin_mode === "cross" && prices[p.symbol]);
+    if (cross.length) {
+      let collateral = data.balance;
+      let maint = 0;
+      for (const p of cross) {
+        const px = prices[p.symbol];
+        collateral += p.margin + unrealizedPnl(p, px);
+        maint += p.qty * px * MAINT_RATE;
+      }
+      if (collateral <= maint) crossed = true;
     }
     for (const o of data.orders) {
       const px = prices[o.symbol];
