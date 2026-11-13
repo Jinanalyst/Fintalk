@@ -82,6 +82,48 @@ export function macd(values: number[], fast = 12, slow = 26, signalPeriod = 9) {
   return { line, signal, hist };
 }
 
+/** VWAP 누적 기준: 매일(UTC 0시)·매주(월요일)·매월 초기화, 또는 불러온 전체 구간 */
+export type VwapAnchor = "day" | "week" | "month" | "none";
+
+/** 거래량 가중 평균가(VWAP). 대표가격 (고+저+종)/3, 기준 구간마다 누적을 새로 시작합니다. band 는 VWAP ± 표준편차 × mult. */
+export function vwap(candles: Candle[], anchor: VwapAnchor = "day", mult = 1) {
+  const n = candles.length;
+  const line: Series = new Array(n).fill(null);
+  const upper: Series = new Array(n).fill(null);
+  const lower: Series = new Array(n).fill(null);
+  const sessionKey = (t: number) => {
+    const d = new Date(t * 1000);
+    if (anchor === "day") return Math.floor(t / 86400);
+    if (anchor === "week") return Math.floor((t / 86400 + 3) / 7); // 1970-01-01 은 목요일 → 월요일 시작
+    if (anchor === "month") return d.getUTCFullYear() * 12 + d.getUTCMonth();
+    return 0;
+  };
+  let key = NaN;
+  let pv = 0; // Σ 가격×거래량
+  let v = 0; // Σ 거래량
+  let p2v = 0; // Σ 가격²×거래량
+  for (let i = 0; i < n; i++) {
+    const c = candles[i];
+    const k = sessionKey(c.time);
+    if (k !== key) {
+      key = k;
+      pv = 0;
+      v = 0;
+      p2v = 0;
+    }
+    const tp = (c.high + c.low + c.close) / 3;
+    pv += tp * c.volume;
+    v += c.volume;
+    p2v += tp * tp * c.volume;
+    const m = v > 0 ? pv / v : tp;
+    line[i] = m;
+    const sd = v > 0 ? Math.sqrt(Math.max(p2v / v - m * m, 0)) : 0;
+    upper[i] = m + mult * sd;
+    lower[i] = m - mult * sd;
+  }
+  return { line, upper, lower };
+}
+
 /** 하이킨아시 캔들 */
 export function heikinAshi(candles: Candle[]): Candle[] {
   const out: Candle[] = [];
@@ -101,7 +143,8 @@ export type IndCfg = {
   boll: { period: number; mult: number };
   rsi: { period: number };
   macd: { fast: number; slow: number; signal: number };
-  /** 지표별 선 색 (키: ma0~2, ema0~2, bollBand, bollMid, rsi, macd, macdSig) */
+  vwap: { anchor: VwapAnchor; band: boolean; mult: number };
+  /** 지표별 선 색 (키: ma0~2, ema0~2, bollBand, bollMid, rsi, macd, macdSig, vwap, vwapBand) */
   colors: Record<string, string>;
   /** 지표별 점선 여부 (colors 와 같은 키) */
   dashed: Record<string, boolean>;
@@ -120,12 +163,12 @@ export const MAX_LINES = 10;
 export const DEFAULT_COLORS: Record<string, string> = {
   ma0: MA_COLORS[0], ma1: MA_COLORS[1], ma2: MA_COLORS[2],
   ema0: EMA_COLORS[0], ema1: EMA_COLORS[1], ema2: EMA_COLORS[2],
-  bollBand: "#60a5fa", bollMid: "#9ca3af", rsi: "#a855f7", macd: "#3b82f6", macdSig: "#f97316",
+  bollBand: "#60a5fa", bollMid: "#9ca3af", rsi: "#a855f7", macd: "#3b82f6", macdSig: "#f97316", vwap: "#06b6d4", vwapBand: "#06b6d4",
 };
 
 export const DEFAULT_DASHED: Record<string, boolean> = {
   ma0: false, ma1: false, ma2: false, ema0: false, ema1: false, ema2: false,
-  bollBand: true, bollMid: false, rsi: false, macd: false, macdSig: false,
+  bollBand: true, bollMid: false, rsi: false, macd: false, macdSig: false, vwap: false, vwapBand: true,
 };
 
 export const DEFAULT_CFG: IndCfg = {
@@ -142,6 +185,7 @@ export const DEFAULT_CFG: IndCfg = {
   boll: { period: 20, mult: 2 },
   rsi: { period: 14 },
   macd: { fast: 12, slow: 26, signal: 9 },
+  vwap: { anchor: "day", band: false, mult: 1 },
   colors: { ...DEFAULT_COLORS },
   dashed: { ...DEFAULT_DASHED },
   candle: { up: "", down: "" },
@@ -167,6 +211,8 @@ export function mergeCfg(raw: unknown): IndCfg {
   const b = (r.boll ?? {}) as Record<string, unknown>;
   const rs = (r.rsi ?? {}) as Record<string, unknown>;
   const m = (r.macd ?? {}) as Record<string, unknown>;
+  const vw = (r.vwap ?? {}) as Record<string, unknown>;
+  const anchor: VwapAnchor = vw.anchor === "week" || vw.anchor === "month" || vw.anchor === "none" || vw.anchor === "day" ? vw.anchor : "day";
   const fast = Math.trunc(num(m.fast, 12, 1, 200));
   const slow = Math.trunc(num(m.slow, 26, 2, 400));
   const rc = (r.colors ?? {}) as Record<string, unknown>;
@@ -194,6 +240,7 @@ export function mergeCfg(raw: unknown): IndCfg {
     ema: emaL,
     boll: { period: Math.trunc(num(b.period, 20, 2, 500)), mult: num(b.mult, 2, 0.1, 10) },
     rsi: { period: Math.trunc(num(rs.period, 14, 2, 200)) },
+    vwap: { anchor, band: typeof vw.band === "boolean" ? vw.band : false, mult: num(vw.mult, 1, 0.1, 10) },
     macd: fast < slow ? { fast, slow, signal: Math.trunc(num(m.signal, 9, 1, 200)) } : { ...DEFAULT_CFG.macd },
   };
 }
@@ -208,13 +255,20 @@ export type Calc = {
   macd: Series;
   macdSignal: Series;
   macdHist: Series;
+  vwap: Series;
+  vwapUp: Series;
+  vwapLow: Series;
 };
 
 export function calcAll(candles: Candle[], cfg: IndCfg): Calc {
   const closes = candles.map((c) => c.close);
   const bb = bollinger(closes, cfg.boll.period, cfg.boll.mult);
   const m = macd(closes, cfg.macd.fast, cfg.macd.slow, cfg.macd.signal);
+  const vw = vwap(candles, cfg.vwap.anchor, cfg.vwap.mult);
   return {
+    vwap: vw.line,
+    vwapUp: vw.upper,
+    vwapLow: vw.lower,
     ma: cfg.ma.map((l) => (l.on ? sma(closes, l.period) : [])),
     ema: cfg.ema.map((l) => (l.on ? ema(closes, l.period) : [])),
     bbMid: bb.mid,

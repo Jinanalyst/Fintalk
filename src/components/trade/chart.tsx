@@ -71,6 +71,7 @@ const INDS = [
   ["boll", "BOLL"],
   ["rsi", "RSI"],
   ["macd", "MACD"],
+  ["vwap", "VWAP"],
 ] as const;
 type Ind = (typeof INDS)[number][0];
 
@@ -169,7 +170,7 @@ function loadDrawings(): Record<string, Shape[]> {
   return out;
 }
 
-const DASH_KEY: Record<string, string> = { bbUp: "bollBand", bbLow: "bollBand", bbMid: "bollMid", macdSig: "macdSig" };
+const DASH_KEY: Record<string, string> = { bbUp: "bollBand", bbLow: "bollBand", bbMid: "bollMid", macdSig: "macdSig", vwapUp: "vwapBand", vwapLow: "vwapBand" };
 function specs(cfg: IndCfg): Spec[] {
   const line = (key: string, ind: Ind, pane: Spec["pane"], pick: (k: Calc) => (number | null)[], color: string, extra: Record<string, unknown> = {}): Spec => ({
     key,
@@ -194,6 +195,8 @@ function specs(cfg: IndCfg): Spec[] {
   ];
   cfg.ma.forEach((m, i) => m.on && out.push(line(`ma${i}`, "ma", "main", (k) => k.ma[i], cfg.colors[`ma${i}`])));
   cfg.ema.forEach((m, i) => m.on && out.push(line(`ema${i}`, "ema", "main", (k) => k.ema[i], cfg.colors[`ema${i}`])));
+  out.push(line("vwap", "vwap", "main", (k) => k.vwap, cfg.colors.vwap, { lineWidth: 2 }));
+  if (cfg.vwap.band) out.push(line("vwapUp", "vwap", "main", (k) => k.vwapUp, cfg.colors.vwapBand), line("vwapLow", "vwap", "main", (k) => k.vwapLow, cfg.colors.vwapBand));
   out.push(
     line("bbUp", "boll", "main", (k) => k.bbUp, cfg.colors.bollBand),
     line("bbMid", "boll", "main", (k) => k.bbMid, cfg.colors.bollMid),
@@ -1746,6 +1749,35 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
         {row("장기", <NumField label="MACD 장기" value={cfg.macd.slow} min={2} max={400} onCommit={(n) => n > cfg.macd.fast && setCfg({ ...cfg, macd: { ...cfg.macd, slow: n } })} />)}
         {row("시그널", <NumField label="MACD 시그널" value={cfg.macd.signal} min={1} max={200} onCommit={(n) => setCfg({ ...cfg, macd: { ...cfg.macd, signal: n } })} />)}
         <p className="text-[11px] text-muted-foreground">단기는 장기보다 작아야 합니다.</p>
+      </section>
+      <section className="space-y-1">
+        <h4 className="text-xs font-semibold">VWAP</h4>
+        {row("색", <ColorPick value={cfg.colors.vwap} label="VWAP 색" onChange={(c) => setColor("vwap", c)} />, "vwap")}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="w-14 text-muted-foreground">초기화</span>
+          <select
+            value={cfg.vwap.anchor}
+            aria-label="VWAP 초기화 기준"
+            onChange={(e) => setCfg({ ...cfg, vwap: { ...cfg.vwap, anchor: e.target.value as IndCfg["vwap"]["anchor"] } })}
+            className="h-7 rounded-md border bg-background px-1.5 text-xs"
+          >
+            <option value="day">매일</option>
+            <option value="week">매주</option>
+            <option value="month">매월</option>
+            <option value="none">없음(전체)</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="w-14 text-muted-foreground">밴드</span>
+          <input type="checkbox" checked={cfg.vwap.band} onChange={(e) => setCfg({ ...cfg, vwap: { ...cfg.vwap, band: e.target.checked } })} className="size-3.5 accent-foreground" aria-label="VWAP 밴드 표시" />
+        </div>
+        {cfg.vwap.band && (
+          <>
+            {row("밴드 색", <ColorPick value={cfg.colors.vwapBand} label="VWAP 밴드 색" onChange={(c) => setColor("vwapBand", c)} />, "vwapBand")}
+            {row("표준편차", <NumField label="VWAP 밴드 표준편차 배수" value={cfg.vwap.mult} min={0.1} max={10} step={0.1} onCommit={(n) => setCfg({ ...cfg, vwap: { ...cfg.vwap, mult: n } })} />)}
+          </>
+        )}
+        <p className="text-[11px] text-muted-foreground">기준은 UTC 0시입니다. 일봉 이상에서는 매일 기준이 의미가 없어 매주·매월을 권장합니다.</p>
       </section>
       <button type="button" onClick={() => setCfg(DEFAULT_CFG)} className="text-xs text-muted-foreground underline-offset-2 hover:underline">
         기본값으로 되돌리기
