@@ -42,6 +42,11 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     tab === "following" ? Promise.resolve({ posts: [], live: isSupabaseConfigured }) : listPosts({ sort: tab, limit: 8 }),
     listPosts({ sort: "hot", limit: 3, types: INSIGHT_TYPES }),
   ]);
+  // 대기 중인 질문이 없으면 답변이 달린 인기 질문으로 대체, 그것도 없으면 섹션을 숨김
+  const showingWaiting = waiting.posts.length > 0;
+  const qa = showingWaiting
+    ? waiting
+    : await listPosts({ sort: "hot", types: ["question"], limit: 20 }).then((r) => ({ posts: r.posts.filter((p) => p.comments > 0).slice(0, 4), live: r.live }));
   const posts = following ? following.posts : feed.posts;
   const live = feed.live;
 
@@ -78,17 +83,17 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       </section>
 
       {/* 지금 답을 기다리는 질문 */}
+      {qa.posts.length > 0 && (
       <section>
         <SectionHeader
-          title={<span className="inline-flex items-center gap-1.5"><MessageCircleQuestion className="size-5 text-brand" />지금 답을 기다리는 질문</span>}
+          title={<span className="inline-flex items-center gap-1.5"><MessageCircleQuestion className="size-5 text-brand" />{showingWaiting ? "지금 답을 기다리는 질문" : "답변이 달린 인기 질문"}</span>}
           href="/community?type=question"
           hrefLabel="질문 전체"
-          right={waiting.live ? undefined : <SampleBadge label="샘플 게시글" />}
+          right={qa.live ? undefined : <SampleBadge label="샘플 게시글" />}
           className="mb-2"
         />
         <ul className="divide-y rounded-2xl border bg-card shadow-xs">
-          {waiting.posts.length === 0 && <li className="p-6 text-center text-sm text-muted-foreground">대기 중인 질문이 없어요. 궁금한 점을 먼저 올려 보세요.</li>}
-          {waiting.posts.map((p) => {
+          {qa.posts.map((p) => {
             const st = questionStatus(p);
             return (
               <li key={p.id} className="flex items-center gap-3 p-4">
@@ -99,14 +104,15 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                   </p>
                   <Link href={`/community/${p.id}`} className="mt-0.5 block text-[15px] font-bold leading-snug hover:text-brand">{p.title}</Link>
                 </div>
-                <Link href={`/community/${p.id}#answer`} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg bg-brand-soft px-3.5 text-sm font-bold text-brand hover:bg-brand hover:text-primary-foreground">
-                  답변하기 <ArrowRight className="size-3.5" />
+                <Link href={showingWaiting ? `/community/${p.id}#answer` : `/community/${p.id}`} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg bg-brand-soft px-3.5 text-sm font-bold text-brand hover:bg-brand hover:text-primary-foreground">
+                  {showingWaiting ? "답변하기" : "답변 보기"} <ArrowRight className="size-3.5" />
                 </Link>
               </li>
             );
           })}
         </ul>
       </section>
+      )}
 
       {/* 추천 인사이트 */}
       {insights.posts.length > 0 && (
