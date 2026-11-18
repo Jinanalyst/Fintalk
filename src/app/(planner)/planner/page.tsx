@@ -26,7 +26,7 @@ const FAQ = [
   { q: `Is $${PRO_PRICE} really one time?`, a: "Yes. One payment, no renewals. Every feature we add to Pro later is included." },
   { q: "What happens to my data if I stop using it?", a: "You can export everything as CSV at any time, before or after you leave." },
   { q: "How is Pro different from Free?", a: "Free covers planning, the journal, the calendar and basic stats for one exchange. Pro adds unlimited exchange imports, the hour, mistake-tag and emotion breakdowns, the full style report, plan vs reality, the full weekly report and unlimited history." },
-  { q: "Is this financial advice?", a: "No. Chainlabs Planner analyzes your own trading history. It does not tell you what to buy or sell." },
+  { q: "Is this financial advice?", a: "No. FinTalk Planner analyzes your own trading history. It does not tell you what to buy or sell." },
 ];
 const SECURITY = [
   { title: "No exchange access", text: "We never ask for API keys, trading or withdrawal permission.", icon: ShieldCheck },
@@ -50,7 +50,7 @@ export default function PlannerLanding() {
         <div className="space-y-6">
           <span className="inline-flex rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand">Trading journal · Crypto &amp; stocks</span>
           <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">Your journal fills itself. You just fix the mistakes.</h1>
-          <p className="max-w-xl text-lg text-muted-foreground">Import your trades and Chainlabs Planner finds the real reason you lose money — then helps you plan the next one properly.</p>
+          <p className="max-w-xl text-lg text-muted-foreground">Import your trades and FinTalk Planner finds the real reason you lose money — then helps you plan the next one properly.</p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <Link href="/planner/app" className={cn(cta, "h-13")}>Start free</Link>
             <a href="#pricing" className="text-sm font-semibold hover:text-brand">See pricing →</a>
@@ -90,7 +90,7 @@ export default function PlannerLanding() {
       <section className="grid items-center gap-10 lg:grid-cols-2">
         <div className="space-y-5">
           <p className={eyebrow}>“Can’t I just use a spreadsheet?”</p>
-          <h2 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">A spreadsheet keeps records. Chainlabs Planner gives answers.</h2>
+          <h2 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">A spreadsheet keeps records. FinTalk Planner gives answers.</h2>
           <ul className="space-y-3">
             {["Win rate by hour, weekday and symbol, calculated for you", "P&L for each mistake tag, like “moved my stop”", "A report on how your emotions line up with your returns"].map((i) => (
               <li key={i} className="flex gap-3 text-muted-foreground"><Tick className="text-up" />{i}</li>
@@ -212,7 +212,7 @@ export default function PlannerLanding() {
         <div className="space-y-3">
           <p className={eyebrow}>“Can I trust a small product?”</p>
           <h2 className="text-3xl font-extrabold leading-tight tracking-tight">Built in public. Answered by the person who builds it.</h2>
-          <p className="text-muted-foreground">Chainlabs · Seongnam, Republic of Korea</p>
+          <p className="text-muted-foreground">Jinwoo · Founder, Chainlabs</p>
         </div>
         <ul className="space-y-3.5">
           <li className="flex gap-3 text-muted-foreground"><Tick className="text-up" /> Public changelog — follow every update on <a href={X_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand hover:underline">X {X_HANDLE}</a></li>
@@ -244,7 +244,7 @@ export default function PlannerLanding() {
         </div>
       </section>
 
-      <p className="pb-4 text-center text-xs text-muted-foreground">Chainlabs Planner is an analysis tool, not financial advice. Trading involves risk of loss. Past results do not guarantee future performance.</p>
+      <p className="pb-4 text-center text-xs text-muted-foreground">FinTalk Planner is an analysis tool, not financial advice. Trading involves risk of loss. Past results do not guarantee future performance.</p>
     </div>
   );
 }

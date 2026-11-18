@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: PageProps<"/share/[id]">): Pr
   if (!s) return {};
   const coin = s.symbol.replace("USDT", "");
   const title = `${s.nickname}'s ${coin} ${s.side === "long" ? "Long" : "Short"} ${s.leverage}x ${s.roe >= 0 ? "+" : ""}${s.roe.toFixed(2)}% (paper trading)`;
-  const description = `Chainlabs paper trading · ${s.closed ? "Closed" : "Open"} · PnL ${s.pnl >= 0 ? "+" : ""}${fmtUsd(s.pnl)} USDT. Virtual funds only; not real profit.`;
+  const description = `FinTalk paper trading · ${s.closed ? "Closed" : "Open"} · PnL ${s.pnl >= 0 ? "+" : ""}${fmtUsd(s.pnl)} USDT. Virtual funds only; not real profit.`;
   return { title, description, alternates: { canonical: `/share/${id}` }, openGraph: { title, description, type: "article", images: [{ url: `/api/share/${s.id}`, width: 1200, height: 630 }] }, twitter: { card: "summary_large_image", title, description, images: [`/api/share/${s.id}`] } };
 }
 

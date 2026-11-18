@@ -27,7 +27,7 @@ export function RankingPanel({ rows, meId, total }: { rows: RankRow[]; meId: str
   return (
     <Card className="scroll-mt-20" >
       <div id="ranking" className="scroll-mt-20" />
-      <SectionHeader title="Chainlabs Contribution Ranking" right={<span className="text-xs text-muted-foreground">{fmtNum(total)} members</span>} />
+      <SectionHeader title="FinTalk Contribution Ranking" right={<span className="text-xs text-muted-foreground">{fmtNum(total)} members</span>} />
       <p className="mt-1 text-xs text-muted-foreground">Ranked by combined points from posts, insights, answers and trading activity. Profit and return are not counted.</p>
 
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">

@@ -1,6 +1,6 @@
 export type Dir = "long" | "short";
 export type Status = "planned" | "open" | "closed" | "cancelled";
-export type Source = "plan" | "import" | "sample";
+export type Source = "plan" | "import" | "sample" | "paper";
 
 export const SETUPS = ["Breakout", "Pullback", "Range", "Trend", "News"] as const;
 export const EMOTIONS = ["Calm", "FOMO", "Fear", "Revenge", "Greedy"] as const;
@@ -27,6 +27,7 @@ export type Trade = {
   tp: number;
   acct: number;
   riskPct: number;
+  leverage?: number;
   setup: string;
   why: string;
   chart: string;

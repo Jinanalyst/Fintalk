@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { planner } from "@/lib/planner/store";
-import { adherence, fmt, localISO, money, positionCalc, realized, rText, tone } from "@/lib/planner/calc";
+import { adherence, fmt, isUnplanned, localISO, money, positionCalc, realized, rText, tone } from "@/lib/planner/calc";
 import { ADHERENCE_CHECKS, EMOTIONS, EXIT_REASONS, type Trade } from "@/lib/planner/types";
 import { closedTrades } from "@/lib/planner/analysis";
 import { cn } from "@/lib/utils";
@@ -109,7 +109,7 @@ export function JournalTab({ trades }: { trades: Trade[] }) {
   const adh = closed.map((t) => adherence(t.checks)).filter((x): x is number => x != null);
   const rows = closed.filter((t) => {
     if (q && !t.sym.toLowerCase().includes(q.toLowerCase())) return false;
-    const un = t.setup === "Unplanned" || t.source === "import";
+    const un = isUnplanned(t);
     return f === "Planned only" ? !un : f === "Unplanned only" ? un : f === "Winners" ? t.pnl! > 0 : f === "Losers" ? t.pnl! < 0 : true;
   });
   const net = thisMonth.reduce((s, t) => s + t.pnl!, 0);
@@ -145,7 +145,7 @@ export function JournalTab({ trades }: { trades: Trade[] }) {
         <Stat label="Closed this month" value={thisMonth.length} />
         <Stat label="Net P&L" value={money(net)} className={tone(net)} />
         <Stat label="Avg adherence" value={adh.length ? `${Math.round(adh.reduce((s, x) => s + x, 0) / adh.length)}%` : "—"} />
-        <Stat label="Unplanned trades" value={closed.filter((t) => t.setup === "Unplanned" || t.source === "import").length} className="text-amber-600 dark:text-amber-300" />
+        <Stat label="Unplanned trades" value={closed.filter((t) => isUnplanned(t)).length} className="text-amber-600 dark:text-amber-300" />
       </div>
 
       <Panel className="space-y-4">
@@ -170,7 +170,7 @@ export function JournalTab({ trades }: { trades: Trade[] }) {
             <tbody>
               {rows.slice(0, 60).map((t) => {
                 const a = adherence(t.checks);
-                const un = t.setup === "Unplanned" || t.source === "import";
+                const un = isUnplanned(t);
                 return (
                   <tr key={t.id} className="border-b last:border-0">
                     <td className="px-3 py-3 text-muted-foreground">{(t.closedAt ?? "").slice(5, 10).replace("-", "/")}</td>

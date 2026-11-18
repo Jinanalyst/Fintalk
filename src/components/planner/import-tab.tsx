@@ -90,6 +90,13 @@ export function ImportTab({ trades, pro }: { trades: Trade[]; pro: boolean }) {
 
       <aside className="space-y-5">
         <Panel className="space-y-2">
+          <PanelTitle muted right={<Pill tone="up">Auto</Pill>}>Mock trading</PanelTitle>
+          <p className="text-sm text-muted-foreground">
+            Closed trades from your FinTalk paper-trading account sync here by themselves, with leverage and hold time, so your trading style is detected without any import.
+          </p>
+          <p className="text-xs text-muted-foreground">Paper trades have no planned stop, so 1R is assumed to be 1% of the $10,000 starting balance. <Link href="/trade" className="font-medium text-brand hover:underline">Open mock trading</Link></p>
+        </Panel>
+        <Panel className="space-y-2">
           <PanelTitle muted>Columns we look for</PanelTitle>
           <ul className="space-y-1.5 text-sm text-muted-foreground">
             <li><strong className="text-foreground">Required:</strong> symbol, realized P&amp;L, close time</li>

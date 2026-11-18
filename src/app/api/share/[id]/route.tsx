@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   if (!s) {
     return new ImageResponse(
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#0b1220", color: "#94a3b8", fontSize: 48 }}>Chainlabs</div>,
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#0b1220", color: "#94a3b8", fontSize: 48 }}>FinTalk</div>,
       size,
     );
   }
@@ -72,7 +72,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
               <path d="M18 13H46A8 8 0 0 1 54 21V37A8 8 0 0 1 46 45H33L22 54V45H18A8 8 0 0 1 10 37V21A8 8 0 0 1 18 13Z" fill="#FFFFFF" />
               <path d="M19 36L28 27L34 32L45 21M38 21H45V28" fill="none" stroke="#1F4FD8" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <div style={{ display: "flex", fontSize: 34, color: "#e2e8f0" }}>Chainlabs</div>
+            <div style={{ display: "flex", fontSize: 34, color: "#e2e8f0" }}>FinTalk</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 20px", borderRadius: 999, border: "2px solid #f0b90b", color: "#f0b90b", fontSize: 26 }}>Paper Trading</div>
         </div>

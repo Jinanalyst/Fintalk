@@ -3,7 +3,7 @@ import { Logo } from "./header";
 import { X_HANDLE, X_URL } from "@/lib/planner/config";
 
 const BUSINESS = {
-  name: "Chainlabs",
+  name: "ChainLabs",
   ceo: "Jang Jin-woo",
   regNo: "382-25-02223",
   address: "406-403, 50 Yeosuul-ro, Jungwon-gu, Seongnam-si, Gyeonggi-do, Republic of Korea",
@@ -40,7 +40,7 @@ export function Footer() {
             <Link key={l.href} href={l.href} className="hover:text-brand">{l.label}</Link>
           ))}
           <span className="hidden h-4 w-px self-center bg-border sm:block" aria-hidden="true" />
-          <a href={X_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-brand" aria-label={`Chainlabs on X (${X_HANDLE})`}>
+          <a href={X_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-brand" aria-label={`FinTalk on X (${X_HANDLE})`}>
             <svg viewBox="0 0 24 24" className="size-3.5" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
             {X_HANDLE}
           </a>
@@ -58,9 +58,9 @@ export function Footer() {
         </dl>
 
         <p className="mt-3 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
-          Posts on Chainlabs are personal opinions of users and are not investment advice. Paper trading only. You are solely responsible for your own investment decisions.
+          Posts on FinTalk are personal opinions of users and are not investment advice. Paper trading only. You are solely responsible for your own investment decisions.
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">© {new Date().getFullYear()} {BUSINESS.name}. All rights reserved.</p>
+        <p className="mt-2 text-xs text-muted-foreground">© {new Date().getFullYear()} FinTalk · {BUSINESS.name}. All rights reserved.</p>
       </div>
     </footer>
   );

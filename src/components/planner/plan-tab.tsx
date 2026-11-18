@@ -6,10 +6,19 @@ import { planner } from "@/lib/planner/store";
 import { fmt, localISO, positionCalc, uid } from "@/lib/planner/calc";
 import { EXCHANGES, SETUPS, TIMEFRAMES, type Dir, type Trade } from "@/lib/planner/types";
 import { cn } from "@/lib/utils";
+import { MAX_LEVERAGE, SYMBOLS, pricePrecision } from "@/lib/trade";
 import { Chip, Field, Notice, Panel, PanelTitle, Pill, inputCls, primaryBtn, secondaryBtn, selectCls, statusPill } from "./ui";
+import { useLivePrices } from "./use-live-price";
+
+const LEVERAGE_PRESETS = [1, 3, 5, 10, 20, 50];
+const toPair = (s: string) => s.replace(/[-/\s]/g, "").toUpperCase();
+const roundPx = (p: number) => String(Number(p.toFixed(pricePrecision(p))));
 
 export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () => void }) {
   const [sym, setSym] = useState("BTC-USDT");
+  const [symDraft, setSymDraft] = useState("BTC-USDT");
+  const [lev, setLev] = useState("1");
+  const [pendingKey, setPendingKey] = useState<string | null>("BTCUSDT|long");
   const [exch, setExch] = useState("OKX");
   const [tf, setTf] = useState("1h");
   const [dir, setDir] = useState<Dir>("long");
@@ -24,17 +33,47 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
   const [saved, setSaved] = useState("");
 
   const n = (s: string) => parseFloat(s) || 0;
-  const c = positionCalc({ dir, entry: n(entry), stop: n(stop), tp: n(tp), acct: n(acct), riskPct: n(risk) });
+  const leverage = Math.min(MAX_LEVERAGE, Math.max(1, Math.round(n(lev)) || 1));
+  const c = positionCalc({ dir, entry: n(entry), stop: n(stop), tp: n(tp), acct: n(acct), riskPct: n(risk), leverage });
   const base = sym.split("-")[0] || "units";
   const okToSave = !!sym.trim() && !c.badStop && c.riskAmt > 0;
-  const allGood = !c.badStop && !c.warnRR && !c.warnRisk;
+  const allGood = !c.badStop && !c.warnRR && !c.warnRisk && !c.liqBeforeStop && !c.overMargin;
+
+  // Live price for the chosen asset. When the asset or direction changes, the next price tick
+  // fills entry, stop (2% away) and target (5% away) so the plan starts from the real market.
+  const pair = toPair(sym);
+  const { prices, price, live, valid } = useLivePrices(pair);
+  const key = `${pair}|${dir}`;
+  if (price && pendingKey === key) {
+    const s = dir === "long" ? -1 : 1;
+    setPendingKey(null);
+    setEntry(roundPx(price));
+    setStop(roundPx(price * (1 + s * 0.02)));
+    setTp(roundPx(price * (1 - s * 0.05)));
+  }
+  const pickAsset = (v: string) => {
+    setSymDraft(v);
+    const next = v.trim().toUpperCase();
+    if (SYMBOLS.some((x) => x.label === next.split("-")[0]) && /^[A-Z0-9]+-USDT$/.test(next)) commitAsset(next);
+  };
+  const commitAsset = (v: string) => {
+    const next = v.trim().toUpperCase();
+    if (!next) return;
+    setSym(next);
+    setSymDraft(next);
+    setPendingKey(`${toPair(next)}|${dir}`);
+  };
+  const changeDir = (d: Dir) => {
+    setDir(d);
+    setPendingKey(`${pair}|${d}`);
+  };
 
   const save = (status: "planned" | "open") => {
     if (!okToSave) return;
     const now = localISO();
     planner.add({
       id: uid(), source: "plan", sym: sym.trim().toUpperCase(), exch, dir, tf,
-      entry: n(entry), stop: n(stop), tp: n(tp), acct: n(acct), riskPct: n(risk),
+      entry: n(entry), stop: n(stop), tp: n(tp), acct: n(acct), riskPct: n(risk), leverage,
       setup, why, chart, status, createdAt: now, openedAt: status === "open" ? now : undefined, plannedRR: c.rr,
     });
     setSaved(status === "open" ? "Saved and marked open. Close it from the Journal tab when it ends." : "Saved as planned.");
@@ -49,14 +88,19 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
         <PanelTitle right={<span className="text-xs text-muted-foreground">Status: <strong className="text-amber-600 dark:text-amber-300">Planned</strong></span>}>New trade plan</PanelTitle>
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
-          <Field label="Symbol" htmlFor="sym"><input id="sym" className={inputCls} value={sym} onChange={(e) => setSym(e.target.value)} /></Field>
+          <Field label="Asset" htmlFor="sym">
+            <input id="sym" list="planner-assets" className={inputCls} value={symDraft} autoComplete="off" spellCheck={false}
+              onChange={(e) => pickAsset(e.target.value)} onBlur={() => commitAsset(symDraft)}
+              onKeyDown={(e) => { if (e.key === "Enter") commitAsset(symDraft); }} />
+            <datalist id="planner-assets">{SYMBOLS.map((s) => <option key={s.symbol} value={`${s.label}-USDT`}>{s.name}</option>)}</datalist>
+          </Field>
           <Field label="Exchange" htmlFor="exch">
             <select id="exch" className={selectCls} value={exch} onChange={(e) => setExch(e.target.value)}>{EXCHANGES.map((x) => <option key={x}>{x}</option>)}</select>
           </Field>
           <Field label="Direction">
             <div role="group" aria-label="Direction" className="flex h-11 gap-1 rounded-lg border bg-background p-1">
               {(["long", "short"] as const).map((d) => (
-                <button key={d} type="button" aria-pressed={dir === d} onClick={() => setDir(d)}
+                <button key={d} type="button" aria-pressed={dir === d} onClick={() => changeDir(d)}
                   className={cn("flex-1 rounded-md text-sm font-semibold transition-colors", dir === d ? "bg-brand-soft text-foreground" : "text-muted-foreground")}>
                   {d === "long" ? "Long ↑" : "Short ↓"}
                 </button>
@@ -68,12 +112,33 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
           </Field>
         </div>
 
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-surface px-4 py-3 text-sm" aria-live="polite">
+          {!valid ? (
+            <span className="text-muted-foreground">Pick a USDT pair such as BTC-USDT to see its live price.</span>
+          ) : (
+            <>
+              <span className="flex items-center gap-2">
+                <span className={cn("size-2 rounded-full", live ? "bg-up" : "bg-amber-500")} aria-hidden />
+                <span className="text-muted-foreground">{sym} {live ? "live" : "delayed"}</span>
+                <strong className="font-mono text-base tabular-nums">{price ? `$${fmt(price, pricePrecision(price))}` : "Loading…"}</strong>
+              </span>
+              <button type="button" disabled={!price} onClick={() => price && setEntry(roundPx(price))} className="text-xs font-semibold text-brand hover:underline disabled:opacity-50">Use as entry</button>
+            </>
+          )}
+        </div>
+
         <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4 rounded-xl border bg-surface p-4 sm:p-5">
           <Field label="Entry price" htmlFor="entry"><input id="entry" inputMode="decimal" className={inputCls} value={entry} onChange={(e) => setEntry(e.target.value)} /></Field>
           <Field label="Stop loss" htmlFor="stop" tone="down"><input id="stop" inputMode="decimal" className={inputCls} value={stop} onChange={(e) => setStop(e.target.value)} /></Field>
           <Field label="Take profit" htmlFor="tp" tone="up"><input id="tp" inputMode="decimal" className={inputCls} value={tp} onChange={(e) => setTp(e.target.value)} /></Field>
           <Field label="Account size ($)" htmlFor="acct"><input id="acct" inputMode="decimal" className={inputCls} value={acct} onChange={(e) => setAcct(e.target.value)} /></Field>
           <Field label="Risk per trade (%)" htmlFor="risk"><input id="risk" inputMode="decimal" className={inputCls} value={risk} onChange={(e) => setRisk(e.target.value)} /></Field>
+          <Field label={`Leverage (1–${MAX_LEVERAGE}x)`} htmlFor="lev">
+            <input id="lev" inputMode="numeric" className={inputCls} value={lev} onChange={(e) => setLev(e.target.value.replace(/[^0-9]/g, ""))} onBlur={() => setLev(String(leverage))} />
+            <div role="group" aria-label="Leverage presets" className="flex flex-wrap gap-1.5 pt-1">
+              {LEVERAGE_PRESETS.map((p) => <Chip key={p} on={leverage === p} onClick={() => setLev(String(p))}>{p}x</Chip>)}
+            </div>
+          </Field>
         </div>
 
         <div className="space-y-2">
@@ -112,6 +177,13 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
             <div className="rounded-lg bg-surface p-3"><p className="text-xs text-muted-foreground">R:R</p>
               <p className={cn("font-mono text-sm font-semibold", c.rr >= 2 ? "text-up" : c.warnRR ? "text-amber-600 dark:text-amber-300" : "")}>{c.badStop ? "—" : fmt(c.rr, 2)}</p></div>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg bg-surface p-3"><p className="text-xs text-muted-foreground">Margin needed ({leverage}x)</p><p className="font-mono text-sm font-semibold">${fmt(c.margin, 2)}</p></div>
+            <div className="rounded-lg bg-surface p-3"><p className="text-xs text-muted-foreground">Est. liquidation</p><p className="font-mono text-sm font-semibold">{c.liq ? `$${fmt(c.liq, pricePrecision(c.liq))}` : "None (1x)"}</p></div>
+          </div>
+          {c.liqBeforeStop && <Notice tone="down">Liquidation (~${fmt(c.liq ?? 0, 2)}) would hit before your stop. Lower the leverage or move the stop closer.</Notice>}
+          {c.overMargin && <Notice tone="down">This position needs ${fmt(c.margin, 0)} of margin, more than your ${fmt(n(acct), 0)} account. Raise the leverage or cut the risk.</Notice>}
+          {leverage > 20 && !c.liqBeforeStop && <Notice tone="warn">{leverage}x leaves very little room. Small moves against you can liquidate the trade.</Notice>}
           {c.badStop && <Notice tone="down">{dir === "long" ? "For a long, stop must be below entry and target above it." : "For a short, stop must be above entry and target below it."}</Notice>}
           {c.warnRR && <Notice tone="warn">R:R is below 1.5. Widen the target or tighten the stop.</Notice>}
           {c.warnRisk && <Notice tone="warn">Risk is above 2% of your account.</Notice>}
@@ -122,12 +194,20 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
           <PanelTitle muted right={<button type="button" onClick={goJournal} className="text-xs font-medium text-brand hover:underline">Go to journal →</button>}>Active plans</PanelTitle>
           {active.length === 0 && <p className="text-sm text-muted-foreground">No open or planned trades yet.</p>}
           {active.slice(0, 6).map((t) => {
-            const rr = positionCalc(t).rr;
+            const calc = positionCalc(t);
+            const rr = calc.rr;
+            const mark = prices[toPair(t.sym)];
+            const upnl = mark && t.status === "open" ? (mark - t.entry) * calc.size * (t.dir === "long" ? 1 : -1) : null;
             return (
               <div key={t.id} className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3">
                 <div className="min-w-0">
                   <p className="truncate font-mono text-sm font-semibold">{t.sym} <span className={t.dir === "long" ? "text-up" : "text-down"}>{t.dir === "long" ? "Long" : "Short"}</span></p>
-                  <p className="text-xs text-muted-foreground">Entry {fmt(t.entry)} · R:R {fmt(rr, 1)} · {t.setup}</p>
+                  <p className="text-xs text-muted-foreground">Entry {fmt(t.entry)} · R:R {fmt(rr, 1)} · {t.setup}{(t.leverage ?? 1) > 1 ? ` · ${t.leverage}x` : ""}</p>
+                  {mark && (
+                    <p className="text-xs text-muted-foreground">Now <span className="font-mono">${fmt(mark, pricePrecision(mark))}</span>
+                      {upnl != null && <span className={cn("ml-2 font-mono font-semibold", upnl >= 0 ? "text-up" : "text-down")}>{upnl >= 0 ? "+" : "−"}${fmt(Math.abs(upnl), 2)}</span>}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {statusPill(t.status)}

@@ -41,7 +41,7 @@ export function ShareActions({ id, nickname, postId, demo }: { id: string; nickn
   };
 
   const share = async () => {
-    const data = { title: "Chainlabs paper trading position", text: `${nickname}'s paper trading position (virtual funds)`, url: link() };
+    const data = { title: "FinTalk paper trading position", text: `${nickname}'s paper trading position (virtual funds)`, url: link() };
     if (navigator.share) {
       try {
         await navigator.share(data);

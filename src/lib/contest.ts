@@ -13,7 +13,7 @@ export const isBlockedCountry = (code?: string | null) => !!code && BLOCKED_COUN
 export const OKX_REFERRAL_URL = process.env.NEXT_PUBLIC_OKX_REFERRAL_URL || "https://okx.com/join/FINTALK";
 
 export const CONTEST = {
-  name: "Chainlabs Paper Trading Championship",
+  name: "FinTalk Paper Trading Championship",
   startingBalance: 10_000,
   maxLeverage: 150,
 } as const;

@@ -5,7 +5,7 @@ import { PRO_PRICE, REFUND_DAYS, X_HANDLE, X_URL } from "@/lib/planner/config";
 
 export const metadata: Metadata = {
   title: "Refund Policy",
-  description: `Chainlabs Planner Lifetime Pro comes with a ${REFUND_DAYS}-day money-back guarantee.`,
+  description: `FinTalk Planner Lifetime Pro comes with a ${REFUND_DAYS}-day money-back guarantee.`,
   alternates: { canonical: "/refunds" },
 };
 
@@ -14,7 +14,7 @@ export default function RefundsPage() {
     <LegalPage title="Refund Policy">
       <Clause title={`${REFUND_DAYS}-day money-back guarantee`}>
         <p>
-          If Chainlabs Planner Lifetime Pro (${PRO_PRICE}, one-time) isn’t right for you, request a refund within <strong className="text-foreground">{REFUND_DAYS} days</strong> of your purchase
+          If FinTalk Planner Lifetime Pro (${PRO_PRICE}, one-time) isn’t right for you, request a refund within <strong className="text-foreground">{REFUND_DAYS} days</strong> of your purchase
           and we will refund the full amount. You don’t need to give a reason.
         </p>
       </Clause>

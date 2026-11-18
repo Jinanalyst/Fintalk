@@ -3,7 +3,7 @@ import { Clause, LegalPage, OPERATOR } from "@/components/common/legal";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Chainlabs Privacy Policy",
+  description: "FinTalk Privacy Policy",
   alternates: { canonical: "/privacy" },
 };
 

@@ -1,4 +1,4 @@
-import { adherence, dayOf, holdMinutes, hourOf, parse } from "./calc";
+import { adherence, dayOf, holdMinutes, hourOf, isUnplanned, parse } from "./calc";
 import type { Trade } from "./types";
 
 const when = (t: Trade) => t.closedAt ?? t.createdAt;
@@ -77,7 +77,7 @@ export function planVsReality(ts: Trade[]) {
   const stopOk = checked.filter((t) => t.checks![1]);
   const stopBad = checked.filter((t) => !t.checks![1]);
   const wr = (a: Trade[]) => (a.length ? (a.filter((t) => t.pnl! > 0).length / a.length) * 100 : 0);
-  const unplanned = c.filter((t) => t.setup === "Unplanned" || t.source === "import");
+  const unplanned = c.filter((t) => isUnplanned(t));
   const planned = c.filter((t) => !unplanned.includes(t));
   return {
     stop: { ok: { n: stopOk.length, wr: wr(stopOk), r: rOf(stopOk) }, bad: { n: stopBad.length, wr: wr(stopBad), r: rOf(stopBad) } },
@@ -115,8 +115,14 @@ export function behaviorFlags(ts: Trade[]): Flag[] {
     const worst = heavy.map(([d, a]) => ({ d, pnl: a.reduce((s, t) => s + t.pnl!, 0) })).sort((a, b) => a.pnl - b.pnl)[0];
     flags.push({ level: "MED", title: "Overtrading", text: `${heavy.length} days with 3+ trades. The worst of them was ${worst.d.slice(5).replace("-", "/")}.` });
   }
+  const liqs = c.filter((t) => t.exitReason === "Liquidation");
+  if (liqs.length >= 1) flags.push({ level: "HIGH", title: "Liquidations", text: `${liqs.length} position${liqs.length > 1 ? "s were" : " was"} liquidated, costing ${money0(liqs.reduce((s, t) => s + t.pnl!, 0))}. Lower your leverage or widen the stop.` });
+  const high = c.filter((t) => (t.leverage ?? 1) > 20);
+  if (high.length >= 2) flags.push({ level: "MED", title: "Heavy leverage", text: `${high.length} trades used more than 20x leverage. Their net result: ${money0(high.reduce((s, t) => s + t.pnl!, 0))}.` });
   return flags;
 }
+
+const money0 = (n: number) => `${n < 0 ? "−" : "+"}$${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
 
 const sgn = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(2)}R`;
 
@@ -144,7 +150,7 @@ export function styleReport(ts: Trade[]) {
   if (pv.plan.unplanned.n >= 2 && pv.plan.unplanned.r < 0) weak.push(`Unplanned trades average ${sgn(pv.plan.unplanned.r)}`);
 
   const adh = c.map((t) => adherence(t.checks)).filter((x): x is number => x != null);
-  return { style, n: c.length, avgHold, perDay: days ? c.length / days : 0, longBias: c.length ? (c.filter((t) => t.dir === "long").length / c.length) * 100 : 0, strengths, weak, avgAdh: adh.length ? mean(adh) : null };
+  return { style, n: c.length, avgHold, perDay: days ? c.length / days : 0, longBias: c.length ? (c.filter((t) => t.dir === "long").length / c.length) * 100 : 0, strengths, weak, avgAdh: adh.length ? mean(adh) : null, avgLeverage: mean(c.map((t) => t.leverage ?? 1)), paper: c.filter((t) => t.source === "paper").length };
 }
 
 export const fmtHold = (m: number) => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, "0")}m`;

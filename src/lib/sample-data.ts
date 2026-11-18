@@ -205,7 +205,7 @@ export const AD_SLOTS = [
 export const TRENDING_TICKERS = ["005930", "NVDA", "BTC", "000660", "TSLA", "SOL"];
 
 export const ANNOUNCEMENTS = [
-  { id: "a1", title: "Chainlabs design preview (Phase 1) is live", date: "2026-11-05" },
+  { id: "a1", title: "FinTalk design preview (Phase 1) is live", date: "2026-11-05" },
   { id: "a2", title: "Community rules and investment disclaimer", date: "2026-11-05" },
 ];
 

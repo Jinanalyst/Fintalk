@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { usePlanner, planner } from "@/lib/planner/store";
 import { fmt, money, tone } from "@/lib/planner/calc";
-import { closedTrades } from "@/lib/planner/analysis";
+import { closedTrades, styleReport } from "@/lib/planner/analysis";
 import { cn } from "@/lib/utils";
 import { Pill, Panel, Notice } from "./ui";
 import { useIsPro } from "./use-pro";
+import { usePaperSync } from "./use-paper-sync";
 import { PlanTab } from "./plan-tab";
 import { JournalTab } from "./journal-tab";
 import { CalendarTab } from "./calendar-tab";
@@ -33,6 +34,7 @@ export function PlannerApp() {
   const tab: TabId = TABS.some((t) => t.id === sp.get("tab")) ? (sp.get("tab") as TabId) : "plan";
   const justPaid = sp.get("paid") === "1";
   const { pro } = useIsPro(justPaid);
+  const paper = usePaperSync();
   const [now] = useState(() => Date.now());
 
   // Free keeps the last 90 days of history on screen; Pro is unlimited.
@@ -52,6 +54,9 @@ export function PlannerApp() {
   const net = closed.reduce((s, t) => s + t.pnl!, 0);
   const hasSample = store.trades.some((t) => t.source === "sample");
   const acct = trades.find((t) => t.acct > 0)?.acct ?? 10000;
+  // Style is detected automatically from your closed trades (hold time, frequency, leverage), including mock-trading ones.
+  const detected = closed.length >= 3 ? styleReport(trades) : null;
+  const paperCount = store.trades.filter((t) => t.source === "paper").length;
 
   return (
     <div className="space-y-5">
@@ -64,12 +69,18 @@ export function PlannerApp() {
           <span className="rounded-lg border bg-card px-3 py-2">Account <strong className="font-mono text-foreground">${fmt(acct, 0)}</strong></span>
           <span className="rounded-lg border bg-card px-3 py-2">Open plans <strong className="font-mono text-foreground">{open}</strong></span>
           <span className="rounded-lg border bg-card px-3 py-2">Net P&amp;L <strong className={cn("font-mono", tone(net))}>{money(net)}</strong></span>
+          {detected && <span className="rounded-lg border bg-card px-3 py-2">Detected style <strong className="text-foreground">{detected.style}</strong></span>}
           <Pill tone={pro ? "brand" : "neutral"}>{pro ? "Lifetime Pro" : "Free plan"}</Pill>
         </div>
       </div>
 
       {justPaid && !pro && <Notice tone="warn">Payment received? Pro unlocks as soon as the network confirms it — this page checks automatically.</Notice>}
       {justPaid && pro && <Notice tone="up">Lifetime Pro is active. Thank you!</Notice>}
+      {paper.configured && paper.signedIn && paperCount > 0 && (
+        <p className="rounded-xl border bg-card px-4 py-2.5 text-sm text-muted-foreground">
+          <strong className="text-foreground">{paperCount} mock-trading trades</strong> are synced automatically into your journal, calendar and analysis.
+        </p>
+      )}
       {hasSample && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
           <span>You’re looking at <strong>sample data</strong>. Clear it to start with a clean journal.</span>
@@ -101,7 +112,7 @@ export function PlannerApp() {
           <Link href="/planner#pricing" className="text-sm font-semibold text-brand hover:underline">See what’s included →</Link>
         </Panel>
       )}
-      <p className="text-xs text-muted-foreground">Chainlabs Planner analyzes your own trading history. It is not financial advice. Your data is stored on this device.</p>
+      <p className="text-xs text-muted-foreground">FinTalk Planner analyzes your own trading history. It is not financial advice. Your data is stored on this device.</p>
     </div>
   );
 }

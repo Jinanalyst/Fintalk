@@ -35,7 +35,7 @@ export async function startProCheckout(_: CheckoutState): Promise<CheckoutState>
         price_amount: PRO_PRICE,
         price_currency: "usd",
         order_id: orderId,
-        order_description: "Chainlabs Planner — Lifetime Pro",
+        order_description: "FinTalk Planner — Lifetime Pro",
         ipn_callback_url: `${site}/api/planner/ipn`,
         success_url: `${site}/planner/app?tab=analysis&paid=1`,
         cancel_url: `${site}/planner/checkout`,

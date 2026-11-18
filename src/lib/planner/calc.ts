@@ -1,6 +1,13 @@
 import type { Dir, Trade } from "./types";
 
-export function positionCalc(i: { dir: Dir; entry: number; stop: number; tp: number; acct: number; riskPct: number }) {
+/** Maintenance margin rate, same as the paper-trading engine. */
+const MAINT = 0.005;
+
+/** A trade that wasn't planned first: tagged Unplanned, imported from a CSV, or synced from paper trading. */
+export const isUnplanned = (t: Trade) => t.setup === "Unplanned" || t.source === "import" || t.source === "paper";
+
+export function positionCalc(i: { dir: Dir; entry: number; stop: number; tp: number; acct: number; riskPct: number; leverage?: number }) {
+  const lev = Math.max(1, i.leverage ?? 1);
   const dist = Math.abs(i.entry - i.stop);
   const riskAmt = (i.acct * i.riskPct) / 100;
   const size = dist > 0 ? riskAmt / dist : 0;
@@ -9,9 +16,18 @@ export function positionCalc(i: { dir: Dir; entry: number; stop: number; tp: num
   const long = i.dir === "long";
   const badStop =
     i.entry <= 0 || i.stop <= 0 || i.tp <= 0 || (long ? i.stop >= i.entry || i.tp <= i.entry : i.stop <= i.entry || i.tp >= i.entry);
+  const notional = size * i.entry;
+  const margin = notional / lev;
+  // Estimated isolated liquidation price (same formula as the mock trading engine).
+  const liq = long ? i.entry * (1 - 1 / lev + MAINT) : i.entry * (1 + 1 / lev - MAINT);
+  const liqBeforeStop = !badStop && lev > 1 && (long ? liq >= i.stop : liq <= i.stop);
   return {
     size,
-    notional: size * i.entry,
+    notional,
+    margin,
+    liq: lev > 1 ? liq : null,
+    liqBeforeStop,
+    overMargin: i.acct > 0 && margin > i.acct,
     riskAmt,
     reward,
     rr,

@@ -93,7 +93,8 @@ export function AnalysisTab({ trades, pro }: { trades: Trade[]; pro: boolean }) 
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your trading style · {style.n} closed trades</p>
             <p className="text-4xl font-extrabold leading-none tracking-tight text-brand sm:text-5xl">{style.style}</p>
             <div className="flex flex-wrap gap-2 text-sm">
-              <span className="rounded-lg bg-surface px-3 py-2 text-muted-foreground">Avg hold <strong className="font-mono text-foreground">{fmtHold(style.avgHold)}</strong></span>
+              {style.avgLeverage > 1.05 && <span className="rounded-lg bg-surface px-3 py-2 text-muted-foreground">Avg leverage <strong className="font-mono text-foreground">{style.avgLeverage.toFixed(1)}x</strong></span>}
+              <span className="rounded-lg bg-surface px-3 py-2 text-muted-foreground">Avg hold<strong className="font-mono text-foreground">{fmtHold(style.avgHold)}</strong></span>
               <span className="rounded-lg bg-surface px-3 py-2 text-muted-foreground">Trades/day <strong className="font-mono text-foreground">{style.perDay.toFixed(1)}</strong></span>
               <span className="rounded-lg bg-surface px-3 py-2 text-muted-foreground">Long bias <strong className="font-mono text-foreground">{Math.round(style.longBias)}%</strong></span>
             </div>

@@ -6,7 +6,7 @@ import { PRO_FEATURES, PRO_PRICE, REFUND_DAYS } from "@/lib/planner/config";
 
 export const metadata: Metadata = {
   title: "Get Lifetime Pro",
-  description: `Chainlabs Planner Lifetime Pro — $${PRO_PRICE} once, with a ${REFUND_DAYS}-day money-back guarantee.`,
+  description: `FinTalk Planner Lifetime Pro — $${PRO_PRICE} once, with a ${REFUND_DAYS}-day money-back guarantee.`,
   robots: { index: false, follow: true },
 };
 

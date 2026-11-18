@@ -6,10 +6,10 @@ import { LiveChat } from "@/components/chat/live-chat";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: "Chainlabs – Share market insights and build value together", template: "%s | Chainlabs" },
+  title: { default: "FinTalk – Share market insights and build value together", template: "%s | FinTalk" },
   description:
-    "Chainlabs is a finance community where investors share analysis on stocks and crypto, practice with free paper trading, and compete in trading contests.",
-  openGraph: { siteName: "Chainlabs", locale: "en_US", type: "website" },
+    "FinTalk is a finance community where investors share analysis on stocks and crypto, practice with free paper trading, and compete in trading contests.",
+  openGraph: { siteName: "FinTalk", locale: "en_US", type: "website" },
   // Google Search Console 소유권 확인 (확인 후에도 삭제하지 마세요)
   verification: {
     google: "laIvOdTK-TK9uOqG1LyPHH6LV7Px6tyRcTBcJuJ7Jc4",
