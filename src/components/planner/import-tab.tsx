@@ -6,7 +6,7 @@ import { Upload } from "lucide-react";
 import { SAMPLE_CSV, importTrades } from "@/lib/planner/csv";
 import { money, tone } from "@/lib/planner/calc";
 import { planner } from "@/lib/planner/store";
-import { EXCHANGES, type Trade } from "@/lib/planner/types";
+import { IMPORT_EXCHANGES, type Trade } from "@/lib/planner/types";
 import { cn } from "@/lib/utils";
 import { Field, Notice, Panel, PanelTitle, Pill, inputCls, primaryBtn, secondaryBtn, selectCls } from "./ui";
 
@@ -38,7 +38,7 @@ export function ImportTab({ trades, pro }: { trades: Trade[]; pro: boolean }) {
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
           <Field label="Exchange" htmlFor="imp-exch">
-            <select id="imp-exch" className={selectCls} value={exch} onChange={(e) => { setExch(e.target.value); setDone(""); }}>{EXCHANGES.map((x) => <option key={x}>{x}</option>)}</select>
+            <select id="imp-exch" className={selectCls} value={exch} onChange={(e) => { setExch(e.target.value); setDone(""); }}>{IMPORT_EXCHANGES.map((x) => <option key={x}>{x}</option>)}</select>
           </Field>
           <Field label="CSV file" htmlFor="imp-file">
             <label className="flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 text-sm text-muted-foreground hover:bg-muted">

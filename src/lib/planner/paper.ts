@@ -14,7 +14,7 @@ export function paperToTrade(p: ClosedTrade): Trade {
     id: `paper-${p.id}`,
     source: "paper",
     sym,
-    exch: "Paper",
+    exch: "Mock",
     dir: p.side,
     tf: "—",
     entry: p.entry_price,
@@ -36,5 +36,39 @@ export function paperToTrade(p: ClosedTrade): Trade {
     exitReason: REASON_LABEL[p.reason] ?? p.reason,
     pnl: p.pnl,
     r: p.pnl / PAPER_R,
+  };
+}
+
+type PaperPosition = {
+  id: string; symbol: string; side: "long" | "short"; qty: number; entry_price: number; leverage: number;
+  tp: number | null; sl: number | null; opened_at: string;
+};
+
+/** A position that is still open in mock trading shows up as an open plan with live P&L. Close it in the terminal. */
+export function positionToTrade(p: PaperPosition): Trade {
+  const opened = localISO(new Date(p.opened_at));
+  const riskAmt = p.sl ? Math.abs(p.entry_price - p.sl) * p.qty : 0;
+  const rr = p.sl && p.tp && riskAmt > 0 ? (Math.abs(p.tp - p.entry_price) * p.qty) / riskAmt : undefined;
+  return {
+    id: `paper-pos-${p.id}`,
+    source: "paper",
+    sym: p.symbol.replace(/USDT$/, "-USDT"),
+    exch: "Mock",
+    dir: p.side,
+    tf: "—",
+    entry: p.entry_price,
+    stop: p.sl ?? 0,
+    tp: p.tp ?? 0,
+    acct: START_BALANCE,
+    riskPct: riskAmt > 0 ? (riskAmt / START_BALANCE) * 100 : 1,
+    leverage: p.leverage,
+    qty: p.qty,
+    setup: "Paper trade",
+    why: "",
+    chart: "",
+    status: "open",
+    createdAt: opened,
+    openedAt: opened,
+    plannedRR: rr,
   };
 }

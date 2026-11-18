@@ -97,7 +97,7 @@ function CloseForm({ t }: { t: Trade }) {
 const FILTERS = ["All trades", "Planned only", "Unplanned only", "Winners", "Losers"] as const;
 
 export function JournalTab({ trades }: { trades: Trade[] }) {
-  const open = trades.filter((t) => t.status === "open");
+  const open = trades.filter((t) => t.status === "open" && t.source !== "paper"); // open mock-trading positions are closed in the terminal
   const [pick, setPick] = useState("");
   const current = open.find((t) => t.id === pick) ?? open[0];
   const [q, setQ] = useState("");

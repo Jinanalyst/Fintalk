@@ -36,15 +36,17 @@ const subscribe = (cb: () => void) => {
 };
 
 export const planner = {
-  /** Replaces every paper-trading trade with the latest list. Real data replaces the sample data. */
+  /**
+   * Replaces every mock-trading trade (closed and open) with the latest list. For a signed-in user the
+   * mock-trading account is the default data source, so the sample data is removed even if they have no trades yet.
+   */
   syncPaper: (paper: Trade[]) => {
     const cur = load();
     const old = cur.trades.filter((t) => t.source === "paper");
-    const same = old.length === paper.length && old.every((t) => paper.some((p) => p.id === t.id && p.pnl === t.pnl));
+    const key = (a: Trade[]) => JSON.stringify([...a].sort((x, y) => (x.id < y.id ? -1 : 1)));
     const hasSample = cur.trades.some((t) => t.source === "sample");
-    if (same && !(paper.length > 0 && hasSample)) return;
-    const rest = cur.trades.filter((t) => t.source !== "paper" && !(paper.length > 0 && t.source === "sample"));
-    commit({ ...cur, trades: [...paper, ...rest] });
+    if (!hasSample && key(old) === key(paper)) return;
+    commit({ ...cur, trades: [...paper, ...cur.trades.filter((t) => t.source !== "paper" && t.source !== "sample")] });
   },
   add: (t: Trade) => commit({ ...load(), trades: [t, ...load().trades] }),
   addMany: (ts: Trade[]) => commit({ ...load(), trades: [...ts, ...load().trades] }),

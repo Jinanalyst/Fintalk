@@ -4,7 +4,8 @@ export type Source = "plan" | "import" | "sample" | "paper";
 
 export const SETUPS = ["Breakout", "Pullback", "Range", "Trend", "News"] as const;
 export const EMOTIONS = ["Calm", "FOMO", "Fear", "Revenge", "Greedy"] as const;
-export const EXCHANGES = ["OKX", "Binance", "Bybit", "Other"] as const;
+/** Venues you can import a CSV from (mock trading syncs by itself). */
+export const IMPORT_EXCHANGES = ["OKX", "Binance", "Bybit", "Other"] as const;
 export const TIMEFRAMES = ["15m", "1h", "4h", "1D"] as const;
 export const EXIT_REASONS = ["Target hit", "Stop hit", "Manual — early", "Time exit"] as const;
 export const ADHERENCE_CHECKS = [
@@ -28,6 +29,7 @@ export type Trade = {
   acct: number;
   riskPct: number;
   leverage?: number;
+  qty?: number;
   setup: string;
   why: string;
   chart: string;
