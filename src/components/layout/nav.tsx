@@ -42,7 +42,7 @@ export const isActive = (pathname: string, href: string) =>
 const TRADE_MENU = [
   { href: "/trade", label: "Trading terminal", desc: "Place paper orders with live charts", icon: CandlestickChart },
   { href: "/trade/leaderboard", label: "Leaderboard", desc: "Ranking by return", icon: Trophy },
-  { href: "/contest", label: "Contest", desc: "Join the trading contest · verify OKX UID", icon: Medal },
+  { href: "/contests", label: "Contest", desc: "Join the trading contest · verify OKX UID", icon: Medal },
   { href: "/me?tab=paper", label: "My performance", desc: "Return · win rate · PnL curve", icon: UserRound },
 ] as const;
 
@@ -159,7 +159,7 @@ export function SidebarNav({ onNavigate, showMain = true }: { onNavigate?: () =>
             )}
             {n.href === "/trade" && (
               <Link
-                href="/contest"
+                href="/contests"
                 onClick={onNavigate}
                 className={cn(
                   item,
