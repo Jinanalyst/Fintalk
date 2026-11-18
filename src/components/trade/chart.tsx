@@ -377,7 +377,38 @@ export function PriceChart({
         /* 그린 선을 못 합쳐도 차트 이미지는 저장 */
       }
     }
+    await drawBrand(ctx, out.width, shot.width / (el.getBoundingClientRect().width || shot.width));
     return new Promise((ok) => out.toBlob((b) => ok(b), "image/png"));
+  };
+  /** FinTalk logo + name in the top-right of the saved image, so downloaded and shared charts carry the brand. */
+  const drawBrand = async (ctx: CanvasRenderingContext2D, width: number, k: number) => {
+    try {
+      const brand = getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#2563eb";
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="${brand}"/><path d="M18 13H46A8 8 0 0 1 54 21V37A8 8 0 0 1 46 45H33L22 54V45H18A8 8 0 0 1 10 37V21A8 8 0 0 1 18 13Z" fill="#fff"/><path d="M19 36L28 27L34 32L45 21M38 21H45V28" fill="none" stroke="${brand}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+      const img = new Image();
+      await new Promise<void>((ok, no) => {
+        img.onload = () => ok();
+        img.onerror = () => no();
+        img.src = url;
+      });
+      const size = 20 * k;
+      ctx.font = `800 ${14 * k}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+      const label = "FinTalk";
+      const textW = ctx.measureText(label).width;
+      const x = width - 76 * k - (size + 6 * k + textW);
+      const y = 14 * k;
+      ctx.save();
+      ctx.globalAlpha = 0.75;
+      ctx.drawImage(img, x, y, size, size);
+      ctx.fillStyle = getComputedStyle(document.body).color || "#111111";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, x + size + 6 * k, y + size / 2);
+      ctx.restore();
+      URL.revokeObjectURL(url);
+    } catch {
+      /* a missing logo must never block saving the chart */
+    }
   };
   const copyShot = async () => {
     const blob = await captureShot();
