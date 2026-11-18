@@ -7,7 +7,8 @@ import { usePlanner, planner } from "@/lib/planner/store";
 import { fmt, money, tone } from "@/lib/planner/calc";
 import { closedTrades } from "@/lib/planner/analysis";
 import { cn } from "@/lib/utils";
-import { Pill, Panel } from "./ui";
+import { Pill, Panel, Notice } from "./ui";
+import { useIsPro } from "./use-pro";
 import { PlanTab } from "./plan-tab";
 import { JournalTab } from "./journal-tab";
 import { CalendarTab } from "./calendar-tab";
@@ -30,7 +31,8 @@ export function PlannerApp() {
   const router = useRouter();
   const sp = useSearchParams();
   const tab: TabId = TABS.some((t) => t.id === sp.get("tab")) ? (sp.get("tab") as TabId) : "plan";
-  const pro = store?.tier === "pro";
+  const justPaid = sp.get("paid") === "1";
+  const { pro } = useIsPro(justPaid);
   const [now] = useState(() => Date.now());
 
   // Free keeps the last 90 days of history on screen; Pro is unlimited.
@@ -66,6 +68,8 @@ export function PlannerApp() {
         </div>
       </div>
 
+      {justPaid && !pro && <Notice tone="warn">Payment received? Pro unlocks as soon as the network confirms it — this page checks automatically.</Notice>}
+      {justPaid && pro && <Notice tone="up">Lifetime Pro is active. Thank you!</Notice>}
       {hasSample && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
           <span>You’re looking at <strong>sample data</strong>. Clear it to start with a clean journal.</span>

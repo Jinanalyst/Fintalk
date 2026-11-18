@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Check, Undo2 } from "lucide-react";
+import { CheckoutButton } from "@/components/planner/checkout-button";
 import { PRO_FEATURES, PRO_PRICE, REFUND_DAYS } from "@/lib/planner/config";
 
 export const metadata: Metadata = {
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
   description: `Chainlabs Planner Lifetime Pro — $${PRO_PRICE} once, with a ${REFUND_DAYS}-day money-back guarantee.`,
   robots: { index: false, follow: true },
 };
+
+export const dynamic = "force-dynamic"; // reads NOWPAYMENTS_API_KEY at request time
 
 export default function CheckoutPage() {
   return (
@@ -24,6 +27,9 @@ export default function CheckoutPage() {
         <p className="text-xs text-muted-foreground">Payment is processed by NOWPayments. Keep your payment receipt, and email us if you need help or a refund.</p>
       </div>
 
+      {process.env.NOWPAYMENTS_API_KEY ? (
+        <div className="rounded-2xl border bg-card p-6"><CheckoutButton /></div>
+      ) : (
       <div className="overflow-hidden rounded-2xl border bg-card">
         <iframe
           src="https://nowpayments.io/embeds/payment-widget?iid=6224725968"
@@ -36,6 +42,7 @@ export default function CheckoutPage() {
           style={{ overflowY: "hidden" }}
         />
       </div>
+      )}
     </div>
   );
 }

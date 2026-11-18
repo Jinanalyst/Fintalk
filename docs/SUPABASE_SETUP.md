@@ -67,3 +67,13 @@ where id = (select id from auth.users where email = 'your-email@example.com');
 - [ ] 글 수정 / 삭제는 **작성자 본인**만 가능
 - [ ] 마이페이지 프로필·알림 저장, 회원 탈퇴
 - [ ] 마켓 ★ 관심 종목 저장
+
+## Planner Lifetime Pro (NOWPayments)
+
+1. Run `supabase/migrations/20261126_planner_pro.sql` in the SQL Editor.
+2. NOWPayments dashboard → **Store Settings**: create an **API key** and an **IPN secret key**.
+3. Add these **server-only** env vars (Vercel → Environment Variables, then redeploy):
+   `SUPABASE_SERVICE_ROLE_KEY`, `NOWPAYMENTS_API_KEY`, `NOWPAYMENTS_IPN_SECRET`, and `NEXT_PUBLIC_SITE_URL` (your public https domain).
+4. IPN callbacks go to `https://<domain>/api/planner/ipn` (sent per invoice by the checkout action).
+5. Flow: signed-in user → `/planner/checkout` → invoice → pays → webhook (`finished`) writes `planner_entitlements` → Pro unlocks.
+   A `refunded` status removes the entitlement. Without `NOWPAYMENTS_API_KEY` the checkout page falls back to the embedded widget, which cannot unlock accounts automatically.

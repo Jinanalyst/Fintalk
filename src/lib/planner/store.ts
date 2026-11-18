@@ -2,9 +2,9 @@
 
 import { useSyncExternalStore } from "react";
 import { sampleTrades } from "./sample";
-import type { PlanTier, Trade } from "./types";
+import type { Trade } from "./types";
 
-type State = { trades: Trade[]; tier: PlanTier };
+type State = { trades: Trade[] };
 const KEY = "chainlabs.planner.v1";
 
 let state: State | null = null;
@@ -16,10 +16,10 @@ function load(): State {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const p = JSON.parse(raw) as State;
-      if (Array.isArray(p.trades)) return (state = { trades: p.trades, tier: p.tier === "pro" ? "pro" : "free" });
+      if (Array.isArray(p.trades)) return (state = { trades: p.trades });
     }
   } catch {}
-  return (state = { trades: sampleTrades(), tier: "free" });
+  return (state = { trades: sampleTrades() });
 }
 
 function commit(next: State) {
@@ -43,7 +43,6 @@ export const planner = {
   remove: (id: string) => commit({ ...load(), trades: load().trades.filter((t) => t.id !== id) }),
   clearSample: () => commit({ ...load(), trades: load().trades.filter((t) => t.source !== "sample") }),
   loadSample: () => commit({ ...load(), trades: [...load().trades.filter((t) => t.source !== "sample"), ...sampleTrades()] }),
-  setTier: (tier: PlanTier) => commit({ ...load(), tier }),
 };
 
 /** null on the server and during hydration; the stored state afterwards. */
