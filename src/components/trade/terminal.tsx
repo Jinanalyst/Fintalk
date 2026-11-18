@@ -17,6 +17,7 @@ import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
 import { OrderBook } from "./orderbook";
 import { SymbolInfo } from "./symbol-info";
+import { LogoMark } from "@/components/common/logo-mark";
 import { TradingViewChart } from "./tv-chart";
 import { usePriceFeed } from "./use-price-feed";
 import { WinPopup, findResult, type TradeResult } from "./win-popup";
@@ -341,7 +342,12 @@ export function TradeTerminal({ data }: { data: TradeData }) {
             </span>
           </div>
           <SymbolInfo symbol={symbol} mark={mark} />
-          <div className="notranslate h-[380px] sm:h-[420px] xl:h-[var(--ch,560px)]">
+          <div className="notranslate relative h-[380px] sm:h-[420px] xl:h-[var(--ch,560px)]">
+            {/* FinTalk watermark: sits in the empty top-right of the chart, so screenshots shared from here carry the brand */}
+            <div aria-hidden className="pointer-events-none absolute right-[76px] top-14 z-10 flex select-none items-center gap-1.5 opacity-70">
+              <LogoMark className="size-5" />
+              <span className="text-sm font-extrabold tracking-tighter text-foreground/80">FinTalk</span>
+            </div>
             {chartMode === "lite" ? (
               <PriceChart symbol={symbol} price={mark} positions={symPositions} trades={data.trades}
                 orders={symOrders}
