@@ -20,7 +20,10 @@ import {
   type SeriesType,
   type UTCTimestamp,
 } from "lightweight-charts";
-import { AlignJustify, Camera, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Copy, Download, ExternalLink, Link2, Brush, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp, Type } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { saveImage } from "@/lib/planner/images";
+import { setHandoff } from "@/lib/planner/handoff";
+import { NotebookPen, AlignJustify, Camera, ChartArea, ChartCandlestick, ChartLine, ChevronRight, CirclePlus, Copy, Download, ExternalLink, Link2, Brush, Minus, MoveUpRight, Ruler, Square, Trash2, TrendingUp, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CFG, LINE_PALETTE, MAX_LINES, calcAll, heikinAshi, mergeCfg, type Calc, type Candle, type IndCfg } from "@/lib/indicators";
 import { FEE_RATE, fmtPrice, fmtUsd, pricePrecision, unrealizedPnl, type ClosedTrade, type Order, type CloseOrder, type Position, type Side } from "@/lib/trade";
@@ -320,6 +323,7 @@ export function PriceChart({
     return () => document.removeEventListener("pointerdown", close);
   }, [fibMenu]);
   // 차트 스냅샷 메뉴 (이미지 다운로드/복사, 링크 복사, 새 탭, X 게시)
+  const router = useRouter();
   const [shotPos, setShotPos] = useState<{ top: number; left: number } | null>(null);
   const [shotNote, setShotNote] = useState<string | null>(null);
   const shotRef = useRef<HTMLDivElement>(null);
@@ -385,9 +389,19 @@ export function PriceChart({
       return false;
     }
   };
-  const shotAction = async (kind: "download" | "copy" | "link" | "tab" | "x") => {
+  const shotAction = async (kind: "plan" | "download" | "copy" | "link" | "tab" | "x") => {
     setShotPos(null);
     try {
+      if (kind === "plan") {
+        // Save the snapshot as a planner image, then open the Plan tab with this asset and timeframe filled in.
+        const blob = await captureShot();
+        if (!blob) return note("Could not create the image.");
+        const id = await saveImage(new File([blob], "chart.png", { type: "image/png" }));
+        const tf = ({ "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1D" } as Record<string, string>)[interval] ?? "1h";
+        setHandoff({ symbol: symbol.replace(/USDT$/, "") + "-USDT", tf, images: [id], price });
+        router.push("/planner/app");
+        return;
+      }
       if (kind === "download") {
         const blob = await captureShot();
         if (!blob) return note("Could not create the image.");
@@ -1319,6 +1333,7 @@ export function PriceChart({
                 <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground">Chart snapshot</p>
                 {(
                   [
+                    ["plan", "Write a plan", <NotebookPen key="p" className="size-4 text-brand" />],
                     ["download", "Download image", <Download key="d" className="size-4" />],
                     ["copy", "Copy image", <Copy key="c" className="size-4" />],
                     ["link", "Copy link", <Link2 key="l" className="size-4" />],

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { planner } from "@/lib/planner/store";
 import { fmt, localISO, positionCalc, uid } from "@/lib/planner/calc";
 import { SETUPS, TIMEFRAMES, type Dir, type Trade } from "@/lib/planner/types";
@@ -11,18 +11,23 @@ import { SYMBOLS, pricePrecision } from "@/lib/trade";
 import { Chip, Field, Notice, Panel, PanelTitle, Pill, inputCls, primaryBtn, secondaryBtn, selectCls, statusPill } from "./ui";
 import { useLivePrices } from "./use-live-price";
 import { ImagePicker } from "./chart-images";
+import { clearHandoff, takeHandoff } from "@/lib/planner/handoff";
 
 const LEVERAGE_PRESETS = [1, 3, 5, 10, 20, 50];
 const toPair = (s: string) => s.replace(/[-/\s]/g, "").toUpperCase();
 const roundPx = (p: number) => String(Number(p.toFixed(pricePrecision(p))));
 
 export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () => void }) {
-  const [sym, setSym] = useState("BTC-USDT");
-  const [symDraft, setSymDraft] = useState("BTC-USDT");
+  // Coming from the chart's "Write a plan": start with that asset, timeframe and chart screenshot.
+  const [hand] = useState(() => (typeof window === "undefined" ? null : takeHandoff()));
+  useEffect(() => clearHandoff(), []);
+  const startSym = hand?.symbol.toUpperCase() ?? "BTC-USDT";
+  const [sym, setSym] = useState(startSym);
+  const [symDraft, setSymDraft] = useState(startSym);
   const [lev, setLev] = useState("1");
-  const [pendingKey, setPendingKey] = useState<string | null>("BTCUSDT|long");
+  const [pendingKey, setPendingKey] = useState<string | null>(`${toPair(startSym)}|long`);
   const [exch, setExch] = useState("Mock");
-  const [tf, setTf] = useState("1h");
+  const [tf, setTf] = useState(hand && ["15m", "1h", "4h", "1D"].includes(hand.tf) ? hand.tf : "1h");
   const [dir, setDir] = useState<Dir>("long");
   const [entry, setEntry] = useState("97250");
   const [stop, setStop] = useState("95800");
@@ -31,7 +36,7 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
   const [risk, setRisk] = useState("1");
   const [setup, setSetup] = useState<string>("Breakout");
   const [why, setWhy] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>(hand?.images ?? []);
   const [saved, setSaved] = useState("");
 
   const n = (s: string) => parseFloat(s) || 0;
