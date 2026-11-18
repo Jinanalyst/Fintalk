@@ -33,7 +33,7 @@ async function loadProfile(raw: string): Promise<Profile | null> {
   if (!p?.id) return null;
   const { posts } = await listPosts({ authorId: p.id, sort: "new", limit: 50 });
   return {
-    id: p.id, avatar: p.avatar, interests: p.interests, name: p.name, handle: p.handle, bio: p.bio || "No bio yet.", focus: p.interests.join(" · ") || "FinTalk user", featured: p.accepted >= 3, live: true,
+    id: p.id, avatar: p.avatar, interests: p.interests, name: p.name, handle: p.handle, bio: p.bio || "No bio yet.", focus: p.interests.join(" · ") || "Chainlabs user", featured: p.accepted >= 3, live: true,
     stats: [
       { l: "Followers", v: fmtNum(p.followers) },
       { l: "Following", v: fmtNum(p.following) },

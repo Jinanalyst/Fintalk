@@ -29,7 +29,7 @@ function RightSidebar() {
     <aside className="hidden space-y-4 xl:block" aria-label="Side information">
       <SideCards />
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-        Posts on FinTalk are personal opinions of users and are not investment advice. You are solely responsible for your own investment decisions.
+        Posts on Chainlabs are personal opinions of users and are not investment advice. You are solely responsible for your own investment decisions.
       </p>
     </aside>
   );

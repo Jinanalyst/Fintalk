@@ -86,7 +86,7 @@ export default async function ContestPage() {
         {!loggedIn ? (
           <p className="text-sm text-muted-foreground">
             <Link href="/login?next=/contest" className="font-semibold text-brand hover:underline">Log in</Link> or{" "}
-            <Link href="/signup" className="font-semibold text-brand hover:underline">create a FinTalk account</Link> to submit your UID.
+            <Link href="/signup" className="font-semibold text-brand hover:underline">create a Chainlabs account</Link> to submit your UID.
           </p>
         ) : (
           <>

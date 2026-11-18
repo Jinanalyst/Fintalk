@@ -1,10 +1,10 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "FinTalk – Share market insights and build value together";
+export const alt = "Chainlabs – Share market insights and build value together";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const TITLE = "FinTalk";
+const TITLE = "Chainlabs";
 const TAGLINE = "Share market insights and build value together";
 
 async function loadFont(text: string): Promise<ArrayBuffer | null> {
@@ -24,7 +24,7 @@ async function loadFont(text: string): Promise<ArrayBuffer | null> {
 
 /** 사이트 기본 공유 이미지 (페이지별 og:image가 없을 때 사용) */
 export default async function OpengraphImage() {
-  const font = await loadFont(TITLE + TAGLINE + "FinTalk");
+  const font = await loadFont(TITLE + TAGLINE + "Chainlabs");
   return new ImageResponse(
     (
       <div
@@ -45,9 +45,9 @@ export default async function OpengraphImage() {
           <path d="M18 13H46A8 8 0 0 1 54 21V37A8 8 0 0 1 46 45H33L22 54V45H18A8 8 0 0 1 10 37V21A8 8 0 0 1 18 13Z" fill="#FFFFFF" />
           <path d="M19 36L28 27L34 32L45 21M38 21H45V28" fill="none" stroke="#1F4FD8" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <div style={{ display: "flex", fontSize: 96, fontWeight: 700 }}>{font ? TITLE : "FinTalk"}</div>
+        <div style={{ display: "flex", fontSize: 96, fontWeight: 700 }}>{font ? TITLE : "Chainlabs"}</div>
         {font && <div style={{ display: "flex", fontSize: 36, opacity: 0.9 }}>{TAGLINE}</div>}
-        {font && <div style={{ display: "flex", fontSize: 28, opacity: 0.7 }}>FinTalk</div>}
+        {font && <div style={{ display: "flex", fontSize: 28, opacity: 0.7 }}>Chainlabs</div>}
       </div>
     ),
     { ...size, fonts: font ? [{ name: "Noto Sans KR", data: font, weight: 700, style: "normal" }] : undefined },

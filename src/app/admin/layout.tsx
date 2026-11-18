@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/data/community";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s | FinTalk Admin" },
+  title: { default: "Admin", template: "%s | Chainlabs Admin" },
   robots: { index: false, follow: false, nocache: true },
 };
 

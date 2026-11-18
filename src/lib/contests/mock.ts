@@ -60,9 +60,9 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const base = { prizes: [50, 30, 20] as [number, number, number], startingBalance: 10_000, minTrades: 10, mddLimit: 70 };
 
 export const MOCK_CONTESTS: Contest[] = [
-  { ...base, id: "3", number: 3, name: "FinTalk Trading Championship #3", startsAt: iso(day0 + 14 * DAY), endsAt: iso(day0 + 44 * DAY), freezeLast24h: true },
-  { ...base, id: "2", number: 2, name: "FinTalk Trading Championship #2", startsAt: iso(day0 - 10 * DAY), endsAt: iso(day0 + 20 * DAY), freezeLast24h: true },
-  { ...base, id: "1", number: 1, name: "FinTalk Trading Championship #1", startsAt: iso(day0 - 50 * DAY), endsAt: iso(day0 - 20 * DAY), freezeLast24h: false },
+  { ...base, id: "3", number: 3, name: "Chainlabs Trading Championship #3", startsAt: iso(day0 + 14 * DAY), endsAt: iso(day0 + 44 * DAY), freezeLast24h: true },
+  { ...base, id: "2", number: 2, name: "Chainlabs Trading Championship #2", startsAt: iso(day0 - 10 * DAY), endsAt: iso(day0 + 20 * DAY), freezeLast24h: true },
+  { ...base, id: "1", number: 1, name: "Chainlabs Trading Championship #1", startsAt: iso(day0 - 50 * DAY), endsAt: iso(day0 - 20 * DAY), freezeLast24h: false },
 ];
 
 type MockSpec = { seed: number; count: number; dq: number; short: number; ended: boolean };

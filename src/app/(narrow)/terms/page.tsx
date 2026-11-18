@@ -4,7 +4,7 @@ import { BLOCKED_COUNTRIES, COUNTRIES } from "@/lib/contest";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "FinTalk Terms of Service",
+  description: "Chainlabs Terms of Service",
   alternates: { canonical: "/terms" },
 };
 

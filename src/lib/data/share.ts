@@ -27,7 +27,7 @@ export type Share = {
 export const DEMO_SHARE: Share = {
   id: "demo",
   userId: "demo",
-  nickname: "FinTalker",
+  nickname: "Chainlabs trader",
   kind: "position",
   symbol: "BTCUSDT",
   side: "short",

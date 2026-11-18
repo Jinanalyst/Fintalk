@@ -8,6 +8,7 @@ import {
   Home,
   Lightbulb,
   MessagesSquare,
+  NotebookPen,
   Users,
   Hash,
   Bookmark,
@@ -33,6 +34,7 @@ export const MAIN_NAV = [
   { href: "/insights", label: "Insights", icon: Lightbulb },
   { href: "/creators", label: "Creators", icon: Users },
   { href: "/trade", label: "Paper Trading", icon: CandlestickChart },
+  { href: "/planner", label: "Planner", icon: NotebookPen },
   { href: "/rewards", label: "Rewards", icon: Gift },
 ] as const;
 
@@ -89,8 +91,8 @@ export function TopNav() {
 /** 모바일 하단 내비게이션 */
 export function BottomNav() {
   const pathname = usePathname();
-  // 하단 메뉴는 5칸 고정: 리워드는 상단 햄버거 메뉴(사이드 시트)와 푸터에서 접근
-  const items = MAIN_NAV.filter((n) => n.href !== "/rewards");
+  // 하단 메뉴는 5칸 고정: 크리에이터·리워드는 상단 햄버거 메뉴(사이드 시트)와 푸터에서 접근
+  const items = MAIN_NAV.filter((n) => n.href !== "/rewards" && n.href !== "/creators");
   return (
     <nav
       aria-label="Bottom menu"

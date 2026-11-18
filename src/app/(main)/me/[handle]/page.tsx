@@ -83,7 +83,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
           <UserAvatar name={me?.nickname ?? "F"} url={me?.avatar_url} className="size-16 text-2xl" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-xl font-bold">{me?.nickname ?? "FinTalk visitor"}</h1>
+              <h1 className="truncate text-xl font-bold">{me?.nickname ?? "Chainlabs visitor"}</h1>
               {!live && <SampleBadge label="Preview (Supabase not connected)" />}
               {me?.role === "admin" && <span className="rounded bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">Admin</span>}
               {me?.status === "suspended" && <span className="rounded bg-down/10 px-1.5 py-0.5 text-xs font-semibold text-down">Restricted</span>}

@@ -91,7 +91,7 @@ export function AuthForm({
               <input type="checkbox" name="agree" required className="mt-0.5" />
               <span>
                 <Link href="/terms" target="_blank" className="text-brand underline">Terms of Service</Link> and{" "}
-                <Link href="/privacy" target="_blank" className="text-brand underline">Privacy Policy</Link>. I understand FinTalk is an information-sharing community, not investment advice.
+                <Link href="/privacy" target="_blank" className="text-brand underline">Privacy Policy</Link>. I understand Chainlabs is an information-sharing community, not investment advice.
               </span>
             </label>
           )}

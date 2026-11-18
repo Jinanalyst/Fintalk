@@ -160,9 +160,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           <Card>
             <SectionHeader title="Basic site settings" />
             <div className="mt-3 space-y-3">
-              <div><label className="mb-1 block text-sm font-medium">Site name</label><input className={field} defaultValue="FinTalk" /></div>
+              <div><label className="mb-1 block text-sm font-medium">Site name</label><input className={field} defaultValue="Chainlabs" /></div>
               <div><label className="mb-1 block text-sm font-medium">Tagline</label><input className={field} defaultValue="Read the market. Share your ideas." /></div>
-              <div><label className="mb-1 block text-sm font-medium">Investment disclaimer</label><textarea className={field} rows={3} defaultValue="All information on FinTalk is not investment advice. You are solely responsible for your own investment decisions." /></div>
+              <div><label className="mb-1 block text-sm font-medium">Investment disclaimer</label><textarea className={field} rows={3} defaultValue="All information on Chainlabs is not investment advice. You are solely responsible for your own investment decisions." /></div>
               <ComingSoonButton feature="Saving settings" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground">Save</ComingSoonButton>
             </div>
           </Card>

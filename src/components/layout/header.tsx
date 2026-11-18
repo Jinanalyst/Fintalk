@@ -16,9 +16,9 @@ import { signOutAction } from "@/app/actions/auth";
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <Link href="/" className={`flex shrink-0 items-center gap-1.5 sm:gap-2 ${className}`} aria-label="FinTalk home">
+    <Link href="/" className={`flex shrink-0 items-center gap-1.5 sm:gap-2 ${className}`} aria-label="Chainlabs home">
       <LogoMark className="size-7 sm:size-8" />
-      <span className="text-lg font-extrabold tracking-tighter sm:text-xl">FinTalk</span>
+      <span className="text-lg font-extrabold tracking-tighter sm:text-xl">Chainlabs</span>
     </Link>
   );
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export const OPERATOR = {
-  service: "FinTalk",
+  service: "Chainlabs",
   name: "ChainLabs",
   ceo: "Jang Jin-woo",
   regNo: "382-25-02223",
