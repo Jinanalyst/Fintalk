@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2, Clock, ExternalLink, XCircle } from "lucide-react";
+import { headers } from "next/headers";
+import { CheckCircle2, Clock, ExternalLink, XCircle, Ban } from "lucide-react";
 import { Card } from "@/components/common/bits";
 import { EntryForm } from "@/components/contest/entry-form";
-import { CONTEST, BLOCKED_COUNTRIES, COUNTRIES, OKX_REFERRAL_URL } from "@/lib/contest";
+import { CONTEST, BLOCKED_COUNTRIES, COUNTRIES, OKX_REFERRAL_URL, countryFromHeaders, isBlockedCountry } from "@/lib/contest";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -24,6 +25,7 @@ const STATUS = {
 } as const;
 
 export default async function ContestPage() {
+  const regionBlocked = isBlockedCountry(countryFromHeaders(await headers()));
   let entry: Entry | null = null;
   let loggedIn = false;
   if (isSupabaseConfigured) {
@@ -47,6 +49,13 @@ export default async function ContestPage() {
         </p>
       </div>
 
+      {regionBlocked && (
+        <div role="alert" className="flex items-start gap-2 rounded-lg bg-down/10 p-3 text-sm text-down">
+          <Ban className="mt-0.5 size-4 shrink-0" />
+          <p>Entries are not available from your region. You can read the rules, but you can&apos;t sign up or submit a UID.</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-2.5">
         {[["Prize pool", CONTEST.prize], ["Period", CONTEST.period], ["Start balance", `${CONTEST.startingBalance.toLocaleString("en-US")} USDT`]].map(([l, v]) => (
           <Card key={l} className="p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="mt-1 text-sm font-bold">{v}</p></Card>
@@ -56,7 +65,7 @@ export default async function ContestPage() {
       <Card className="space-y-3">
         <h2 className="text-base font-bold">Step 1 · Create your OKX account with our link</h2>
         <p className="text-sm text-muted-foreground">Only accounts registered through the referral link below are eligible. If you already have an OKX account, you can&apos;t re-register it.</p>
-        {OKX_REFERRAL_URL ? (
+        {regionBlocked ? null : OKX_REFERRAL_URL ? (
           <a
             href={OKX_REFERRAL_URL} target="_blank" rel="noopener noreferrer sponsored"
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
@@ -91,7 +100,7 @@ export default async function ContestPage() {
             {entry?.status === "verified" ? (
               <Link href="/trade" className="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground">Start trading</Link>
             ) : (
-              <EntryForm defaultUid={entry?.okx_uid} defaultCountry={entry?.country} />
+              <EntryForm defaultUid={entry?.okx_uid} defaultCountry={entry?.country} disabled={regionBlocked} />
             )}
           </>
         )}

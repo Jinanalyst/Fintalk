@@ -25,7 +25,7 @@ export function WriteForm({ live, initial, prefillTickers, prefillType }: { live
   const router = useRouter();
   const [saved, setSaved] = useState<{ title: string; body: string } | null>(null);
 
-  const [category, setCategory] = useState(initial?.category ?? "kr-stock");
+  const [category, setCategory] = useState(initial?.category ?? "crypto");
   const [type, setType] = useState<PostType>(initial?.type ?? prefillType ?? "general");
   const [sponsored, setSponsored] = useState(initial?.sponsored ?? false);
   const [preview, setPreview] = useState(false);

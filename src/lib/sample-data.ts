@@ -9,7 +9,6 @@ export type Category = { slug: string; label: string };
 
 export const BOARD_CATEGORIES: Category[] = [
   { slug: "all", label: "All" },
-  { slug: "kr-stock", label: "Korean stocks" },
   { slug: "us-stock", label: "US stocks" },
   { slug: "crypto", label: "Crypto" },
   { slug: "macro", label: "Macro" },
@@ -44,19 +43,13 @@ export const isPostType = (v: unknown): v is PostType => POST_TYPES.some((t) => 
 
 // ───────── 종목 태그 ─────────
 // 시세 없이 이름·시장 구분만 가진 종목 목록입니다. (게시글 태그, 관심 종목, 검색에 사용)
-export type Market = "kr" | "us" | "crypto";
+export type Market = "us" | "crypto";
 
-export const MARKET_LABELS: Record<Market, string> = { kr: "Korean stocks", us: "US stocks", crypto: "Crypto" };
+export const MARKET_LABELS: Record<Market, string> = { us: "US stocks", crypto: "Crypto" };
 
 export type Ticker = { symbol: string; name: string; market: Market };
 
 export const TICKERS: Ticker[] = [
-  { symbol: "005930", name: "Samsung Electronics", market: "kr" },
-  { symbol: "000660", name: "SK Hynix", market: "kr" },
-  { symbol: "035420", name: "NAVER", market: "kr" },
-  { symbol: "373220", name: "LG Energy Solution", market: "kr" },
-  { symbol: "KOSPI", name: "KOSPI", market: "kr" },
-  { symbol: "KOSDAQ", name: "KOSDAQ", market: "kr" },
   { symbol: "NVDA", name: "NVIDIA", market: "us" },
   { symbol: "AAPL", name: "Apple", market: "us" },
   { symbol: "TSLA", name: "Tesla", market: "us" },
@@ -137,9 +130,9 @@ export type Post = {
 
 type RawPost = Omit<Post, "type">;
 const RAW_POSTS: RawPost[] = [
-  { id: "p1", title: "Foreign investors net buying for a third day: how far can the chip cycle go?", body: ["Foreign flows have gone into large-cap chip stocks for 3 sessions in a row. Here is what stands out compared with past cycles.", "1) Signs of a rebound in memory prices\n2) Better foreign flows as FX stabilizes\n3) Earnings-season expectations", "Since this is a short-term surge, I think scaling in is sensible. What do you think?"], category: "kr-stock", author: "chart_haeun", createdAt: "35m ago", upvotes: 248, downvotes: 12, comments: 64, views: 5120, tickers: ["005930", "000660"], hasChart: true, ageMin: 35 },
+  { id: "p1", title: "Institutional buying in chip stocks for a third day: how far can the cycle go?", body: ["Institutional flows have gone into large-cap chip stocks for 3 sessions in a row. Here is what stands out compared with past cycles.", "1) Signs of a rebound in memory prices\n2) Better flows as the dollar stabilizes\n3) Earnings-season expectations", "Since this is a short-term surge, I think scaling in is sensible. What do you think?"], category: "us-stock", author: "chart_haeun", createdAt: "35m ago", upvotes: 248, downvotes: 12, comments: 64, views: 5120, tickers: ["NVDA"], hasChart: true, ageMin: 35 },
   { id: "p2", title: "Bitcoin cycle analysis: average post-halving rally duration", body: ["A table comparing the average time from halving to the peak in past cycles.", "This cycle has a new variable in ETF inflows, so a simple comparison is risky, but I think it is still a useful reference.", "*Investment decisions are your own responsibility.*"], category: "crypto", author: "coin_dori", createdAt: "1h ago", upvotes: 312, downvotes: 28, comments: 97, views: 7840, tickers: ["BTC"], hasChart: true, ageMin: 60 },
-  { id: "p3", title: "[Macro] Fed remarks and USD/KRW: 5 checkpoints this week", body: ["Items on this week's calendar that could move the market.", "- US CPI release\n- 3 Fed speeches\n- Treasury auctions\n- Korea trade data\n- Major tech earnings", "I will continue with scenarios for each item in the comments."], category: "macro", author: "macro_minsu", createdAt: "2h ago", upvotes: 421, downvotes: 9, comments: 112, views: 12300, tickers: ["USDKRW", "SPX"], pinned: true, ageMin: 120 },
+  { id: "p3", title: "[Macro] Fed remarks and the US dollar: 5 checkpoints this week", body: ["Items on this week's calendar that could move the market.", "- US CPI release\n- 3 Fed speeches\n- Treasury auctions\n- Global trade data\n- Major tech earnings", "I will continue with scenarios for each item in the comments."], category: "macro", author: "macro_minsu", createdAt: "2h ago", upvotes: 421, downvotes: 9, comments: 112, views: 12300, tickers: ["SPX"], pinned: true, ageMin: 120 },
   { id: "p4", title: "NVIDIA earnings preview: market expectations vs. guidance", body: ["Consensus expectations for revenue and the data center segment.", "What matters is likely the next-quarter guidance and comments on supply bottlenecks rather than the numbers."], category: "us-stock", author: "us_stock_jin", createdAt: "3h ago", upvotes: 187, downvotes: 15, comments: 43, views: 4310, tickers: ["NVDA"], ageMin: 180 },
   { id: "p5", title: "Beginner question: does a low P/E always mean undervalued?", body: ["I started studying stocks a month ago. I was going to buy low P/E stocks, but more experienced investors told me to be careful. I wonder why."], category: "qna", author: "value_sora", createdAt: "4h ago", upvotes: 96, downvotes: 2, comments: 38, views: 2980, tickers: [], ageMin: 240 },
   { id: "p6", title: "Is an altcoin rotation coming? Checking Solana and Ethereum relative strength", body: ["I checked whether money is moving into altcoins while BTC dominance stalls.", "There is no conclusive signal yet; I am watching whether volume follows."], category: "crypto", author: "coin_dori", createdAt: "5h ago", upvotes: 143, downvotes: 31, comments: 52, views: 3870, tickers: ["SOL", "ETH"], hasChart: true, ageMin: 300 },
@@ -147,7 +140,7 @@ const RAW_POSTS: RawPost[] = [
   { id: "p8", title: "A salaried worker's monthly investing strategy: a 1-year review", body: ["Sharing a 1-year record of buying ETFs on the same day each month. My conclusion: consistency mattered more than returns.", "I also wrote down lessons learned and tips for managing emotions."], category: "strategy", author: "value_sora", createdAt: "8h ago", upvotes: 205, downvotes: 6, comments: 71, views: 6540, tickers: [], ageMin: 480 },
   { id: "p9", title: "How was the market today? Chat freely", body: ["How did the market feel today? Leave a quick comment :)"], category: "free", author: "macro_minsu", createdAt: "9h ago", upvotes: 54, downvotes: 1, comments: 88, views: 2210, tickers: [], ageMin: 540 },
   { id: "p10", title: "What the Tesla options market says: reading implied volatility", body: ["A summary of how implied volatility builds up before announcement events."], category: "us-stock", author: "us_stock_jin", createdAt: "11h ago", upvotes: 64, downvotes: 8, comments: 19, views: 1530, tickers: ["TSLA"], ageMin: 660 },
-  { id: "p11", title: "Battery stocks bounce: a bottom or a dead-cat bounce?", body: ["A personal view based on volume and flows. Opposing views welcome."], category: "kr-stock", author: "chart_haeun", createdAt: "13h ago", upvotes: 119, downvotes: 22, comments: 57, views: 3340, tickers: ["373220"], hasChart: true, ageMin: 780 },
+  { id: "p11", title: "Battery stocks bounce: a bottom or a dead-cat bounce?", body: ["A personal view based on volume and flows. Opposing views welcome."], category: "us-stock", author: "chart_haeun", createdAt: "13h ago", upvotes: 119, downvotes: 22, comments: 57, views: 3340, tickers: ["TSLA"], hasChart: true, ageMin: 780 },
   { id: "p12", title: "Understanding the link between treasury yields and stock valuations", body: ["Why do growth stocks struggle when rates rise? Explained with the discount rate."], category: "strategy", author: "bond_kim", createdAt: "1d ago", upvotes: 167, downvotes: 3, comments: 29, views: 4020, tickers: [], ageMin: 1440 },
 ];
 
@@ -233,4 +226,4 @@ export const fmtNum = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)}K` : n.toLocaleString("en-US");
 
 /** 크리에이터 관심 분야 (프로필에서 최대 5개 선택) */
-export const INTEREST_OPTIONS = ["Korean stocks", "US stocks", "Crypto", "Macro", "Technical analysis", "Value investing", "Quant", "ETF", "Day trading", "Beginner"];
+export const INTEREST_OPTIONS = ["US stocks", "Crypto", "Macro", "Technical analysis", "Value investing", "Quant", "ETF", "Day trading", "Beginner"];

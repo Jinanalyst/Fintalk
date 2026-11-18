@@ -14,7 +14,6 @@ export const metadata: Metadata = {
 
 const CATS: Category[] = [
   { slug: "all", label: "All" },
-  { slug: "kr-stock", label: "Korean stocks" },
   { slug: "us-stock", label: "US stocks" },
   { slug: "crypto", label: "Crypto" },
   { slug: "macro", label: "Macro" },

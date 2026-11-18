@@ -13,7 +13,6 @@ export const metadata: Metadata = {
   // Google Search Console 소유권 확인 (확인 후에도 삭제하지 마세요)
   verification: {
     google: "laIvOdTK-TK9uOqG1LyPHH6LV7Px6tyRcTBcJuJ7Jc4",
-    other: { "naver-site-verification": "b785ca3e3d472d743bff88e3b4b100fefcfb0e13" }, // Naver Search Advisor
   },
 };
 
