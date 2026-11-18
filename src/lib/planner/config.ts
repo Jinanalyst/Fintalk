@@ -4,10 +4,8 @@ export const REFUND_DAYS = 3;
 export const PRO_PRICE = 40;
 export const CONTACT_EMAIL = "jangj6091@gmail.com";
 
-/** Where "Get Lifetime Pro" goes. Set NEXT_PUBLIC_PLANNER_CHECKOUT_URL to your payment link once one exists. */
-export const CHECKOUT_URL =
-  process.env.NEXT_PUBLIC_PLANNER_CHECKOUT_URL ??
-  `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Chainlabs Planner — Lifetime Pro")}`;
+/** Where "Get Lifetime Pro" goes: a page embedding the NOWPayments widget. */
+export const CHECKOUT_URL = "/planner/checkout";
 
 export const FREE_FEATURES = [
   "Trade planner and position calculator",
