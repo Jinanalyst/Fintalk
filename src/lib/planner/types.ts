@@ -30,6 +30,9 @@ export type Trade = {
   riskPct: number;
   leverage?: number;
   qty?: number;
+  /** Chart screenshots (IndexedDB ids): at planning time and at close. */
+  images?: string[];
+  exitImages?: string[];
   setup: string;
   why: string;
   chart: string;

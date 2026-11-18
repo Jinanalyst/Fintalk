@@ -77,3 +77,10 @@ where id = (select id from auth.users where email = 'your-email@example.com');
 4. IPN callbacks go to `https://<domain>/api/planner/ipn` (sent per invoice by the checkout action).
 5. Flow: signed-in user → `/planner/checkout` → invoice → pays → webhook (`finished`) writes `planner_entitlements` → Pro unlocks.
    A `refunded` status removes the entitlement. Without `NOWPAYMENTS_API_KEY` the checkout page falls back to the embedded widget, which cannot unlock accounts automatically.
+
+## Planner chart screenshots (Supabase Storage)
+
+Run `supabase/migrations/20261127_planner_images.sql` in the SQL Editor. It creates a **private** bucket `planner-images`
+(JPEG only, 5 MB per file) where each user can only read, upload and delete files in their own `<user_id>/` folder.
+Signed-in users' screenshots upload there and are shown through 1-hour signed URLs; visitors (or if the bucket is missing)
+keep them in the browser instead. No new environment variables are needed.

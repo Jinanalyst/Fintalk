@@ -6,6 +6,7 @@ import { adherence, fmt, isUnplanned, localISO, money, positionCalc, realized, r
 import { ADHERENCE_CHECKS, EMOTIONS, EXIT_REASONS, type Trade } from "@/lib/planner/types";
 import { closedTrades } from "@/lib/planner/analysis";
 import { cn } from "@/lib/utils";
+import { ChartGallery, ImagePicker } from "./chart-images";
 import { Chip, Field, Panel, PanelTitle, Pill, Stat, inputCls, primaryBtn, secondaryBtn, selectCls } from "./ui";
 
 function CloseForm({ t }: { t: Trade }) {
@@ -16,6 +17,7 @@ function CloseForm({ t }: { t: Trade }) {
   const [emo, setEmo] = useState<string>("Calm");
   const [checks, setChecks] = useState([true, true, true, true]);
   const [note, setNote] = useState("");
+  const [exitImgs, setExitImgs] = useState<string[]>([]);
 
   const res = realized(t, parseFloat(ae) || 0, parseFloat(ax) || 0, parseFloat(fee) || 0);
   const score = checks.filter(Boolean).length * 25;
@@ -27,7 +29,7 @@ function CloseForm({ t }: { t: Trade }) {
     planner.update(t.id, {
       status: "closed", closedAt: localISO(), openedAt: t.openedAt ?? t.createdAt,
       actualEntry: parseFloat(ae) || 0, actualExit: parseFloat(ax) || 0, fees: parseFloat(fee) || 0,
-      exitReason: reason, emotion: emo, checks, lesson: note, pnl: res.pnl, r: res.r,
+      exitReason: reason, emotion: emo, checks, lesson: note, exitImages: exitImgs, pnl: res.pnl, r: res.r,
     });
 
   return (
@@ -41,6 +43,12 @@ function CloseForm({ t }: { t: Trade }) {
         </div>
         <Pill tone="up">Open</Pill>
       </div>
+      {t.images?.length ? (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Your plan chart</p>
+          <ChartGallery ids={t.images} size="size-28" />
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-5">
@@ -69,6 +77,7 @@ function CloseForm({ t }: { t: Trade }) {
           <Field label="Lesson (optional)" htmlFor="note">
             <textarea id="note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} className="w-full resize-y rounded-lg border bg-background p-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" />
           </Field>
+          <ImagePicker label="Result screenshots (optional)" value={exitImgs} onChange={setExitImgs} />
         </div>
 
         <div className="space-y-3">
@@ -162,7 +171,7 @@ export function JournalTab({ trades }: { trades: Trade[] }) {
           <table className="w-full min-w-[860px] border-collapse text-[13px]">
             <thead>
               <tr className="text-left text-xs text-muted-foreground">
-                {["Date", "Symbol", "Side", "Setup", "Entry → Exit", "R", "P&L", "Adherence", "Emotion"].map((h, i) => (
+                {["Date", "Symbol", "Side", "Setup", "Entry → Exit", "R", "P&L", "Adherence", "Emotion", "Charts"].map((h, i) => (
                   <th key={h} className={cn("border-b px-3 py-2.5 font-medium", i >= 4 && i <= 7 && "text-right")}>{h}</th>
                 ))}
               </tr>
@@ -182,10 +191,11 @@ export function JournalTab({ trades }: { trades: Trade[] }) {
                     <td className={cn("px-3 py-3 text-right font-mono font-semibold", tone(t.pnl!))}>{money(t.pnl!, 2)}</td>
                     <td className="px-3 py-3 text-right font-mono">{a != null && !un ? `${a}%` : "—"}</td>
                     <td className="px-3 py-3 text-muted-foreground">{t.emotion ?? "—"}</td>
+                    <td className="px-3 py-3">{t.images?.length || t.exitImages?.length ? <ChartGallery ids={[...(t.images ?? []), ...(t.exitImages ?? [])]} size="size-10" /> : <span className="text-muted-foreground">—</span>}</td>
                   </tr>
                 );
               })}
-              {rows.length === 0 && <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">No closed trades match.</td></tr>}
+              {rows.length === 0 && <tr><td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">No closed trades match.</td></tr>}
             </tbody>
           </table>
         </div>

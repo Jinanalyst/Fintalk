@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { SYMBOLS, pricePrecision } from "@/lib/trade";
 import { Chip, Field, Notice, Panel, PanelTitle, Pill, inputCls, primaryBtn, secondaryBtn, selectCls, statusPill } from "./ui";
 import { useLivePrices } from "./use-live-price";
+import { ImagePicker } from "./chart-images";
 
 const LEVERAGE_PRESETS = [1, 3, 5, 10, 20, 50];
 const toPair = (s: string) => s.replace(/[-/\s]/g, "").toUpperCase();
@@ -30,7 +31,7 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
   const [risk, setRisk] = useState("1");
   const [setup, setSetup] = useState<string>("Breakout");
   const [why, setWhy] = useState("");
-  const [chart, setChart] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [saved, setSaved] = useState("");
 
   const n = (s: string) => parseFloat(s) || 0;
@@ -82,10 +83,11 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
     planner.add({
       id: uid(), source: "plan", sym: sym.trim().toUpperCase(), exch, dir, tf,
       entry: n(entry), stop: n(stop), tp: n(tp), acct: n(acct), riskPct: n(risk), leverage,
-      setup, why, chart, status, createdAt: now, openedAt: status === "open" ? now : undefined, plannedRR: c.rr,
+      setup, why, chart: "", images, status, createdAt: now, openedAt: status === "open" ? now : undefined, plannedRR: c.rr,
     });
     setSaved(status === "open" ? "Saved and marked open. Close it from the Journal tab when it ends." : "Saved as planned.");
     setWhy("");
+    setImages([]);
   };
 
   const active = trades.filter((t) => t.status === "open" || t.status === "planned");
@@ -164,9 +166,7 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
           <textarea id="why" rows={3} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="What do you see, and what proves you wrong?"
             className="w-full resize-y rounded-lg border bg-background p-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" />
         </Field>
-        <Field label="Chart link (optional)" htmlFor="chart">
-          <input id="chart" className={cn(inputCls, "font-sans")} value={chart} onChange={(e) => setChart(e.target.value)} placeholder="https://www.tradingview.com/x/…" />
-        </Field>
+        <ImagePicker label="Chart screenshots (optional)" value={images} onChange={setImages} />
 
         {saved && <Notice tone="up">{saved}</Notice>}
         <div className="flex flex-wrap justify-end gap-3">
