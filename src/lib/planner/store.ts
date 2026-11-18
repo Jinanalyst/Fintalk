@@ -2,9 +2,9 @@
 
 import { useSyncExternalStore } from "react";
 import { sampleTrades } from "./sample";
-import type { Trade } from "./types";
+import { SETUPS, type Trade } from "./types";
 
-type State = { trades: Trade[] };
+type State = { trades: Trade[]; setups?: string[] };
 const KEY = "chainlabs.planner.v1";
 
 let state: State | null = null;
@@ -16,7 +16,7 @@ function load(): State {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const p = JSON.parse(raw) as State;
-      if (Array.isArray(p.trades)) return (state = { trades: p.trades });
+      if (Array.isArray(p.trades)) return (state = { trades: p.trades, setups: Array.isArray(p.setups) ? p.setups : undefined });
     }
   } catch {}
   return (state = { trades: sampleTrades() });
@@ -54,10 +54,37 @@ export const planner = {
     commit({ ...load(), trades: load().trades.map((t) => (t.id === id ? { ...t, ...patch } : t)) }),
   remove: (id: string) => commit({ ...load(), trades: load().trades.filter((t) => t.id !== id) }),
   clearSample: () => commit({ ...load(), trades: load().trades.filter((t) => t.source !== "sample") }),
+  /** Setup labels the user can add, rename and remove. Renaming also relabels their existing trades. */
+  addSetup: (name: string) => {
+    const n = name.trim().slice(0, 24);
+    const cur = load();
+    const list = setupList(cur);
+    if (!n || list.some((x) => x.toLowerCase() === n.toLowerCase())) return false;
+    commit({ ...cur, setups: [...list, n] });
+    return true;
+  },
+  renameSetup: (from: string, to: string) => {
+    const n = to.trim().slice(0, 24);
+    const cur = load();
+    const list = setupList(cur);
+    if (!n || n === from || list.some((x) => x !== from && x.toLowerCase() === n.toLowerCase())) return false;
+    commit({ trades: cur.trades.map((t) => (t.setup === from ? { ...t, setup: n } : t)), setups: list.map((x) => (x === from ? n : x)) });
+    return true;
+  },
+  removeSetup: (name: string) => {
+    const cur = load();
+    const list = setupList(cur).filter((x) => x !== name);
+    if (list.length) commit({ ...cur, setups: list });
+  },
   loadSample: () => commit({ ...load(), trades: [...load().trades.filter((t) => t.source !== "sample"), ...sampleTrades()] }),
 };
 
 /** null on the server and during hydration; the stored state afterwards. */
 export function usePlanner() {
   return useSyncExternalStore<State | null>(subscribe, load, () => null);
+}
+
+/** The user's setup labels (defaults until they edit them). */
+export function setupList(s: State | null): string[] {
+  return s?.setups?.length ? s.setups : [...SETUPS];
 }

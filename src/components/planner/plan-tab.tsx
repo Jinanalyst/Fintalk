@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { planner } from "@/lib/planner/store";
 import { fmt, localISO, positionCalc, uid } from "@/lib/planner/calc";
-import { SETUPS, TIMEFRAMES, type Dir, type Trade } from "@/lib/planner/types";
+import { TIMEFRAMES, type Dir, type Trade } from "@/lib/planner/types";
 import { EXCHANGE_CONFIG, EXCHANGE_IDS, exchangeConfig } from "@/lib/planner/exchanges";
 import { cn } from "@/lib/utils";
 import { SYMBOLS, pricePrecision } from "@/lib/trade";
 import { Chip, Field, Notice, Panel, PanelTitle, Pill, inputCls, primaryBtn, secondaryBtn, selectCls, statusPill } from "./ui";
 import { useLivePrices } from "./use-live-price";
+import { SetupPicker } from "./setup-picker";
 import { ImagePicker } from "./chart-images";
 import { clearHandoff, takeHandoff } from "@/lib/planner/handoff";
 
@@ -160,12 +161,7 @@ export function PlanTab({ trades, goJournal }: { trades: Trade[]; goJournal: () 
           </Field>
         </div>
 
-        <div className="space-y-2">
-          <span className="text-xs font-medium text-muted-foreground">Setup</span>
-          <div role="group" aria-label="Setup" className="flex flex-wrap gap-2">
-            {SETUPS.map((s) => <Chip key={s} on={setup === s} onClick={() => setSetup(s)}>{s}</Chip>)}
-          </div>
-        </div>
+        <SetupPicker value={setup} onChange={setSetup} />
 
         <Field label="Why this trade?" htmlFor="why">
           <textarea id="why" rows={3} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="What do you see, and what proves you wrong?"
