@@ -72,8 +72,8 @@ const SPEC: Record<string, MockSpec> = {
   "3": { seed: 5, count: 0, dq: 0, short: 0, ended: false }, // upcoming: nobody has traded yet
 };
 
-/** Registered-participant count for an upcoming contest (no stats yet). */
-export const MOCK_REGISTERED: Record<string, number> = { "3": 28 };
+/** Only rounds with generated leaderboard data are labelled as sample data; upcoming rounds read as real. */
+export const isSampleContest = (id: string) => (SPEC[id]?.count ?? 0) > 0;
 
 /**
  * Mock leaderboard. `phase: "frozen"` returns a slightly older, different ordering to mimic the

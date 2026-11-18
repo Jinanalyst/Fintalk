@@ -38,6 +38,7 @@ export type ContestSummary = Contest & {
   status: ContestStatus;
   participants: number;
   prizeTotal: number;
+  isSample: boolean;
   leader: { nickname: string; returnPct: number } | null;
 };
 

@@ -11,6 +11,7 @@ import { Podium } from "@/components/contests/podium";
 import { DetailTabs } from "@/components/contests/detail-tabs";
 import { PrizesTab, RulesTab } from "@/components/contests/info-tabs";
 import { getContest, getLeaderboard, getParticipantCount } from "@/lib/contests/data";
+import { isSampleContest } from "@/lib/contests/mock";
 import { contestStatus, formatBoth, usd } from "@/lib/contests/time";
 import type { PublicRow } from "@/lib/contests/types";
 import { countryFromHeaders, isBlockedCountry } from "@/lib/contest";
@@ -63,7 +64,7 @@ export default async function ContestPage({ params }: PageProps<"/contests/[id]"
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-bold text-muted-foreground">#{c.number}</span>
               <StatusBadge status={status} />
-              <SampleBadge />
+              {isSampleContest(c.id) && <SampleBadge />}
             </div>
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{c.name}</h1>
             <p className="mt-1 text-xs text-muted-foreground">

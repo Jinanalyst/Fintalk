@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Change } from "@/components/common/bits";
+import { Change, SampleBadge } from "@/components/common/bits";
 import { StatusBadge } from "./status-badge";
 import { formatRange, usd } from "@/lib/contests/time";
 import type { ContestStatus, ContestSummary } from "@/lib/contests/types";
@@ -62,7 +62,12 @@ export function ContestsTable({ contests }: { contests: ContestSummary[] }) {
                 className="cursor-pointer border-b last:border-0 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
               >
                 <td className="px-3 py-3 font-bold tabular-nums text-muted-foreground">#{c.number}</td>
-                <td className="px-3 py-3 font-semibold">{c.name}</td>
+                <td className="px-3 py-3 font-semibold">
+                  <span className="inline-flex items-center gap-2">
+                    {c.name}
+                    {c.isSample && <SampleBadge />}
+                  </span>
+                </td>
                 <td className="px-3 py-3"><StatusBadge status={c.status} /></td>
                 <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">{formatRange(c)}</td>
                 <td className="px-3 py-3 text-right font-semibold tabular-nums">{usd(c.prizeTotal)}</td>

@@ -1,6 +1,8 @@
 import type { Contest, ContestSummary, Leaderboard } from "./types";
 import { contestStatus, floorToHour, freezeStart, isFrozen } from "./time";
-import { MOCK_CONTESTS, MOCK_REGISTERED, mockLeaderboard } from "./mock";
+import { MOCK_CONTESTS, isSampleContest, mockLeaderboard } from "./mock";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 /**
  * Data access for contests. Everything reads through these functions so the mock can be swapped out.
@@ -22,8 +24,20 @@ export async function getLeaderboard(c: Contest, now = Date.now()): Promise<Lead
   return { rows: mockLeaderboard(c.id), asOf: new Date(floorToHour(now)).toISOString(), frozen: false };
 }
 
+/** Real sign-up count from the database (0 when Supabase is not configured or the call fails). */
+async function getRegisteredCount(): Promise<number> {
+  if (!isSupabaseConfigured) return 0;
+  try {
+    const { data, error } = await (await createClient()).rpc("contest_registered_count");
+    return error || typeof data !== "number" ? 0 : data;
+  } catch {
+    return 0;
+  }
+}
+
 export async function getParticipantCount(c: Contest, lb?: Leaderboard): Promise<number> {
-  return MOCK_REGISTERED[c.id] ?? (lb ?? (await getLeaderboard(c))).rows.length;
+  if (contestStatus(c) === "upcoming") return getRegisteredCount();
+  return (lb ?? (await getLeaderboard(c))).rows.length;
 }
 
 /** All contests, newest round first, with the headline numbers shown in the list. */
@@ -38,6 +52,7 @@ export async function getContestSummaries(now = Date.now()): Promise<ContestSumm
         status: contestStatus(c, now),
         participants: await getParticipantCount(c, lb),
         prizeTotal: c.prizes.reduce((a, b) => a + b, 0),
+        isSample: isSampleContest(c.id),
         leader: top ? { nickname: top.nickname, returnPct: top.returnPct } : null,
       };
     }),
