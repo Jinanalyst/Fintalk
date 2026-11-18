@@ -2,7 +2,7 @@ export const X_URL = "https://x.com/chainlabstory";
 export const X_HANDLE = "@chainlabstory";
 export const REFUND_DAYS = 3;
 export const PRO_PRICE = 40;
-export const CONTACT_EMAIL = "jangj6091@gmail.com";
+export const CONTACT_EMAIL = "support@fintalk.space";
 
 /** Where "Get Lifetime Pro" goes: a page embedding the NOWPayments widget. */
 export const CHECKOUT_URL = "/planner/checkout";

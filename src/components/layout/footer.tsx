@@ -7,7 +7,7 @@ const BUSINESS = {
   ceo: "Jang Jin-woo",
   regNo: "382-25-02223",
   address: "406-403, 50 Yeosuul-ro, Jungwon-gu, Seongnam-si, Gyeonggi-do, Republic of Korea",
-  email: "jangj6091@gmail.com",
+  email: "support@fintalk.space",
 };
 
 const LINKS = [
