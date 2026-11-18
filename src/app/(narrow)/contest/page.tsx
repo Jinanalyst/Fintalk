@@ -5,6 +5,8 @@ import { CheckCircle2, Clock, ExternalLink, XCircle, Ban } from "lucide-react";
 import { Card } from "@/components/common/bits";
 import { EntryForm } from "@/components/contest/entry-form";
 import { CONTEST, BLOCKED_COUNTRIES, COUNTRIES, OKX_REFERRAL_URL, countryFromHeaders, isBlockedCountry } from "@/lib/contest";
+import { getJoinableContest } from "@/lib/contests/data";
+import { formatRange } from "@/lib/contests/time";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -25,6 +27,7 @@ const STATUS = {
 } as const;
 
 export default async function ContestPage() {
+  const joinable = await getJoinableContest();
   const regionBlocked = isBlockedCountry(countryFromHeaders(await headers()));
   let entry: Entry | null = null;
   let loggedIn = false;
@@ -57,7 +60,7 @@ export default async function ContestPage() {
       )}
 
       <div className="grid grid-cols-3 gap-2.5">
-        {[["Prize pool", CONTEST.prize], ["Period", CONTEST.period], ["Start balance", `${CONTEST.startingBalance.toLocaleString("en-US")} USDT`]].map(([l, v]) => (
+        {[["Prize pool", joinable ? `${joinable.prizes.reduce((a, b) => a + b, 0).toLocaleString("en-US")} USDT` : "TBA"], ["Period", joinable ? formatRange(joinable) : "TBA"], ["Start balance", `${(joinable?.startingBalance ?? CONTEST.startingBalance).toLocaleString("en-US")} USDT`]].map(([l, v]) => (
           <Card key={l} className="p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="mt-1 text-sm font-bold">{v}</p></Card>
         ))}
       </div>

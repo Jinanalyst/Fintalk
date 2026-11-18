@@ -16,8 +16,6 @@ export const CONTEST = {
   name: "FinTalk Paper Trading Championship",
   startingBalance: 10_000,
   maxLeverage: 150,
-  prize: "TBA (USDT)",
-  period: "TBA (UTC)",
 } as const;
 
 export const COUNTRIES: readonly { code: string; name: string }[] = [

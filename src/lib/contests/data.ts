@@ -40,6 +40,13 @@ export async function getParticipantCount(c: Contest, lb?: Leaderboard): Promise
   return (lb ?? (await getLeaderboard(c))).rows.length;
 }
 
+/** The round people can join right now: the soonest upcoming one, else the live one. */
+export async function getJoinableContest(now = Date.now()): Promise<Contest | null> {
+  const open = MOCK_CONTESTS.filter((c) => contestStatus(c, now) !== "ended");
+  const upcoming = open.filter((c) => contestStatus(c, now) === "upcoming").sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
+  return upcoming[0] ?? open.find((c) => contestStatus(c, now) === "live") ?? null;
+}
+
 /** All contests, newest round first, with the headline numbers shown in the list. */
 export async function getContestSummaries(now = Date.now()): Promise<ContestSummary[]> {
   const list = [...MOCK_CONTESTS].sort((a, b) => b.number - a.number);
