@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "핀톡(FinTalk) – 투자 분석을 나누고 가치를 만드는 금융 커뮤니티";
+export const alt = "FinTalk – Share market insights and build value together";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const TITLE = "핀톡";
-const TAGLINE = "투자 분석을 나누고 가치를 만드는 금융 커뮤니티";
+const TITLE = "FinTalk";
+const TAGLINE = "Share market insights and build value together";
 
 async function loadFont(text: string): Promise<ArrayBuffer | null> {
   try {

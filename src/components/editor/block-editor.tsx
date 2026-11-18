@@ -6,7 +6,7 @@ import { MAX_MEDIA, MIN_IMG_W, imageLine, mediaOf, videoLine } from "@/lib/media
 
 /**
  * 노션 스타일 블록 에디터.
- * - 본문은 기존과 같은 마크다운 문자열로 저장됩니다 (이미지 `![이미지](url)`, 동영상 `@[video](url)`).
+ * - 본문은 기존과 같은 마크다운 문자열로 저장됩니다 (이미지 `![이미지](url)`, Video `@[video](url)`).
  * - `/` 로 블록 메뉴, `## `·`- `·`1. `·`> `·`---` 마크다운 단축 입력, 붙여넣기·드래그로 사진/동영상 삽입.
  */
 type T = "p" | "h2" | "h3" | "ul" | "ol" | "quote" | "hr" | "image" | "video";
@@ -75,15 +75,15 @@ function serialize(bs: B[]) {
 }
 
 const ITEMS: { k: T; label: string; desc: string; Icon: typeof List; kw: string }[] = [
-  { k: "p", label: "텍스트", desc: "일반 문단", Icon: Pilcrow, kw: "text paragraph 텍스트 문단" },
-  { k: "h2", label: "큰 제목", desc: "소제목으로 구역 나누기", Icon: Heading2, kw: "h1 h2 heading title 제목 소제목" },
-  { k: "h3", label: "작은 제목", desc: "더 작은 제목", Icon: Heading3, kw: "h3 heading 제목" },
-  { k: "ul", label: "글머리 목록", desc: "점으로 된 목록", Icon: List, kw: "bullet list 목록 글머리" },
-  { k: "ol", label: "번호 목록", desc: "순서가 있는 목록", Icon: ListOrdered, kw: "number list 번호 목록" },
-  { k: "quote", label: "인용", desc: "인용구·출처 강조", Icon: Quote, kw: "quote 인용" },
-  { k: "hr", label: "구분선", desc: "내용을 시각적으로 구분", Icon: Minus, kw: "divider hr line 구분선" },
-  { k: "image", label: "이미지", desc: "사진·차트 이미지 업로드", Icon: ImagePlus, kw: "image photo picture 사진 이미지 차트" },
-  { k: "video", label: "동영상", desc: "MP4·WEBM·MOV 업로드", Icon: Film, kw: "video movie 동영상 영상" },
+  { k: "p", label: "Text", desc: "Plain paragraph", Icon: Pilcrow, kw: "text paragraph" },
+  { k: "h2", label: "Heading", desc: "Split content into sections", Icon: Heading2, kw: "h1 h2 heading title" },
+  { k: "h3", label: "Subheading", desc: "A smaller heading", Icon: Heading3, kw: "h3 heading" },
+  { k: "ul", label: "Bulleted list", desc: "A list with bullets", Icon: List, kw: "bullet list" },
+  { k: "ol", label: "Numbered list", desc: "An ordered list", Icon: ListOrdered, kw: "number list" },
+  { k: "quote", label: "Quote", desc: "Highlight a quote or source", Icon: Quote, kw: "quote" },
+  { k: "hr", label: "Divider", desc: "Visually separate content", Icon: Minus, kw: "divider hr line" },
+  { k: "image", label: "Image", desc: "Upload a photo or chart image", Icon: ImagePlus, kw: "image photo picture chart" },
+  { k: "video", label: "Video", desc: "Upload MP4, WEBM or MOV", Icon: Film, kw: "video movie" },
 ];
 
 const TEXT_CLASS: Record<string, string> = {
@@ -94,7 +94,7 @@ const TEXT_CLASS: Record<string, string> = {
   ol: "text-[15px] leading-relaxed",
   quote: "text-[15px] leading-relaxed text-muted-foreground",
 };
-const BLOCK_HINT: Record<string, string> = { h2: "큰 제목", h3: "작은 제목", ul: "목록", ol: "목록", quote: "인용구" };
+const BLOCK_HINT: Record<string, string> = { h2: "Heading", h3: "Subheading", ul: "List", ol: "List", quote: "Quote" };
 
 function Area({ value, onValue, onKeyDown, onFocus, onBlur, reg, className, placeholder, maxLength }: {
   value: string; onValue: (v: string) => void; onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -128,7 +128,7 @@ function Area({ value, onValue, onKeyDown, onFocus, onBlur, reg, className, plac
   );
 }
 
-/** 이미지 좌/우 가장자리를 끌어서 너비(%)를 조절하는 손잡이. 가운데 정렬이라 한쪽을 끌면 양쪽이 같이 변합니다. 더블클릭하면 원래 크기. */
+/** Image 좌/우 가장자리를 끌어서 너비(%)를 조절하는 손잡이. 가운데 정렬이라 한쪽을 끌면 양쪽이 같이 변합니다. 더블클릭하면 원래 크기. */
 function ResizeHandle({ side, width, onWidth }: { side: "left" | "right"; width: number; onWidth: (w: number, done: boolean) => void }) {
   const st = useRef<{ x: number; w: number; full: number } | null>(null);
   const calc = (e: React.PointerEvent) => {
@@ -141,8 +141,8 @@ function ResizeHandle({ side, width, onWidth }: { side: "left" | "right"; width:
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="이미지 크기 조절 (끌어서 조절, 더블클릭하면 원래 크기)"
-      title="끌어서 크기 조절 · 더블클릭하면 원래 크기"
+      aria-label="Resize image (drag to resize, double-click to reset)"
+      title="Drag to resize · double-click to reset"
       onPointerDown={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -263,9 +263,9 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
     for (const f of files) {
       const img = IMAGE_TYPES.includes(f.type);
       const vid = VIDEO_TYPES.includes(f.type);
-      if (!img && !vid) { notify(`${f.name}: 이미지(PNG/JPG/WEBP/GIF)와 동영상(MP4/WEBM/MOV)만 올릴 수 있습니다.`); continue; }
-      if (f.size > (img ? IMAGE_MAX : VIDEO_MAX)) { notify(`${f.name}: ${img ? "이미지는 5MB" : "동영상은 50MB"} 이하만 올릴 수 있습니다.`); continue; }
-      if (room <= 0) { notify(`이미지·동영상은 글 하나에 ${MAX_MEDIA}개까지 넣을 수 있습니다.`); break; }
+      if (!img && !vid) { notify(`${f.name}: only images (PNG/JPG/WEBP/GIF) and videos (MP4/WEBM/MOV) are allowed.`); continue; }
+      if (f.size > (img ? IMAGE_MAX : VIDEO_MAX)) { notify(`${f.name}: ${img ? "images must be 5MB" : "videos must be 50MB"} or smaller.`); continue; }
+      if (room <= 0) { notify(`A post can contain up to ${MAX_MEDIA} images/videos.`); break; }
       room--;
       const b: B = { id: uid(), t: img ? "image" : "video", text: "", preview: URL.createObjectURL(f), up: true };
       made.push(b);
@@ -295,7 +295,7 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
           commit(ref.current.map((b) => (b.id === id ? { ...b, url, up: false } : b)));
         },
         (err) => {
-          notify(err instanceof Error && err.message ? err.message : `${file.name}: 업로드하지 못했습니다.`);
+          notify(err instanceof Error && err.message ? err.message : `${file.name}: upload failed.`);
           commit(ref.current.filter((b) => b.id !== id));
         },
       );
@@ -350,7 +350,7 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
   const oneLine = (el: HTMLTextAreaElement) => el.scrollHeight <= (parseFloat(getComputedStyle(el).lineHeight) || 24) * 1.6 + 12;
 
   function onKey(e: React.KeyboardEvent<HTMLTextAreaElement>, b: B, i: number) {
-    if (e.nativeEvent.isComposing || e.keyCode === 229) return; // 한글 조합 중에는 무시
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return; // ignore while composing (IME)
     const el = e.currentTarget;
     const s = el.selectionStart;
     const en = el.selectionEnd;
@@ -374,9 +374,9 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
 
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
       e.preventDefault();
-      const url = window.prompt("링크 주소 (https://…)", "https://")?.trim();
-      if (!url || !/^https?:\/\/\S+$/.test(url)) { if (url) notify("http:// 또는 https:// 로 시작하는 주소를 입력해 주세요."); return; }
-      const label = b.text.slice(s, en) || "링크";
+      const url = window.prompt("Link URL (https://…)", "https://")?.trim();
+      if (!url || !/^https?:\/\/\S+$/.test(url)) { if (url) notify("Enter an address starting with http:// or https://."); return; }
+      const label = b.text.slice(s, en) || "link";
       const md = `[${label}](${url})`;
       patch(b.id, { text: b.text.slice(0, s) + md + b.text.slice(en) });
       focus(b.id, s + md.length);
@@ -477,7 +477,7 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
   const hasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes("Files");
 
   const lastBlock = blocks[blocks.length - 1];
-  // 대표를 지정하지 않으면 첫 이미지가 자동으로 썸네일이 됩니다.
+  // 대표를 지정하지 않으면 첫 Image가 자동으로 썸네일이 됩니다.
   const autoCoverId = blocks.some((x) => x.cover) ? null : blocks.find((x) => x.t === "image" && !x.up)?.id ?? null;
 
   return (
@@ -504,7 +504,7 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
           if (isText(b)) {
             let n = 1;
             for (let j = i - 1; j >= 0 && blocks[j].t === "ol"; j--) n++;
-            const ph = b.t === "p" ? (isActive ? "텍스트를 입력하거나 '/' 로 이미지·동영상·제목을 추가하세요" : blocks.length === 1 ? (placeholder ?? "") : "") : BLOCK_HINT[b.t];
+            const ph = b.t === "p" ? (isActive ? "Type text, or press '/' to add an image, video or heading" : blocks.length === 1 ? (placeholder ?? "") : "") : BLOCK_HINT[b.t];
             const area = (
               <Area
                 value={b.text}
@@ -542,7 +542,7 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
               <div style={{ width: `${w}%` }} className="group/media relative mx-auto overflow-hidden rounded-lg border">
                 {b.t === "image" ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={src} alt="첨부 이미지" draggable={false} className="mx-auto max-h-[70vh] w-full object-contain" />
+                  <img src={src} alt="Attached image" draggable={false} className="mx-auto max-h-[70vh] w-full object-contain" />
                 ) : (
                   <video src={src} controls={!b.up} playsInline preload="metadata" className="mx-auto max-h-[70vh] w-full bg-black" />
                 )}
@@ -550,27 +550,27 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
                 {resizable && <ResizeHandle side="right" width={w} onWidth={(nw) => patch(b.id, { w: nw >= 100 ? undefined : nw })} />}
                 {resizable && w < 100 && <span className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-foreground/80 px-2 py-0.5 text-xs font-medium text-background">{w}%</span>}
                 <div className="absolute bottom-2 right-2 flex flex-col gap-1 sm:hidden">
-                  <button type="button" aria-label="위로 이동" onClick={() => moveBy(b.id, -1)} className="rounded-full bg-foreground/80 p-1 text-background"><ChevronUp className="size-4" /></button>
-                  <button type="button" aria-label="아래로 이동" onClick={() => moveBy(b.id, 1)} className="rounded-full bg-foreground/80 p-1 text-background"><ChevronDown className="size-4" /></button>
+                  <button type="button" aria-label="Move up" onClick={() => moveBy(b.id, -1)} className="rounded-full bg-foreground/80 p-1 text-background"><ChevronUp className="size-4" /></button>
+                  <button type="button" aria-label="Move down" onClick={() => moveBy(b.id, 1)} className="rounded-full bg-foreground/80 p-1 text-background"><ChevronDown className="size-4" /></button>
                 </div>
                 {b.up && (
                   <div className="absolute inset-0 flex items-center justify-center gap-2 bg-background/70 text-sm font-medium">
-                    <Loader2 className="size-4 animate-spin" /> 업로드 중…
+                    <Loader2 className="size-4 animate-spin" /> Uploading…
                   </div>
                 )}
                 {b.t === "image" && !b.up && (
                   <button
                     type="button"
                     aria-pressed={!!b.cover}
-                    title={b.cover ? "대표 사진 해제" : "대표 사진(썸네일)으로 지정"}
+                    title={b.cover ? "Remove cover photo" : "Set as cover photo (thumbnail)"}
                     onClick={() => toggleCover(b.id)}
                     className={`absolute left-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${b.cover || autoCoverId === b.id ? "bg-brand text-white opacity-100" : "bg-foreground/80 text-background hover:bg-foreground sm:opacity-0 sm:group-hover/media:opacity-100 sm:group-focus/media:opacity-100"}`}
                   >
                     <Star className={`size-3.5 ${b.cover || autoCoverId === b.id ? "fill-current" : ""}`} />
-                    {b.cover ? "대표 사진" : autoCoverId === b.id ? "대표 사진 (자동)" : "대표로 지정"}
+                    {b.cover ? "Cover photo" : autoCoverId === b.id ? "Cover photo (auto)" : "Set as cover"}
                   </button>
                 )}
-                <button type="button" aria-label="삭제" onClick={() => removeBlock(b.id)} className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background opacity-100 hover:bg-foreground sm:opacity-0 sm:group-hover/media:opacity-100 sm:group-focus/media:opacity-100">
+                <button type="button" aria-label="Delete" onClick={() => removeBlock(b.id)} className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1 text-background opacity-100 hover:bg-foreground sm:opacity-0 sm:group-hover/media:opacity-100 sm:group-focus/media:opacity-100">
                   <X className="size-4" />
                 </button>
               </div>
@@ -605,8 +605,8 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
                 type="button"
                 tabIndex={-1}
                 draggable
-                aria-label="끌어서 순서 바꾸기"
-                title="끌어서 순서 바꾸기 (Alt+↑/↓ 로도 이동)"
+                aria-label="Drag to reorder"
+                title="Drag to reorder (or Alt+↑/↓)"
                 onDragStart={(e) => {
                   e.dataTransfer.setData("application/x-fintalk-block", b.id);
                   e.dataTransfer.effectAllowed = "move";
@@ -622,8 +622,8 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
               <button
                 type="button"
                 tabIndex={-1}
-                aria-label="블록 추가"
-                title="블록 추가"
+                aria-label="Add block"
+                title="Add block"
                 onClick={() => {
                   if (b.t === "p" && !b.text) { patch(b.id, { text: "/" }); focus(b.id); return; }
                   const p = mk("p", "/");
@@ -636,8 +636,8 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
               </button>
               {content}
               {isActive && items.length > 0 && ab?.id === b.id && (
-                <div role="listbox" aria-label="블록 선택" className="absolute left-12 top-full z-30 mt-1 w-64 max-w-[calc(100%-3rem)] rounded-lg border bg-card p-1 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
-                  <p className="px-2 py-1 text-xs text-muted-foreground">블록 추가</p>
+                <div role="listbox" aria-label="Choose block" className="absolute left-12 top-full z-30 mt-1 w-64 max-w-[calc(100%-3rem)] rounded-lg border bg-card p-1 shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+                  <p className="px-2 py-1 text-xs text-muted-foreground">Add block</p>
                   {items.map((it, k) => (
                     <button key={it.k} type="button" role="option" aria-selected={k === sel} onMouseEnter={() => setMenuIdx(k)} onClick={() => pick(b.id, it)} className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left ${k === sel ? "bg-muted" : ""}`}>
                       <span className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background"><it.Icon className="size-4" /></span>
@@ -665,12 +665,12 @@ export function BlockEditor({ initial, onChange, onUpload, onBusy, notify, place
 
       <div className="mt-1 flex flex-wrap items-center gap-2 border-t pt-2 text-xs text-muted-foreground">
         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => openPicker("image", active ?? lastBlock.id)} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium hover:bg-muted hover:text-foreground">
-          <ImagePlus className="size-3.5" /> 이미지
+          <ImagePlus className="size-3.5" /> Image
         </button>
         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => openPicker("video", active ?? lastBlock.id)} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium hover:bg-muted hover:text-foreground">
-          <Film className="size-3.5" /> 동영상
+          <Film className="size-3.5" /> Video
         </button>
-        <span>왼쪽 ⋮⋮ 를 끌어 순서 변경 · 이미지 양옆을 끌어 크기 조절 · 붙여넣기·끌어다 놓기도 가능 · 이미지 5MB / 동영상 50MB · 최대 {MAX_MEDIA}개</span>
+        <span>Drag ⋮⋮ on the left to reorder · drag image edges to resize · paste or drag-and-drop files · image 5MB / video 50MB · up to {MAX_MEDIA}</span>
       </div>
     </div>
   );

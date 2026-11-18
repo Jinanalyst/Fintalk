@@ -11,7 +11,7 @@ export function LiveRefresh({ seconds = 30 }: { seconds?: number }) {
   const [at, setAt] = useState<string>("");
 
   useEffect(() => {
-    const stamp = () => setAt(new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    const stamp = () => setAt(new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     stamp();
     const refresh = () => {
       if (document.visibilityState !== "visible") return;
@@ -32,7 +32,7 @@ export function LiveRefresh({ seconds = 30 }: { seconds?: number }) {
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-up/60" />
         <span className="relative inline-flex size-2 rounded-full bg-up" />
       </span>
-      실시간 · {seconds}초마다 갱신{at && ` · ${at}`}
+      Live · refreshes every {seconds}s{at && ` · ${at}`}
     </span>
   );
 }

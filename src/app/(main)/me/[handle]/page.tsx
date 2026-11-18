@@ -16,18 +16,18 @@ import { POSTS, tickerName } from "@/lib/sample-data";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "마이페이지",
+  title: "My page",
   robots: { index: false, follow: false },
 };
 
 const TABS = [
-  { k: "posts", l: "내 게시글", i: FileText },
-  { k: "drafts", l: "임시 저장", i: PencilLine },
-  { k: "scheduled", l: "예약 발행", i: CalendarClock },
-  { k: "saved", l: "저장한 글", i: Bookmark },
-  { k: "watchlist", l: "관심 종목", i: Star },
-  { k: "paper", l: "모의투자", i: ChartCandlestick },
-  { k: "settings", l: "설정", i: Settings },
+  { k: "posts", l: "My posts", i: FileText },
+  { k: "drafts", l: "Drafts", i: PencilLine },
+  { k: "scheduled", l: "Scheduled", i: CalendarClock },
+  { k: "saved", l: "Saved", i: Bookmark },
+  { k: "watchlist", l: "Watchlist", i: Star },
+  { k: "paper", l: "Paper trading", i: ChartCandlestick },
+  { k: "settings", l: "Settings", i: Settings },
 ];
 
 export default async function MePage({ params, searchParams }: PageProps<"/me/[handle]">) {
@@ -48,9 +48,9 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
   if (isSupabaseConfigured && !me) {
     return (
       <Card className="p-8 text-center">
-        <h1 className="text-lg font-bold">로그인이 필요합니다</h1>
-        <p className="mt-1 text-sm text-muted-foreground">내 게시글, 저장한 글, 관심 종목은 로그인 후 확인할 수 있습니다.</p>
-        <Link href="/login?next=/me" className="mt-4 inline-block rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-primary-foreground">로그인</Link>
+        <h1 className="text-lg font-bold">Login required</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Log in to see your posts, saved posts and watchlist.</p>
+        <Link href="/login?next=/me" className="mt-4 inline-block rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-primary-foreground">Log in</Link>
       </Card>
     );
   }
@@ -80,15 +80,15 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
     <div className="space-y-4">
       <Card className="p-5">
         <div className="flex items-center gap-4">
-          <UserAvatar name={me?.nickname ?? "핀"} url={me?.avatar_url} className="size-16 text-2xl" />
+          <UserAvatar name={me?.nickname ?? "F"} url={me?.avatar_url} className="size-16 text-2xl" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-xl font-bold">{me?.nickname ?? "핀톡 방문자"}</h1>
-              {!live && <SampleBadge label="미리보기 (Supabase 미연결)" />}
-              {me?.role === "admin" && <span className="rounded bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">관리자</span>}
-              {me?.status === "suspended" && <span className="rounded bg-down/10 px-1.5 py-0.5 text-xs font-semibold text-down">이용 제한</span>}
+              <h1 className="truncate text-xl font-bold">{me?.nickname ?? "FinTalk visitor"}</h1>
+              {!live && <SampleBadge label="Preview (Supabase not connected)" />}
+              {me?.role === "admin" && <span className="rounded bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">Admin</span>}
+              {me?.status === "suspended" && <span className="rounded bg-down/10 px-1.5 py-0.5 text-xs font-semibold text-down">Restricted</span>}
             </div>
-            <p className="truncate text-sm text-muted-foreground">{me?.bio || "자기소개를 설정에서 작성해 보세요."}</p>
+            <p className="truncate text-sm text-muted-foreground">{me?.bio || "Add a bio in Settings."}</p>
           </div>
         </div>
       </Card>
@@ -110,18 +110,18 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
 
       {tab === "posts" && (
         <div className="space-y-2.5">
-          {myPosts.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">작성한 게시글이 없습니다.</p>}
+          {myPosts.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No posts yet.</p>}
           {myPosts.map((p) => <PostCard key={p.id} post={p} />)}
         </div>
       )}
 
       {tab === "drafts" && (
         <div className="space-y-2.5">
-          {drafts.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">임시 저장한 글이 없습니다. 글쓰기 화면의 “임시 저장”으로 보관할 수 있습니다.</p>}
+          {drafts.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No drafts. Use “Save draft” in the editor to keep one.</p>}
           {drafts.map((p) => (
             <div key={p.id} className="space-y-1">
               <PostCard post={p} />
-              <Link href={`/community/${p.id}/edit`} className="inline-block text-sm font-medium text-brand hover:underline">이어서 쓰기 ›</Link>
+              <Link href={`/community/${p.id}/edit`} className="inline-block text-sm font-medium text-brand hover:underline">Continue writing ›</Link>
             </div>
           ))}
         </div>
@@ -129,11 +129,11 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
 
       {tab === "scheduled" && (
         <div className="space-y-2.5">
-          {scheduled.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">예약한 글이 없습니다. 글쓰기 화면에서 “예약 발행”을 선택해 공개 시각을 정할 수 있습니다.</p>}
+          {scheduled.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No scheduled posts. Choose “Schedule” in the editor to set a publish time.</p>}
           {scheduled.map((p) => (
             <div key={p.id} className="space-y-1">
               <PostCard post={p} />
-              <Link href={`/community/${p.id}/edit`} className="inline-block text-sm font-medium text-brand hover:underline">예약 수정·취소 ›</Link>
+              <Link href={`/community/${p.id}/edit`} className="inline-block text-sm font-medium text-brand hover:underline">Edit or cancel schedule ›</Link>
             </div>
           ))}
         </div>
@@ -141,20 +141,20 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
 
       {tab === "saved" && (
         <div className="space-y-2.5">
-          {saved.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">저장한 게시글이 없습니다. 게시글의 “저장” 버튼으로 담아 보세요.</p>}
+          {saved.length === 0 && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No saved posts. Use the “Save” button on a post to keep it here.</p>}
           {saved.map((p) => <PostCard key={p.id} post={p} />)}
         </div>
       )}
 
       {tab === "watchlist" && (
         <Card className="p-0">
-          {watch.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">종목 토론 화면에서 ★ 를 눌러 관심 종목을 추가해 보세요.</p>}
+          {watch.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">Tap ★ on a ticker discussion to add it to your watchlist.</p>}
           <ul className="divide-y">
             {watch.map((symbol) => (
               <li key={symbol}>
                 <Link href={`/community?ticker=${symbol}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
                   <span><span className="block text-sm font-semibold">{tickerName(symbol)}</span><span className="text-xs text-muted-foreground">${symbol}</span></span>
-                  <span className="text-xs text-brand">토론 보기 ›</span>
+                  <span className="text-xs text-brand">View discussion ›</span>
                 </Link>
               </li>
             ))}
@@ -168,19 +168,19 @@ export default async function MePage({ params, searchParams }: PageProps<"/me/[h
         <div className="space-y-4">
           {live ? (
             <Card>
-              <h2 className="mb-3 text-base font-bold">프로필 · 알림</h2>
+              <h2 className="mb-3 text-base font-bold">Profile · Notifications</h2>
               <div className="mb-4"><AvatarUploader userId={me!.id} nickname={me!.nickname} url={me!.avatar_url ?? null} /></div>
               <ProfileForm profile={me!} email={me!.email} />
-              <p className="mt-3 text-xs text-muted-foreground">비밀번호 변경은 <Link href="/forgot-password" className="text-brand underline">재설정 메일</Link>로 진행하세요.</p>
+              <p className="mt-3 text-xs text-muted-foreground">To change your password, use the <Link href="/forgot-password" className="text-brand underline">reset email</Link>.</p>
             </Card>
           ) : (
-            <Card><p className="text-sm text-muted-foreground">Supabase 환경변수를 설정하면 프로필과 알림 설정을 저장할 수 있습니다.</p></Card>
+            <Card><p className="text-sm text-muted-foreground">Set the Supabase environment variables to save your profile and notification settings.</p></Card>
           )}
           {live && (
             <Card className="border-down/30">
-              <h2 className="mb-1 text-base font-bold text-down">회원 탈퇴</h2>
-              <p className="mb-3 text-xs text-muted-foreground">탈퇴 시 계정과 작성한 게시글·댓글이 모두 삭제되며 복구할 수 없습니다.</p>
-              {sp.error === "delete" && <p className="mb-2 text-sm text-down">탈퇴 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.</p>}
+              <h2 className="mb-1 text-base font-bold text-down">Delete account</h2>
+              <p className="mb-3 text-xs text-muted-foreground">Deleting your account permanently removes your posts and comments.</p>
+              {sp.error === "delete" && <p className="mb-2 text-sm text-down">Could not delete your account. Please try again later.</p>}
               <DeleteAccountButton />
             </Card>
           )}

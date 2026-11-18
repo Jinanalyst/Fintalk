@@ -34,7 +34,7 @@ function avatarOf(a: PostRow["author"]) {
 }
 
 function nick(a: PostRow["author"]) {
-  return (Array.isArray(a) ? a[0]?.nickname : a?.nickname) ?? "알 수 없음";
+  return (Array.isArray(a) ? a[0]?.nickname : a?.nickname) ?? "Unknown";
 }
 
 export function mapPost(r: PostRow): Post {
@@ -204,11 +204,11 @@ export async function listWaitingQuestions(limit = 4): Promise<{ posts: Post[]; 
 
 /** 기여도 단계 (점수 구간). 현금 보상과는 무관한 활동 단계입니다. */
 export const LEVELS = [
-  { name: "새싹", min: 0 },
-  { name: "참여자", min: 30 },
-  { name: "기여자", min: 100 },
-  { name: "전문가", min: 300 },
-  { name: "마스터", min: 1000 },
+  { name: "Sprout", min: 0 },
+  { name: "Participant", min: 30 },
+  { name: "Contributor", min: 100 },
+  { name: "Expert", min: 300 },
+  { name: "Master", min: 1000 },
 ];
 
 export function contributionLevel(score: number) {

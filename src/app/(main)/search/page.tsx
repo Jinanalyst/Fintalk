@@ -9,7 +9,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { CREATORS, MARKET_LABELS, POSTS, TICKERS, fmtNum } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
-  title: "검색",
+  title: "Search",
   robots: { index: false, follow: true },
 };
 
@@ -35,28 +35,28 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
 
   return (
     <div className="space-y-5">
-      <PageTitle title="통합 검색" desc="게시글 · 종목 · 작성자 · 태그를 한 번에 검색합니다." right={!live ? <SampleBadge label="샘플 게시글" /> : undefined} />
+      <PageTitle title="Search" desc="Search posts, tickers, authors and tags at once." right={!live ? <SampleBadge label="Sample posts" /> : undefined} />
       <form action="/search" role="search">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input name="q" defaultValue={q} autoFocus={!q} placeholder="예: 비트코인, 삼성전자, NVDA" className="h-11 w-full rounded-lg border bg-card pl-9 pr-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" />
+          <input name="q" defaultValue={q} autoFocus={!q} placeholder="e.g. Bitcoin, Tesla, NVDA" className="h-11 w-full rounded-lg border bg-card pl-9 pr-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" />
         </div>
       </form>
 
-      {!q && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">검색어를 입력해 주세요.</p>}
+      {!q && <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">Enter a search term.</p>}
       {q && total === 0 && tags.length === 0 && (
-        <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">“{q}”에 대한 결과가 없습니다.</p>
+        <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No results for “{q}”.</p>
       )}
 
       {assets.length > 0 && (
         <section>
-          <SectionHeader title={`종목 ${assets.length}`} className="mb-2" />
+          <SectionHeader title={`Tickers ${assets.length}`} className="mb-2" />
           <ul className="divide-y rounded-xl border bg-card">
             {assets.map((a) => (
               <li key={a.symbol}>
                 <Link href={`/community?ticker=${a.symbol}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
                   <span><span className="block text-sm font-semibold">{a.name}</span><span className="text-xs text-muted-foreground">{a.symbol}</span></span>
-                  <span className="text-xs text-muted-foreground">{MARKET_LABELS[a.market]} · 토론 보기 ›</span>
+                  <span className="text-xs text-muted-foreground">{MARKET_LABELS[a.market]} · View discussion ›</span>
                 </Link>
               </li>
             ))}
@@ -66,20 +66,20 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
 
       {posts.length > 0 && (
         <section>
-          <SectionHeader title={`게시글 ${posts.length}`} className="mb-2" />
+          <SectionHeader title={`Posts ${posts.length}`} className="mb-2" />
           <div className="space-y-2.5">{posts.map((p) => <PostCard key={p.id} post={p} />)}</div>
         </section>
       )}
 
       {creators.length > 0 && (
         <section>
-          <SectionHeader title={`작성자 ${creators.length}`} className="mb-2" />
+          <SectionHeader title={`Authors ${creators.length}`} className="mb-2" />
           <ul className="divide-y rounded-xl border bg-card">
             {creators.map((c) => (
               <li key={c.handle}>
                 <Link href={`/creators/${encodeURIComponent(c.handle)}`} className="block px-4 py-3 hover:bg-muted/50">
                   <p className="text-sm font-semibold">{c.name} <span className="font-normal text-muted-foreground">@{c.handle}</span></p>
-                  <p className="text-xs text-muted-foreground">{c.followers !== undefined && <>팔로워 {fmtNum(c.followers)} · </>}{c.bio}</p>
+                  <p className="text-xs text-muted-foreground">{c.followers !== undefined && <>Followers {fmtNum(c.followers)} · </>}{c.bio}</p>
                 </Link>
               </li>
             ))}
@@ -89,7 +89,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
 
       {tags.length > 0 && (
         <section>
-          <SectionHeader title={`태그 ${tags.length}`} className="mb-2" />
+          <SectionHeader title={`Tags ${tags.length}`} className="mb-2" />
           <div className="flex flex-wrap gap-1.5">{tags.map((t) => <Tag key={t} href={`/search?q=${t}`}>${t}</Tag>)}</div>
         </section>
       )}

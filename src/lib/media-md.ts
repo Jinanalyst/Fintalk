@@ -37,13 +37,13 @@ export function youtubeStartOf(line: string): number {
 }
 
 /** 대표(썸네일) 이미지는 대체 텍스트를 "대표"로 표시합니다: `![대표](https://…)` */
-export const COVER_ALT = "대표";
+export const COVER_ALT = "cover";
 
 /** 이미지 표시 너비(%). 대체 텍스트 뒤에 `|60` 으로 저장합니다: `![이미지|60](https://…)`. 100 이면 생략. */
 export const MIN_IMG_W = 20;
 
 export const imageLine = (url: string, cover = false, width?: number) =>
-  `![${cover ? COVER_ALT : "이미지"}${width && width < 100 ? `|${Math.round(width)}` : ""}](${url})`;
+  `![${cover ? COVER_ALT : "image"}${width && width < 100 ? `|${Math.round(width)}` : ""}](${url})`;
 export const videoLine = (url: string) => `@[video](${url})`;
 
 export function mediaOf(line: string): { kind: "image" | "video"; url: string; cover?: boolean; width?: number } | null {

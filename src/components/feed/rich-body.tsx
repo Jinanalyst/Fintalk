@@ -63,13 +63,13 @@ export function RichBody({ text }: { text: string }) {
           case "h2": return <h2 key={i} className="pt-2 text-lg font-bold">{inline(b.lines[0])}</h2>;
           case "h3": return <h3 key={i} className="pt-1 text-base font-bold">{inline(b.lines[0])}</h3>;
           // eslint-disable-next-line @next/next/no-img-element
-          case "image": return <img key={i} src={b.lines[0]} alt="첨부 이미지" loading="lazy" style={Number(b.lines[1]) < 100 ? { width: `${b.lines[1]}%` } : undefined} className="mx-auto max-h-[80vh] w-full rounded-lg border object-contain" />;
+          case "image": return <img key={i} src={b.lines[0]} alt="Attached image" loading="lazy" style={Number(b.lines[1]) < 100 ? { width: `${b.lines[1]}%` } : undefined} className="mx-auto max-h-[80vh] w-full rounded-lg border object-contain" />;
           case "video": return <video key={i} src={b.lines[0]} controls playsInline preload="metadata" className="mx-auto max-h-[80vh] w-full rounded-lg border bg-black" />;
           case "youtube": return (
             <div key={i} className="mx-auto aspect-video w-full overflow-hidden rounded-lg border bg-black">
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${b.lines[0]}${Number(b.lines[1]) ? `?start=${b.lines[1]}` : ""}`}
-                title="YouTube 동영상"
+                title="YouTube video"
                 loading="lazy"
                 allow="encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen

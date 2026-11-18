@@ -39,7 +39,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const long = s.side === "long";
   const coin = s.symbol.replace("USDT", "");
   const sign = (n: number) => (n >= 0 ? "+" : "");
-  const labels = `${s.nickname}모의투자진행 중종료롱숏진입가현재가청산가수익률손익보유 포인트가상 자금 기록 · 실제 수익 아님`;
+  const labels = `${s.nickname}Paper TradingOpenClosedLongShortEntryMarkExitReturnPnLPointsVirtual funds only · not real profit`;
   const ascii = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).join("");
   const font = await loadFont(labels + ascii);
 
@@ -74,14 +74,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
             </svg>
             <div style={{ display: "flex", fontSize: 34, color: "#e2e8f0" }}>FinTalk</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 20px", borderRadius: 999, border: "2px solid #f0b90b", color: "#f0b90b", fontSize: 26 }}>모의투자</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 20px", borderRadius: 999, border: "2px solid #f0b90b", color: "#f0b90b", fontSize: 26 }}>Paper Trading</div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <div style={{ display: "flex", fontSize: 52, color: "#fff" }}>{coin}USDT</div>
-            <div style={{ display: "flex", padding: "4px 18px", borderRadius: 10, fontSize: 30, background: long ? UP : DOWN, color: "#fff" }}>{long ? "롱" : "숏"} {s.leverage}x</div>
-            <div style={{ display: "flex", padding: "4px 16px", borderRadius: 10, fontSize: 26, border: "2px solid #475569", color: "#cbd5e1" }}>{s.closed ? "종료" : "진행 중"}</div>
+            <div style={{ display: "flex", padding: "4px 18px", borderRadius: 10, fontSize: 30, background: long ? UP : DOWN, color: "#fff" }}>{long ? "Long" : "Short"} {s.leverage}x</div>
+            <div style={{ display: "flex", padding: "4px 16px", borderRadius: 10, fontSize: 26, border: "2px solid #475569", color: "#cbd5e1" }}>{s.closed ? "Closed" : "Open"}</div>
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 24 }}>
             <div style={{ display: "flex", fontSize: 128, color: accent, letterSpacing: -2 }}>
@@ -97,15 +97,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ display: "flex", gap: 56 }}>
-            {stat("진입가", fmtPrice(s.entry))}
-            {stat(s.closed ? "청산가" : "현재가", fmtPrice(s.mark))}
+            {stat("Entry", fmtPrice(s.entry))}
+            {stat(s.closed ? "Exit" : "Mark", fmtPrice(s.mark))}
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
             <div style={{ display: "flex", fontSize: 36, color: "#fff" }}>{s.nickname}</div>
-            <div style={{ display: "flex", fontSize: 24, color: "#94a3b8" }}>보유 포인트 {s.points.toLocaleString("en-US")}P</div>
+            <div style={{ display: "flex", fontSize: 24, color: "#94a3b8" }}>Points {s.points.toLocaleString("en-US")}P</div>
           </div>
         </div>
-        <div style={{ display: "flex", fontSize: 20, color: "#64748b" }}>가상 자금 기록 · 실제 수익 아님</div>
+        <div style={{ display: "flex", fontSize: 20, color: "#64748b" }}>Virtual funds only · not real profit</div>
       </div>
     ),
     { ...size, fonts: font ? [{ name: "Noto Sans KR", data: font, weight: 700, style: "normal" }] : undefined },

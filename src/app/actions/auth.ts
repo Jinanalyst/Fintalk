@@ -7,7 +7,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export type FormState = { error?: string; message?: string };
 
-const NOT_CONFIGURED: FormState = { error: "서버에 Supabase 환경변수가 설정되지 않았습니다." };
+const NOT_CONFIGURED: FormState = { error: "Supabase environment variables are not set on the server." };
 
 async function origin() {
   const h = await headers();
@@ -23,19 +23,19 @@ function safeNext(v: FormDataEntryValue | null) {
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
 function friendly(msg: string) {
-  if (/invalid login/i.test(msg)) return "이메일 또는 비밀번호가 올바르지 않습니다.";
-  if (/email not confirmed/i.test(msg)) return "이메일 인증이 필요합니다. 받은 편지함을 확인해 주세요.";
-  if (/already registered|already been registered/i.test(msg)) return "이미 가입된 이메일입니다.";
-  if (/rate limit|too many/i.test(msg)) return "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.";
-  if (/password/i.test(msg)) return "비밀번호는 8자 이상이어야 합니다.";
-  return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  if (/invalid login/i.test(msg)) return "Incorrect email or password.";
+  if (/email not confirmed/i.test(msg)) return "Email verification required. Please check your inbox.";
+  if (/already registered|already been registered/i.test(msg)) return "This email is already registered.";
+  if (/rate limit|too many/i.test(msg)) return "Too many requests. Please try again shortly.";
+  if (/password/i.test(msg)) return "Password must be at least 8 characters.";
+  return "Could not process the request. Please try again shortly.";
 }
 
 export async function signInAction(_: FormState, form: FormData): Promise<FormState> {
   if (!isSupabaseConfigured) return NOT_CONFIGURED;
   const email = str(form, "email");
   const password = String(form.get("password") ?? "");
-  if (!email || !password) return { error: "이메일과 비밀번호를 입력해 주세요." };
+  if (!email || !password) return { error: "Enter your email and password." };
   const sb = await createClient();
   const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) return { error: friendly(error.message) };
@@ -47,14 +47,14 @@ export async function signUpAction(_: FormState, form: FormData): Promise<FormSt
   const email = str(form, "email");
   const password = String(form.get("password") ?? "");
   const nickname = str(form, "nickname");
-  if (!/^[0-9A-Za-z가-힣_]{2,14}$/.test(nickname)) return { error: "닉네임은 한글/영문/숫자/밑줄 2~14자로 입력해 주세요." };
-  if (!email.includes("@")) return { error: "올바른 이메일을 입력해 주세요." };
-  if (password.length < 8) return { error: "비밀번호는 8자 이상이어야 합니다." };
-  if (form.get("agree") !== "on") return { error: "이용약관 및 개인정보 처리방침에 동의해 주세요." };
+  if (!/^[0-9A-Za-z가-힣_]{2,14}$/.test(nickname)) return { error: "Nickname must be 2-14 letters, numbers or underscores." };
+  if (!email.includes("@")) return { error: "Enter a valid email address." };
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  if (form.get("agree") !== "on") return { error: "Please accept the Terms of Service and Privacy Policy." };
 
   const sb = await createClient();
   const { data: taken } = await sb.from("profiles").select("id").eq("nickname", nickname).maybeSingle();
-  if (taken) return { error: "이미 사용 중인 닉네임입니다." };
+  if (taken) return { error: "That nickname is already taken." };
 
   const { data, error } = await sb.auth.signUp({
     email,
@@ -62,7 +62,7 @@ export async function signUpAction(_: FormState, form: FormData): Promise<FormSt
     options: { data: { nickname }, emailRedirectTo: `${await origin()}/auth/callback` },
   });
   if (error) return { error: friendly(error.message) };
-  if (!data.session) return { message: "인증 메일을 보냈습니다. 메일의 링크를 눌러 가입을 완료해 주세요." };
+  if (!data.session) return { message: "We sent a verification email. Click the link in it to finish signing up." };
   redirect("/");
 }
 
@@ -81,17 +81,17 @@ export async function googleAction(form: FormData) {
 export async function resetRequestAction(_: FormState, form: FormData): Promise<FormState> {
   if (!isSupabaseConfigured) return NOT_CONFIGURED;
   const email = str(form, "email");
-  if (!email.includes("@")) return { error: "올바른 이메일을 입력해 주세요." };
+  if (!email.includes("@")) return { error: "Enter a valid email address." };
   const sb = await createClient();
   await sb.auth.resetPasswordForEmail(email, { redirectTo: `${await origin()}/auth/callback?next=/reset-password` });
   // 가입 여부를 노출하지 않도록 항상 같은 메시지
-  return { message: "입력하신 주소로 가입된 계정이 있다면 재설정 메일을 보냈습니다." };
+  return { message: "If an account exists for that address, we sent a reset email." };
 }
 
 export async function updatePasswordAction(_: FormState, form: FormData): Promise<FormState> {
   if (!isSupabaseConfigured) return NOT_CONFIGURED;
   const password = String(form.get("password") ?? "");
-  if (password.length < 8) return { error: "비밀번호는 8자 이상이어야 합니다." };
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
   const sb = await createClient();
   const { error } = await sb.auth.updateUser({ password });
   if (error) return { error: friendly(error.message) };

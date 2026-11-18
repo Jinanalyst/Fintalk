@@ -15,12 +15,12 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 type Tab = "hot" | "new" | "following";
 
 const TABS: { slug: Tab; label: string }[] = [
-  { slug: "hot", label: "추천" },
-  { slug: "new", label: "최신" },
-  { slug: "following", label: "팔로잉" },
+  { slug: "hot", label: "Top" },
+  { slug: "new", label: "Newest" },
+  { slug: "following", label: "Following" },
 ];
 
-const FLOW = ["질문 올리기", "경험자가 답변", "도움 된 답변 채택", "기여도로 기록"];
+const FLOW = ["Ask a question", "Experienced investors answer", "Accept the helpful answer", "Earn contribution points"];
 
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
@@ -55,21 +55,21 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       {/* 히어로: 돕는 커뮤니티 */}
       <section className="overflow-hidden rounded-3xl border bg-card p-5 shadow-xs sm:p-8">
-        <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand">국내 주식 · 미국 주식 · 암호화폐</p>
+        <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand">Stocks · US equities · Crypto</p>
         <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-          투자의 생각을 나누고,
+          Share your ideas,
           <br />
-          <span className="text-brand">함께 성장하다.</span>
+          <span className="text-brand">grow together.</span>
         </h1>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          혼자 고민하던 질문에 경험 있는 투자자가 답해 줍니다. 아는 만큼 답하면 채택과 기여도로 돌아와요.
+          Experienced investors answer the questions you have been stuck on. Share what you know and earn accepted answers and contribution points.
         </p>
         <div className="mt-6 flex flex-wrap gap-2.5">
           <Link href="/community/write?type=question" className="inline-flex h-12 items-center rounded-xl bg-brand px-6 text-base font-bold text-primary-foreground hover:opacity-90">
-            질문하고 답 받기
+            Ask and get answers
           </Link>
           <Link href="/community/write?type=analysis" className="inline-flex h-12 items-center gap-1.5 rounded-xl border-2 px-6 text-base font-bold hover:bg-muted">
-            <PenLine className="size-4" /> 내 분석 공유하기
+            <PenLine className="size-4" /> Share my analysis
           </Link>
         </div>
         <ol className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
@@ -86,10 +86,10 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       {qa.posts.length > 0 && (
       <section>
         <SectionHeader
-          title={<span className="inline-flex items-center gap-1.5"><MessageCircleQuestion className="size-5 text-brand" />{showingWaiting ? "지금 답을 기다리는 질문" : "답변이 달린 인기 질문"}</span>}
+          title={<span className="inline-flex items-center gap-1.5"><MessageCircleQuestion className="size-5 text-brand" />{showingWaiting ? "Questions waiting for answers" : "Popular answered questions"}</span>}
           href="/community?type=question"
-          hrefLabel="질문 전체"
-          right={qa.live ? undefined : <SampleBadge label="샘플 게시글" />}
+          hrefLabel="All questions"
+          right={qa.live ? undefined : <SampleBadge label="Sample post" />}
           className="mb-2"
         />
         <ul className="divide-y rounded-2xl border bg-card shadow-xs">
@@ -105,7 +105,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                   <Link href={`/community/${p.id}`} className="mt-0.5 block text-[15px] font-bold leading-snug hover:text-brand">{p.title}</Link>
                 </div>
                 <Link href={showingWaiting ? `/community/${p.id}#answer` : `/community/${p.id}`} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg bg-brand-soft px-3.5 text-sm font-bold text-brand hover:bg-brand hover:text-primary-foreground">
-                  {showingWaiting ? "답변하기" : "답변 보기"} <ArrowRight className="size-3.5" />
+                  {showingWaiting ? "Answer" : "View answers"} <ArrowRight className="size-3.5" />
                 </Link>
               </li>
             );
@@ -117,7 +117,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       {/* 추천 인사이트 */}
       {insights.posts.length > 0 && (
         <section>
-          <SectionHeader title="추천 인사이트" href="/insights" right={insights.live ? undefined : <SampleBadge label="샘플 게시글" />} className="mb-2" />
+          <SectionHeader title="Recommended insights" href="/insights" right={insights.live ? undefined : <SampleBadge label="Sample post" />} className="mb-2" />
           <div className="grid gap-3 md:grid-cols-3">
             {insights.posts.map((p) => <InsightCard key={p.id} post={p} />)}
           </div>
@@ -131,11 +131,11 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       {/* 피드 */}
       <section>
-        <SectionHeader title="커뮤니티" href="/community" right={live ? undefined : <SampleBadge label="샘플 게시글" />} className="mb-2" />
+        <SectionHeader title="Community" href="/community" right={live ? undefined : <SampleBadge label="Sample post" />} className="mb-2" />
         <Link href="/community/write" className="mb-3 flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-xs hover:border-brand/40">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-soft font-bold text-brand" aria-hidden="true">나</span>
-          <span className="flex-1 rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground">궁금한 점이나 오늘의 생각을 남겨 보세요</span>
-          <span className="hidden h-10 items-center rounded-xl border-2 border-brand px-4 text-sm font-bold text-brand sm:inline-flex">글쓰기</span>
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-soft font-bold text-brand" aria-hidden="true">Me</span>
+          <span className="flex-1 rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground">Ask a question or share your thoughts today</span>
+          <span className="hidden h-10 items-center rounded-xl border-2 border-brand px-4 text-sm font-bold text-brand sm:inline-flex">Write</span>
         </Link>
         <Pills items={TABS} active={tab} hrefFor={(t) => (t === "hot" ? "/" : `/?tab=${t}`)} className="mb-3" />
         <div className="space-y-2.5">
@@ -145,18 +145,18 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         {posts.length === 0 && (
           <div className="rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">
             {following?.needLogin ? (
-              <>팔로잉 피드는 로그인 후 볼 수 있어요. <Link href="/login?next=/%3Ftab%3Dfollowing" className="text-brand underline">로그인</Link></>
+              <>Log in to see your Following feed. <Link href="/login?next=/%3Ftab%3Dfollowing" className="text-brand underline">Log in</Link></>
             ) : following?.empty ? (
-              <>아직 팔로우한 크리에이터가 없어요. <Link href="/creators" className="text-brand underline">크리에이터 찾아보기</Link></>
+              <>You are not following any creators yet. <Link href="/creators" className="text-brand underline">Find creators</Link></>
             ) : following ? (
-              "팔로우한 크리에이터의 새 글이 아직 없어요."
+              "No new posts from creators you follow."
             ) : (
-              <>아직 게시글이 없습니다. <Link href="/community/write" className="text-brand underline">첫 글을 작성해보세요.</Link></>
+              <>No posts yet. <Link href="/community/write" className="text-brand underline">Write the first post.</Link></>
             )}
           </div>
         )}
         <div className="mt-3 text-center">
-          <Link href="/community" className="text-sm font-medium text-brand hover:underline">게시글 더 보기 ›</Link>
+          <Link href="/community" className="text-sm font-medium text-brand hover:underline">More posts ›</Link>
         </div>
       </section>
 

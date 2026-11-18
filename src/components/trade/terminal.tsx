@@ -24,7 +24,7 @@ import { WinPopup, findResult, type TradeResult } from "./win-popup";
 // 차트는 브라우저 저장소(지표 설정·그림)를 읽으므로 서버에서는 그리지 않습니다.
 const PriceChart = dynamic(() => import("./chart").then((m) => m.PriceChart), {
   ssr: false,
-  loading: () => <div className="grid h-full place-items-center text-sm text-muted-foreground">차트 불러오는 중…</div>,
+  loading: () => <div className="grid h-full place-items-center text-sm text-muted-foreground">Loading chart…</div>,
 });
 
 const inputCls = "h-9 w-full rounded-lg border bg-background px-3 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
@@ -83,7 +83,7 @@ function Splitter({ v, axis, dir, label, className }: { v: LayoutVar; axis: "x" 
       role="separator"
       aria-orientation={axis === "x" ? "vertical" : "horizontal"}
       aria-label={label}
-      title={`${label} (끌어서 조절, 더블클릭: 초기화)`}
+      title={`${label} (drag to resize, double-click to reset)`}
       onPointerDown={onDown}
       onDoubleClick={(e) => {
         const grid = e.currentTarget.parentElement as HTMLElement;
@@ -151,8 +151,8 @@ function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Reco
               setOpen(false);
             }
           }}
-          placeholder="코인 검색"
-          aria-label="코인 검색"
+          placeholder="Search coins"
+          aria-label="Search coins"
           className="w-full min-w-0 bg-transparent outline-none placeholder:text-muted-foreground"
         />
       </label>
@@ -163,7 +163,7 @@ function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Reco
             if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) setShown((n) => (n < matches.length ? n + PAGE : n));
           }}
           className="absolute left-0 top-full z-30 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border bg-popover p-1 text-xs shadow-lg">
-          {results.length === 0 && <li className="px-2 py-3 text-center text-muted-foreground">{all.length === 0 ? "시세를 불러오는 중…" : "검색 결과가 없습니다."}</li>}
+          {results.length === 0 && <li className="px-2 py-3 text-center text-muted-foreground">{all.length === 0 ? "Loading prices…" : "No results."}</li>}
           {results.map((x) => (
             <li key={x.sym}>
               <button
@@ -284,7 +284,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg?: string) =>
     start(async () => {
       const r = await fn();
-      if (!r.ok) toast.show(r.error ?? "요청을 처리하지 못했습니다.");
+      if (!r.ok) toast.show(r.error ?? "Could not process the request.");
       else if (okMsg) toast.show(okMsg);
     });
 
@@ -297,10 +297,10 @@ export function TradeTerminal({ data }: { data: TradeData }) {
       {win && <WinPopup win={win} onClose={() => setWin(null)} />}
       {/* 계정 요약 */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat title="총 자산" value={`${fmtUsd(equity)} USDT`} />
-        <Stat title="주문 가능" value={`${fmtUsd(data.balance)} USDT`} />
-        <Stat title="사용 중 증거금" value={`${fmtUsd(marginUsed)} USDT`} />
-        <Stat title="미실현 손익" value={`${signed(unreal)} USDT`} tone={pnlCls(unreal)} />
+        <Stat title="Equity" value={`${fmtUsd(equity)} USDT`} />
+        <Stat title="Available" value={`${fmtUsd(data.balance)} USDT`} />
+        <Stat title="Margin in use" value={`${fmtUsd(marginUsed)} USDT`} />
+        <Stat title="Unrealized PnL" value={`${signed(unreal)} USDT`} tone={pnlCls(unreal)} />
       </div>
 
       <div ref={gridRef} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_12px_var(--ob,260px)_12px_var(--of,320px)] xl:gap-0 xl:gap-y-0">
@@ -324,8 +324,8 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               <span className="flex rounded-md border p-0.5 text-[11px] font-medium">
                 {(
                   [
-                    ["lite", "커스텀"],
-                    ["tv", "트레이딩뷰"],
+                    ["lite", "Custom"],
+                    ["tv", "TradingView"],
                   ] as const
                 ).map(([k, t]) => (
                   <button key={k} type="button" onClick={() => setChartMode(k)} className={cn("rounded px-2 py-1", chartMode === k ? "bg-foreground text-background" : "text-muted-foreground")}>
@@ -336,7 +336,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               <span className="notranslate text-base font-bold tabular-nums text-foreground">{mark ? fmtPrice(mark) : "—"}</span>
               <span className="flex items-center gap-1.5">
                 <span className={cn("size-1.5 rounded-full", live ? "bg-up" : "bg-muted-foreground/40")} />
-                {live ? "실시간" : "연결 중"}
+                {live ? "Live" : "Connecting"}
               </span>
             </span>
           </div>
@@ -347,31 +347,31 @@ export function TradeTerminal({ data }: { data: TradeData }) {
                 orders={symOrders}
                 onTpSl={async (id, tp, sl) => {
                   const r = await setTpSlAction(id, tp, sl);
-                  toast.show(r.ok ? "익절/손절을 수정했습니다." : r.error);
+                  toast.show(r.ok ? "Take profit / stop loss updated." : r.error);
                 }}
                 closeOrders={symCloseOrders}
                 onClosePosition={async (id, pct) => {
                   const r = await closePositionAction(id, pct);
-                  toast.show(r.ok ? (pct >= 100 ? "포지션을 청산했습니다." : `${pct}% 청산했습니다.`) : r.error);
+                  toast.show(r.ok ? (pct >= 100 ? "Position closed." : `Closed ${pct}%.`) : r.error);
                   if (r.ok) router.refresh();
                   return r.ok;
                 }}
                 onCloseLimit={async (id, pct, price) => {
                   const r = await placeCloseOrderAction(id, pct, price);
-                  toast.show(r.ok ? "지정가 청산 주문을 등록했습니다." : r.error);
+                  toast.show(r.ok ? "Limit close order placed." : r.error);
                   if (r.ok) router.refresh();
                   return r.ok;
                 }}
                 onCancelClose={async (id) => {
                   const r = await cancelCloseOrderAction(id);
-                  toast.show(r.ok ? "청산 주문을 취소했습니다." : r.error);
+                  toast.show(r.ok ? "Close order cancelled." : r.error);
                   if (r.ok) router.refresh();
                 }}
                 balance={data.balance}
                 loggedIn={data.loggedIn}
                 onPlaceOrder={async (o) => {
                   const r = await placeOrderAction({ symbol, side: o.side, sizeUsdt: o.sizeUsdt, leverage: o.leverage, marginMode, limitPrice: o.limitPrice, tp: o.tp, sl: o.sl });
-                  toast.show(r.ok ? (r.status === "open" ? "지정가 주문을 등록했습니다." : "주문이 체결되었습니다.") : r.error);
+                  toast.show(r.ok ? (r.status === "open" ? "Limit order placed." : "Order filled.") : r.error);
                   return r.ok;
                 }}
               />
@@ -381,19 +381,19 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           </div>
         </Card>
 
-        <Splitter v="--ob" axis="x" dir={-1} label="차트와 호가창 너비 조절" />
+        <Splitter v="--ob" axis="x" dir={-1} label="Resize chart and order book" />
 
         <div className="relative order-3 min-h-[360px] md:order-none md:min-h-[420px] xl:min-h-0">
           <div className="h-full xl:absolute xl:inset-0"><OrderBook symbol={symbol} mark={mark} onPick={(price) => setPicked({ price, n: (picked?.n ?? 0) + 1 })} /></div>
         </div>
 
-        <Splitter v="--of" axis="x" dir={-1} label="호가창과 주문창 너비 조절" />
+        <Splitter v="--of" axis="x" dir={-1} label="Resize order book and order panel" />
 
         <div className="order-2 min-w-0 md:order-none">
           <OrderForm symbol={symbol} mark={mark} positions={symPositions} allPositions={data.positions} prices={prices} marginMode={marginMode} lockedMode={lockedMode} onMarginMode={setModeInput} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
         </div>
 
-        <Splitter v="--ch" axis="y" dir={1} label="차트 높이 조절" className="xl:col-span-5 h-3" />
+        <Splitter v="--ch" axis="y" dir={1} label="Resize chart height" className="xl:col-span-5 h-3" />
       </div>
 
       {/* 포지션 / 주문 / 내역 */}
@@ -401,9 +401,9 @@ export function TradeTerminal({ data }: { data: TradeData }) {
         <div className="flex items-center gap-1 overflow-x-auto border-b px-3 pt-2">
           {(
             [
-              ["positions", `포지션 ${data.positions.length}`],
-              ["orders", `미체결 ${data.orders.length + data.closeOrders.length + data.positions.filter((p) => p.tp || p.sl).length}`],
-              ["history", "거래 내역"],
+              ["positions", `Positions ${data.positions.length}`],
+              ["orders", `Open orders ${data.orders.length + data.closeOrders.length + data.positions.filter((p) => p.tp || p.sl).length}`],
+              ["history", "Trade history"],
             ] as const
           ).map(([k, t]) => (
             <button
@@ -424,9 +424,9 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               size="xs"
               className="mb-1 ml-auto"
               disabled={pending}
-              onClick={() => confirm("포지션과 미체결 주문을 모두 지우고 잔고를 10,000 USDT 로 되돌립니다. 계속할까요?") && run(resetAccountAction, "계정을 초기화했습니다.")}
+              onClick={() => confirm("This clears all positions and open orders and resets your balance to 10,000 USDT. Continue?") && run(resetAccountAction, "Account reset.")}
             >
-              <RotateCcw /> 초기화
+              <RotateCcw /> Reset
             </Button>
           )}
         </div>
@@ -434,7 +434,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
         <div className="overflow-x-auto p-3">
           {!data.loggedIn ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              <Link href="/login" className="font-semibold text-brand hover:underline">로그인</Link>하면 10,000 USDT 가상 자금으로 모의투자를 시작할 수 있습니다.
+              <Link href="/login" className="font-semibold text-brand hover:underline">Log in</Link> to start paper trading with 10,000 USDT of virtual funds.
             </p>
           ) : tab === "positions" ? (
             <PositionsTable positions={data.positions} closeOrders={data.closeOrders} prices={prices} pending={pending} run={run} current={symbol} onSelect={selectSymbol} />
@@ -447,7 +447,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
       </Card>
 
       <p className="text-xs leading-relaxed text-muted-foreground">
-        가상 자금으로 진행하는 모의투자이며 실제 거래가 아닙니다. 체결 가격과 수수료({(FEE_RATE * 100).toFixed(2)}%)는 단순화된 모델이라 실제 거래소와 다를 수 있고, 투자 권유가 아닙니다.
+        Paper trading with virtual funds; these are not real trades. Execution prices and fees ({(FEE_RATE * 100).toFixed(2)}%) use a simplified model and may differ from a real exchange. This is not investment advice.
       </p>
     </div>
   );
@@ -473,7 +473,7 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
   const lev = lockedLev ?? levInput;
   const [limit, setLimit] = useState("");
   const [tpsl, setTpsl] = useState(false);
-  const [reduce, setReduce] = useState(false); // 리듀스 온리: 반대 방향 포지션만 줄임
+  const [reduce, setReduce] = useState(false); // reduce-only: only reduces the opposite-side position
   const [tp, setTp] = useState("");
   const [sl, setSl] = useState("");
   const [tpMode, setTpMode] = useState<"price" | "usd" | "pct">("price");
@@ -486,11 +486,11 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
     setLimit(String(picked.price));
   }
 
-  const power = balance * lev; // 거래 가능 규모
+  const power = balance * lev; // tradable size
   // 리듀스 온리일 때 줄일 수 있는 최대 규모 = 반대 방향 포지션의 현재 가치 (롱 주문→숏, 숏 주문→롱)
   const notional = (side: Side) => positions.filter((p) => p.side === side).reduce((a, p) => a + p.qty * (mark ?? p.entry_price), 0);
   const reduceMax = Math.max(notional("short"), notional("long"));
-  const maxSize = reduce ? Math.floor(reduceMax * 100) / 100 : Math.floor((power / (1 + FEE_RATE * lev)) * 100) / 100; // 수수료까지 감안한 최대 주문 규모
+  const maxSize = reduce ? Math.floor(reduceMax * 100) / 100 : Math.floor((power / (1 + FEE_RATE * lev)) * 100) / 100; // max order size including fees
   const sizeN = Number(size) || 0;
   const pct = maxSize > 0 ? Math.min(100, (sizeN / maxSize) * 100) : 0;
   const setPct = (p: number) => setSize(p === 0 ? "" : String(Math.floor(((maxSize * p) / 100) * 100) / 100));
@@ -505,9 +505,9 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
     if (!(raw > 0)) return null;
     if (tpMode === "price") return raw;
     if (!(refPrice > 0 && sizeN > 0)) return null;
-    const amount = tpMode === "usd" ? raw : (raw / 100) * margin; // 목표 손익(USDT)
+    const amount = tpMode === "usd" ? raw : (raw / 100) * margin; // target PnL (USDT)
     const frac = amount / sizeN;
-    const up = (kind === "tp") === (side === "long"); // 익절(롱)·손절(숏)은 위쪽
+    const up = (kind === "tp") === (side === "long"); // take profit (long) and stop loss (short) are above
     const price = refPrice * (up ? 1 + frac : 1 - frac);
     return price > 0 ? Number(price.toPrecision(8)) : null;
   };
@@ -516,19 +516,19 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
     if (reduce) {
       run(
         () => reduceOnlyAction({ symbol, side, sizeUsdt: sizeN, limitPrice: type === "limit" ? Number(limit) : null }),
-        type === "limit" ? "리듀스 온리 지정가 청산 주문을 등록했습니다." : "포지션을 줄였습니다.",
+        type === "limit" ? "Reduce-only limit close order placed." : "Position reduced.",
       );
       return;
     }
     const tpP = tpsl ? calcTpSl("tp", side) : null;
     const slP = tpsl ? calcTpSl("sl", side) : null;
     if (tpsl && ((tp && tpP === null) || (sl && slP === null))) {
-      toast.show("익절/손절 값이 올바르지 않습니다. 금액을 먼저 입력해 주세요.");
+      toast.show("Invalid take profit / stop loss. Enter an amount first.");
       return;
     }
     run(
       () => placeOrderAction({ symbol, side, sizeUsdt: sizeN, leverage: lev, marginMode, limitPrice: type === "limit" ? Number(limit) : null, tp: tpP, sl: slP }),
-      type === "limit" ? "지정가 주문을 등록했습니다." : "주문이 체결되었습니다.",
+      type === "limit" ? "Limit order placed." : "Order filled.",
     );
   };
 
@@ -541,7 +541,7 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
     if (!(refPrice > 0 && sizeN > 0)) return "N/A";
     if (marginMode === "isolated") return fmtPrice(liqPrice(side, refPrice, lev));
     const v = crossLiqPrice({ side, entry: refPrice, sizeUsdt: sizeN, leverage: lev, balance, positions: crossPositions, prices });
-    return v === null ? "청산 없음" : fmtPrice(v);
+    return v === null ? "No liquidation" : fmtPrice(v);
   };
 
   return (
@@ -550,7 +550,7 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
       <div className="grid grid-cols-2 border-b text-sm font-medium">
         {(["market", "limit"] as const).map((t) => (
           <button key={t} type="button" onClick={() => setType(t)} className={cn("-mb-px border-b-2 pb-2", type === t ? "border-foreground text-foreground" : "border-transparent text-muted-foreground")}>
-            {t === "market" ? "시장가" : "지정가"}
+            {t === "market" ? "Market" : "Limit"}
           </button>
         ))}
       </div>
@@ -571,10 +571,10 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
           ))}
         </div>
         <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-          {lockedMode !== null && <span title="이 종목에 열린 포지션·주문이 있어 마진 모드가 고정됩니다.">🔒 </span>}
+          {lockedMode !== null && <span title="The margin mode is locked because this symbol has an open position or order.">🔒 </span>}
           {marginMode === "isolated"
-            ? "격리: 이 포지션에 넣은 증거금만 위험합니다. 청산돼도 잔고는 그대로예요."
-            : "교차: 주문 가능 잔고와 교차 포지션의 손익 전체가 담보입니다. 청산가가 더 멀지만, 청산되면 교차 포지션이 모두 정리되고 잔고도 0이 됩니다."}
+            ? "Isolated: only the margin put into this position is at risk. Your balance stays intact if it is liquidated."
+            : "Cross: your available balance and all cross-position PnL act as collateral. The liquidation price is farther away, but a liquidation closes every cross position and can take your balance to 0."}
         </p>
       </div>
 
@@ -582,25 +582,25 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
       <div>
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
-            <span className="text-muted-foreground">레버리지</span> {lev}x
-            {lockedLev !== null && <span className="ml-1.5 text-xs font-normal text-muted-foreground" title="이 종목에 열린 포지션이 있어 레버리지가 고정됩니다. 포지션을 모두 청산하면 바꿀 수 있습니다.">🔒 포지션 고정</span>}
+            <span className="text-muted-foreground">Leverage</span> {lev}x
+            {lockedLev !== null && <span className="ml-1.5 text-xs font-normal text-muted-foreground" title="Leverage is locked because this symbol has an open position. Close all positions to change it.">🔒 Locked by position</span>}
           </span>
           <span className="text-xs text-muted-foreground">
-            {reduce ? "줄일 수 있는 규모" : "거래 가능 규모"} <span className="font-semibold tabular-nums text-foreground">${fmtUsd(reduce ? reduceMax : power)}</span>
+            {reduce ? "Reducible size" : "Tradable size"} <span className="font-semibold tabular-nums text-foreground">${fmtUsd(reduce ? reduceMax : power)}</span>
           </span>
         </div>
         {!reduce && lockedLev === null && <LeverageSlider className="mt-2" value={lev} onChange={setLev} />}
       </div>
 
       {type === "limit" && (
-        <Field label="지정가 (USDT)">
+        <Field label="Limit price (USDT)">
           <input className={inputCls} inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value)} placeholder={mark ? fmtPrice(mark) : ""} />
         </Field>
       )}
 
       {/* 금액 */}
       <label className="flex h-10 items-center rounded-lg border bg-muted/40 px-3 text-sm focus-within:ring-2 focus-within:ring-ring/50">
-        <span className="text-muted-foreground underline decoration-dashed underline-offset-4">금액</span>
+        <span className="text-muted-foreground underline decoration-dashed underline-offset-4">Amount</span>
         <input className="min-w-0 flex-1 bg-transparent px-2 text-right tabular-nums outline-none" inputMode="decimal" value={size} onChange={(e) => setSize(e.target.value)} placeholder="0.00" />
         <span className="font-medium">USDT</span>
       </label>
@@ -614,7 +614,7 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
           step={1}
           value={Math.round(pct)}
           onChange={(e) => setPct(Number(e.target.value))}
-          aria-label="주문 비율"
+          aria-label="Order size percentage"
           className="h-1 flex-1 cursor-pointer accent-foreground"
         />
         <span className="flex h-8 w-16 items-center justify-end rounded-lg border bg-muted/40 px-2 text-xs tabular-nums">{Math.round(pct)} %</span>
@@ -628,29 +628,29 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
       </div>
 
       {/* 리듀스 온리 */}
-      <label className="flex cursor-pointer items-center gap-2 text-sm" title="새 포지션을 열지 않고, 반대 방향 포지션을 줄이기만 합니다.">
+      <label className="flex cursor-pointer items-center gap-2 text-sm" title="Does not open a new position; only reduces the opposite-side position.">
         <input type="checkbox" checked={reduce} onChange={(e) => { setReduce(e.target.checked); setSize(""); }} className="size-4 accent-foreground" />
-        <span className="underline decoration-dashed underline-offset-4">리듀스 온리</span>
+        <span className="underline decoration-dashed underline-offset-4">Reduce-only</span>
       </label>
       {reduce && (
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          새 포지션 없이 기존 포지션만 줄입니다. <b className="text-up">롱(매수)</b>은 숏을, <b className="text-down">숏(매도)</b>은 롱을 줄여요. 시장가는 바로 청산되고, 지정가는 청산 주문으로 걸립니다.
+          Only reduces existing positions, without opening a new one. <b className="text-up">Long (buy)</b> reduces shorts and <b className="text-down">short (sell)</b> reduces longs. Market closes immediately; limit becomes a close order.
         </p>
       )}
 
       {/* TP/SL */}
       {!reduce && <label className="flex cursor-pointer items-center gap-2 text-sm">
         <input type="checkbox" checked={tpsl} onChange={(e) => setTpsl(e.target.checked)} className="size-4 accent-foreground" />
-        <span className="underline decoration-dashed underline-offset-4">익절 / 손절</span>
+        <span className="underline decoration-dashed underline-offset-4">Take profit / Stop loss</span>
       </label>}
       {tpsl && !reduce && (
         <div className="space-y-2">
           <div className="grid grid-cols-3 gap-1 rounded-lg border bg-muted/40 p-1 text-xs font-medium">
             {(
               [
-                ["price", "가격 지정"],
-                ["usd", "금액 ($)"],
-                ["pct", "수익률 (%)"],
+                ["price", "Price"],
+                ["usd", "Amount ($)"],
+                ["pct", "Return (%)"],
               ] as const
             ).map(([k, t]) => (
               <button key={k} type="button" onClick={() => setTpMode(k)} className={cn("rounded-md py-1.5", tpMode === k ? "bg-foreground text-background" : "text-muted-foreground")}>
@@ -660,28 +660,28 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
           </div>
           {(
             [
-              ["익절", tp, setTp, "tp"],
-              ["손절", sl, setSl, "sl"],
+              ["Take profit", tp, setTp, "tp"],
+              ["Stop loss", sl, setSl, "sl"],
             ] as const
           ).map(([name, val, set, kind]) => (
             <label key={kind} className="flex h-10 items-center rounded-lg border bg-muted/40 px-3 text-sm focus-within:ring-2 focus-within:ring-ring/50">
               <span className="text-muted-foreground">{name}</span>
-              <input className="min-w-0 flex-1 bg-transparent px-2 text-right tabular-nums outline-none" inputMode="decimal" value={val} onChange={(e) => set(e.target.value)} placeholder={tpMode === "pct" ? "증거금 대비" : tpMode === "usd" ? "손익 금액" : "가격"} />
+              <input className="min-w-0 flex-1 bg-transparent px-2 text-right tabular-nums outline-none" inputMode="decimal" value={val} onChange={(e) => set(e.target.value)} placeholder={tpMode === "pct" ? "vs. margin" : tpMode === "usd" ? "PnL amount" : "Price"} />
               <span className="text-muted-foreground">{tpMode === "pct" ? "%" : "$"}</span>
             </label>
           ))}
           {tpMode !== "price" && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {tpMode === "pct" ? "증거금 대비 수익률(레버리지 반영)로 계산합니다." : "목표 손익 금액으로 계산합니다."}
+              {tpMode === "pct" ? "Calculated as return on margin (leverage included)." : "Calculated from the target PnL amount."}
               {refPrice > 0 && sizeN > 0 && (tp || sl) ? (
                 <>
                   <br />
-                  롱 → 익절 {calcTpSl("tp", "long") ? fmtPrice(calcTpSl("tp", "long")!) : "—"} / 손절 {calcTpSl("sl", "long") ? fmtPrice(calcTpSl("sl", "long")!) : "—"}
+                  Long → TP{calcTpSl("tp", "long") ? fmtPrice(calcTpSl("tp", "long")!) : "—"} / SL {calcTpSl("sl", "long") ? fmtPrice(calcTpSl("sl", "long")!) : "—"}
                   <br />
-                  숏 → 익절 {calcTpSl("tp", "short") ? fmtPrice(calcTpSl("tp", "short")!) : "—"} / 손절 {calcTpSl("sl", "short") ? fmtPrice(calcTpSl("sl", "short")!) : "—"}
+                  Short → TP{calcTpSl("tp", "short") ? fmtPrice(calcTpSl("tp", "short")!) : "—"} / SL {calcTpSl("sl", "short") ? fmtPrice(calcTpSl("sl", "short")!) : "—"}
                 </>
               ) : (
-                " 금액을 입력하면 가격이 표시됩니다."
+                " Enter an amount to see the price."
               )}
             </p>
           )}
@@ -691,22 +691,22 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
       {/* 요약 */}
       {reduce ? (
         <dl className="space-y-1.5 border-t pt-3 text-xs">
-          <Row k="줄일 규모" v={`${fmtUsd(Math.min(sizeN, reduceMax))}`} bold />
-          <Row k="수수료 (청산)" v={`${fmtUsd(Math.min(sizeN, reduceMax) * FEE_RATE)}`} />
-          <Row k="보유 숏 / 롱" v={`${fmtUsd(notional("short"))} / ${fmtUsd(notional("long"))}`} />
+          <Row k="Size to reduce" v={`${fmtUsd(Math.min(sizeN, reduceMax))}`} bold />
+          <Row k="Fee (close)" v={`${fmtUsd(Math.min(sizeN, reduceMax) * FEE_RATE)}`} />
+          <Row k="Held short / long" v={`${fmtUsd(notional("short"))} / ${fmtUsd(notional("long"))}`} />
         </dl>
       ) : (
       <dl className="space-y-1.5 border-t pt-3 text-xs">
-        <Row k="필요 증거금" v={`${fmtUsd(margin)} USDT`} />
-        <Row k="수수료" v={`$${fmtUsd(fee)} / ${(FEE_RATE * 100).toFixed(2)}%`} />
-        <Row k="주문 규모" v={`$${fmtUsd(sizeN)}`} bold />
-        {refPrice > 0 && sizeN > 0 && <Row k="수량" v={`${(sizeN / refPrice).toFixed(5)} ${label(symbol)}`} />}
+        <Row k="Required margin" v={`${fmtUsd(margin)} USDT`} />
+        <Row k="Fee" v={`$${fmtUsd(fee)} / ${(FEE_RATE * 100).toFixed(2)}%`} />
+        <Row k="Order size" v={`$${fmtUsd(sizeN)}`} bold />
+        {refPrice > 0 && sizeN > 0 && <Row k="Quantity" v={`${(sizeN / refPrice).toFixed(5)} ${label(symbol)}`} />}
         <div className="flex justify-between">
-          <dt className="text-muted-foreground underline decoration-dashed underline-offset-4">청산가 (예상)</dt>
+          <dt className="text-muted-foreground underline decoration-dashed underline-offset-4">Liq. price (est.)</dt>
           <dd className="text-right tabular-nums">
-            <span className="text-up">롱</span> {estLiq("long")}
+            <span className="text-up">Long</span> {estLiq("long")}
             <br />
-            <span className="text-down">숏</span> {estLiq("short")}
+            <span className="text-down">Short</span> {estLiq("short")}
           </dd>
         </div>
       </dl>
@@ -714,13 +714,13 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
 
       <div className="grid grid-cols-2 gap-2">
         <Button className="h-10 bg-up text-white hover:bg-up/90" disabled={disabled || noTarget("long")} onClick={() => submit("long")}>
-          {reduce ? "매수 (숏 줄이기)" : "롱 (매수)"}
+          {reduce ? "Buy (reduce short)" : "Long (buy)"}
         </Button>
         <Button className="h-10 bg-down text-white hover:bg-down/90" disabled={disabled || noTarget("short")} onClick={() => submit("short")}>
-          {reduce ? "매도 (롱 줄이기)" : "숏 (매도)"}
+          {reduce ? "Sell (reduce long)" : "Short (sell)"}
         </Button>
       </div>
-      {!loggedIn && <p className="text-center text-xs text-muted-foreground">주문하려면 로그인이 필요합니다.</p>}
+      {!loggedIn && <p className="text-center text-xs text-muted-foreground">Log in to place orders.</p>}
     </Card>
   );
 }
@@ -745,10 +745,10 @@ function Row({ k, v, bold }: { k: string; v: string; bold?: boolean }) {
 
 const th = "px-2 py-1.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap";
 const td = "px-2 py-2 text-sm tabular-nums whitespace-nowrap";
-const SideTag = ({ side }: { side: Side }) => <span className={cn("font-semibold", side === "long" ? "text-up" : "text-down")}>{side === "long" ? "롱" : "숏"}</span>;
+const SideTag = ({ side }: { side: Side }) => <span className={cn("font-semibold", side === "long" ? "text-up" : "text-down")}>{side === "long" ? "Long" : "Short"}</span>;
 function SymLink({ sym, current, onSelect }: { sym: string; current: string; onSelect: (s: string) => void }) {
   return (
-    <button type="button" title="차트·포지션 보기" onClick={() => onSelect(sym)} className={cn("font-medium hover:text-brand hover:underline", sym === current && "text-brand")}>
+    <button type="button" title="View chart and position" onClick={() => onSelect(sym)} className={cn("font-medium hover:text-brand hover:underline", sym === current && "text-brand")}>
       {label(sym)}
     </button>
   );
@@ -775,7 +775,7 @@ function ShareButton({ kind, id }: { kind: "position" | "trade"; id: string }) {
         }
       }}
     >
-      <Share2 /> 공유
+      <Share2 /> Share
     </Button>
   );
 }
@@ -787,12 +787,12 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
   const [closing, setClosing] = useState<string | null>(null);
   const [tp, setTp] = useState("");
   const [sl, setSl] = useState("");
-  if (!positions.length) return <Empty text="열린 포지션이 없습니다." />;
+  if (!positions.length) return <Empty text="No open positions." />;
   return (
     <table className="w-full min-w-[720px]">
       <thead>
         <tr>
-          {["종목", "규모", "진입가", "현재가", "청산가", "익절 / 손절", "미실현 손익", ""].map((h) => (
+          {["Symbol", "Size", "Entry", "Mark", "Liq. price", "TP / SL", "Unrealized PnL", ""].map((h) => (
             <th key={h} className={th}>{h}</th>
           ))}
         </tr>
@@ -812,15 +812,15 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
               <td className={td}>{fmtUsd(p.qty * p.entry_price)}</td>
               <td className={td}>{fmtPrice(p.entry_price)}</td>
               <td className={cn(td, "notranslate")}>{fmtPrice(m)}</td>
-              <td className={cn(td, "text-down")} title={p.margin_mode === "cross" ? "교차: 다른 교차 포지션 가격이 지금 그대로라고 가정한 청산가입니다." : undefined}>
+              <td className={cn(td, "text-down")} title={p.margin_mode === "cross" ? "Cross: liquidation price assuming other cross positions stay at their current prices." : undefined}>
                 {p.margin_mode === "cross" && p.side === "long" && p.liq_price <= 0.00000002 ? "—" : fmtPrice(p.liq_price)}
               </td>
               <td className={td}>
                 {editing === p.id ? (
                   <span className="flex gap-1">
-                    <input className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="익절" value={tp} onChange={(e) => setTp(e.target.value)} />
-                    <input className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="손절" value={sl} onChange={(e) => setSl(e.target.value)} />
-                    <Button size="xs" disabled={pending} onClick={() => { run(() => setTpSlAction(p.id, tp ? Number(tp) : null, sl ? Number(sl) : null), "저장했습니다."); setEditing(null); }}>저장</Button>
+                    <input className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="TP" value={tp} onChange={(e) => setTp(e.target.value)} />
+                    <input className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="SL" value={sl} onChange={(e) => setSl(e.target.value)} />
+                    <Button size="xs" disabled={pending} onClick={() => { run(() => setTpSlAction(p.id, tp ? Number(tp) : null, sl ? Number(sl) : null), "Saved."); setEditing(null); }}>Save</Button>
                   </span>
                 ) : (
                   <button type="button" className="hover:underline" onClick={() => { setEditing(p.id); setTp(p.tp ? String(p.tp) : ""); setSl(p.sl ? String(p.sl) : ""); }}>
@@ -830,13 +830,13 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
               </td>
               <td className={cn(td, "notranslate font-semibold", pnlCls(pnl))}>
                 {signed(pnl)} <span className="text-xs">({roe >= 0 ? "+" : ""}{roe.toFixed(2)}%)</span>
-                <span className="block text-[11px] font-normal text-muted-foreground" title="진입·청산 수수료(0.04%씩)를 모두 뺀 예상 손익">
-                  수수료 반영 약 {signed(pnl - (p.qty * p.entry_price + p.qty * m) * FEE_RATE)}
+                <span className="block text-[11px] font-normal text-muted-foreground" title="Estimated PnL after entry and exit fees (0.04% each)">
+                  After fees ≈{signed(pnl - (p.qty * p.entry_price + p.qty * m) * FEE_RATE)}
                 </span>
               </td>
               <td className={td}>
                 <Button variant={closing === p.id ? "secondary" : "outline"} size="xs" onClick={() => setClosing(closing === p.id ? null : p.id)}>
-                  청산{mine.length > 0 && ` (${mine.length})`}
+      Close{mine.length > 0 && ` (${mine.length})`}
                 </Button>
                 <ShareButton kind="position" id={p.id} />
               </td>
@@ -850,17 +850,17 @@ function PositionsTable({ positions, closeOrders, prices, pending, run, current,
                       pos={p}
                       mark={m}
                       busy={pending}
-                      onMarket={(pct) => { run(() => closePositionAction(p.id, pct), pct >= 100 ? "포지션을 청산했습니다." : `${pct}% 청산했습니다.`); if (pct >= 100) setClosing(null); }}
-                      onLimit={(pct, price) => run(() => placeCloseOrderAction(p.id, pct, price), "지정가 청산 주문을 등록했습니다.")}
+                      onMarket={(pct) => { run(() => closePositionAction(p.id, pct), pct >= 100 ? "Position closed." : `Closed ${pct}%.`); if (pct >= 100) setClosing(null); }}
+                      onLimit={(pct, price) => run(() => placeCloseOrderAction(p.id, pct, price), "Limit close order placed.")}
                       onCancel={() => setClosing(null)}
                     />
                     {mine.length > 0 && (
                       <ul className="min-w-56 space-y-1 text-xs">
-                        <li className="font-semibold text-muted-foreground">대기 중인 지정가 청산</li>
+                        <li className="font-semibold text-muted-foreground">Pending limit closes</li>
                         {mine.map((c) => (
                           <li key={c.id} className="flex items-center gap-2 tabular-nums">
                             {fmtPrice(c.price)} · {((c.qty / p.qty) * 100).toFixed(0)}%
-                            <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => cancelCloseOrderAction(c.id), "청산 주문을 취소했습니다.")}><X /> 취소</Button>
+                            <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => cancelCloseOrderAction(c.id), "Close order cancelled.")}><X /> Cancel</Button>
                           </li>
                         ))}
                       </ul>
@@ -886,20 +886,20 @@ function TpSlCells({ p, pending, run }: { p: Position; pending: boolean; run: Ru
     const t = tp.trim() ? Number(tp) : null;
     const l = sl.trim() ? Number(sl) : null;
     if ((t !== null && !(t > 0)) || (l !== null && !(l > 0))) return;
-    run(() => setTpSlAction(p.id, t, l), "저장했습니다.");
+    run(() => setTpSlAction(p.id, t, l), "Saved.");
     setEditing(false);
   };
   return (
     <td className={td}>
       {editing ? (
         <span className="flex items-center gap-1">
-          <input autoFocus className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="익절" value={tp} onChange={(e) => setTp(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
-          <input className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="손절" value={sl} onChange={(e) => setSl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
-          <Button size="xs" disabled={pending} onClick={save}>저장</Button>
-          <Button variant="ghost" size="xs" onClick={() => setEditing(false)}>닫기</Button>
+          <input autoFocus className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="TP" value={tp} onChange={(e) => setTp(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
+          <input className={cn(inputCls, "h-7 w-24")} inputMode="decimal" placeholder="SL" value={sl} onChange={(e) => setSl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
+          <Button size="xs" disabled={pending} onClick={save}>Save</Button>
+          <Button variant="ghost" size="xs" onClick={() => setEditing(false)}>Close</Button>
         </span>
       ) : (
-        <button type="button" title="눌러서 수정" className="hover:underline" onClick={() => { setTp(p.tp ? String(p.tp) : ""); setSl(p.sl ? String(p.sl) : ""); setEditing(true); }}>
+        <button type="button" title="Click to edit" className="hover:underline" onClick={() => { setTp(p.tp ? String(p.tp) : ""); setSl(p.sl ? String(p.sl) : ""); setEditing(true); }}>
           {p.tp ? fmtPrice(p.tp) : "—"} / {p.sl ? fmtPrice(p.sl) : "—"} <span className="inline-block -scale-x-100 text-[11px] text-muted-foreground">✎</span>
         </button>
       )}
@@ -909,23 +909,23 @@ function TpSlCells({ p, pending, run }: { p: Position; pending: boolean; run: Ru
 
 function OrdersTable({ orders, closeOrders, positions, pending, run, current, onSelect }: { orders: TradeData["orders"]; closeOrders: CloseOrder[]; positions: Position[]; pending: boolean; run: Run } & Pick) {
   const tpslPositions = positions.filter((p) => p.tp || p.sl);
-  if (!orders.length && !closeOrders.length && !tpslPositions.length) return <Empty text="미체결 주문이 없습니다." />;
+  if (!orders.length && !closeOrders.length && !tpslPositions.length) return <Empty text="No open orders." />;
   return (
     <table className="w-full min-w-[560px]">
       <thead>
-        <tr>{["종목", "지정가", "규모", "익절 / 손절", "예약 증거금", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+        <tr>{["Symbol", "Limit price", "Size", "TP / SL", "Reserved margin", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
       </thead>
       <tbody>
         {tpslPositions.map((p) => (
           <tr key={`tpsl-${p.id}`} className="border-t">
-            <td className={td}><SymLink sym={p.symbol} current={current} onSelect={onSelect} /> <SideTag side={p.side} /> <span className="rounded bg-muted px-1 text-[11px]">익절/손절</span></td>
+            <td className={td}><SymLink sym={p.symbol} current={current} onSelect={onSelect} /> <SideTag side={p.side} /> <span className="rounded bg-muted px-1 text-[11px]">TP/SL</span></td>
             <td className={td}>—</td>
             <td className={td}>{fmtUsd(p.qty * p.entry_price)}</td>
             <TpSlCells p={p} pending={pending} run={run} />
             <td className={td}>—</td>
             <td className={td}>
-              <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => setTpSlAction(p.id, null, null), "익절/손절을 취소했습니다.")}>
-                <X /> 취소
+              <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => setTpSlAction(p.id, null, null), "TP/SL cancelled.")}>
+                <X /> Cancel
               </Button>
             </td>
           </tr>
@@ -935,14 +935,14 @@ function OrdersTable({ orders, closeOrders, positions, pending, run, current, on
           if (!pos) return null;
           return (
             <tr key={c.id} className="border-t">
-              <td className={td}><SymLink sym={pos.symbol} current={current} onSelect={onSelect} /> <SideTag side={pos.side} /> <span className="rounded bg-muted px-1 text-[11px]">청산 {((c.qty / pos.qty) * 100).toFixed(0)}%</span></td>
+              <td className={td}><SymLink sym={pos.symbol} current={current} onSelect={onSelect} /> <SideTag side={pos.side} /> <span className="rounded bg-muted px-1 text-[11px]">Close {((c.qty / pos.qty) * 100).toFixed(0)}%</span></td>
               <td className={td}>{fmtPrice(c.price)}</td>
               <td className={td}>{fmtUsd(c.qty * c.price)}</td>
               <td className={td}>—</td>
               <td className={td}>—</td>
               <td className={td}>
-                <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => cancelCloseOrderAction(c.id), "청산 주문을 취소했습니다.")}>
-                  <X /> 취소
+                <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => cancelCloseOrderAction(c.id), "Close order cancelled.")}>
+                  <X /> Cancel
                 </Button>
               </td>
             </tr>
@@ -956,8 +956,8 @@ function OrdersTable({ orders, closeOrders, positions, pending, run, current, on
             <td className={td}>{o.tp ? fmtPrice(o.tp) : "—"} / {o.sl ? fmtPrice(o.sl) : "—"}</td>
             <td className={td}>{fmtUsd(o.margin)}</td>
             <td className={td}>
-              <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => cancelOrderAction(o.id), "주문을 취소했습니다.")}>
-                <X /> 취소
+              <Button variant="ghost" size="xs" disabled={pending} onClick={() => run(() => cancelOrderAction(o.id), "Order cancelled.")}>
+                <X /> Cancel
               </Button>
             </td>
           </tr>
@@ -968,11 +968,11 @@ function OrdersTable({ orders, closeOrders, positions, pending, run, current, on
 }
 
 function HistoryTable({ trades, current, onSelect }: { trades: TradeData["trades"] } & Pick) {
-  if (!trades.length) return <Empty text="아직 거래 내역이 없습니다." />;
+  if (!trades.length) return <Empty text="No trade history yet." />;
   return (
     <table className="w-full min-w-[820px]">
       <thead>
-        <tr>{["종목", "진입가", "청산가", "규모", "수수료", "손익 (수수료 포함)", "수익률", "사유", "시각", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+        <tr>{["Symbol", "Entry", "Exit", "Size", "Fee", "PnL (after fees)", "Return", "Reason", "Time", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
       </thead>
       <tbody>
         {trades.map((t) => (
@@ -985,7 +985,7 @@ function HistoryTable({ trades, current, onSelect }: { trades: TradeData["trades
             <td className={cn(td, "font-semibold", pnlCls(t.pnl))}>{signed(t.pnl)}</td>
             <td className={cn(td, "font-semibold", pnlCls(t.pnl))}>{t.margin > 0 ? `${t.pnl >= 0 ? "+" : ""}${((t.pnl / t.margin) * 100).toFixed(2)}%` : "—"}</td>
             <td className={td}>{REASON_LABEL[t.reason]}</td>
-            <td className={cn(td, "text-xs text-muted-foreground")}>{new Date(t.closed_at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+            <td className={cn(td, "text-xs text-muted-foreground")}>{new Date(t.closed_at).toLocaleString("en-US", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
             <td className={td}><ShareButton kind="trade" id={t.id} /></td>
           </tr>
         ))}

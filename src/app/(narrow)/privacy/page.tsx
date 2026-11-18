@@ -2,112 +2,116 @@ import type { Metadata } from "next";
 import { Clause, LegalPage, OPERATOR } from "@/components/common/legal";
 
 export const metadata: Metadata = {
-  title: "개인정보처리방침",
-  description: "핀톡 개인정보처리방침",
+  title: "Privacy Policy",
+  description: "FinTalk Privacy Policy",
   alternates: { canonical: "/privacy" },
 };
 
+// LEGAL REVIEW REQUIRED: this is a draft. Check GDPR / UK GDPR / CCPA and other local requirements before targeting those regions.
 export default function PrivacyPage() {
   return (
-    <LegalPage title="개인정보처리방침">
+    <LegalPage title="Privacy Policy">
       <p className="text-muted-foreground">
-        {OPERATOR.name}(이하 “운영자”)은 {OPERATOR.service} 서비스를 제공하면서 「개인정보 보호법」 등 관련 법령을 준수하고, 이용자의 개인정보를
-        소중히 다루기 위해 다음과 같이 개인정보처리방침을 정합니다.
+        {OPERATOR.name} (the “Operator”) provides the {OPERATOR.service} service. This Privacy Policy explains what personal information we collect, why we collect it and how
+        you can control it.
       </p>
 
-      <Clause title="1. 수집하는 개인정보 항목과 수집 방법">
+      <Clause title="1. Information we collect">
         <ul>
-          <li>회원가입 시: 이메일, 비밀번호(암호화되어 저장), 닉네임</li>
-          <li>프로필 설정 시(선택): 자기소개, 프로필 사진, 관심 분야, 알림 수신 설정</li>
-          <li>서비스 이용 중 생성되는 정보: 게시글, 댓글, 첨부 이미지, 추천·저장·팔로우·관심 종목·신고 내역, 알림 내역, 기여도 지표</li>
-          <li>자동 수집 정보: 접속 로그, IP 주소, 브라우저·기기 정보, 쿠키 (서비스 보안과 안정적 운영을 위함)</li>
+          <li>At sign-up: email address, password (stored hashed) and nickname.</li>
+          <li>Profile (optional): bio, profile photo, interests and notification settings.</li>
+          <li>Contest entry: OKX UID and country of residence.</li>
+          <li>Content you create: posts, comments, images, upvotes, saves, follows, watchlist, reports, notifications, Contribution metrics and paper trading activity.</li>
+          <li>Collected automatically: access logs, IP address, approximate location (country) derived from your IP, browser and device information, and cookies, for security and reliable operation.</li>
         </ul>
-        <p>정보는 이용자가 직접 입력하거나 서비스 이용 과정에서 자동으로 생성·수집됩니다.</p>
+        <p>We collect information that you enter yourself and information generated automatically when you use the Service.</p>
       </Clause>
 
-      <Clause title="2. 개인정보의 이용 목적">
+      <Clause title="2. How we use information">
         <ul>
-          <li>회원 가입·로그인·본인 확인, 계정 관리와 부정 이용 방지</li>
-          <li>게시판, 질문·답변, 팔로우, 알림(댓글·답글 등) 등 서비스 제공</li>
-          <li>기여도 산정과 크리에이터·인기 종목 순위 등 서비스 내 통계 제공</li>
-          <li>신고 처리, 이용 제한 등 커뮤니티 운영과 분쟁 대응</li>
-          <li>서비스 개선과 오류·보안 문제 분석, 고객 문의 응대와 공지 전달</li>
+          <li>Account registration, login, identity checks, account management and abuse prevention.</li>
+          <li>Providing boards, questions and answers, follows, notifications and paper trading.</li>
+          <li>Calculating Contribution, leaderboards and other in-service statistics.</li>
+          <li>Running Contests: verifying your OKX UID and eligibility, enforcing country restrictions, detecting multiple accounts and paying prizes.</li>
+          <li>Handling reports and restrictions, resolving disputes, improving the Service, analysing errors and security issues, and responding to enquiries.</li>
         </ul>
       </Clause>
 
-      <Clause title="3. 보유 및 이용 기간">
+      <Clause title="3. Retention">
         <p>
-          개인정보는 회원 탈퇴 시 지체 없이 삭제합니다. 탈퇴하면 계정과 함께 작성한 게시글·댓글 등이 삭제되며 복구할 수 없습니다. 다만 관련
-          법령에 따라 보존해야 하는 정보는 해당 기간 동안 별도로 보관합니다. (예: 「통신비밀보호법」에 따른 접속 로그 기록 3개월)
+          We delete your personal information promptly when you delete your account. Your posts and comments are deleted with the account and cannot be restored. We keep
+          information that we are legally required to retain for the legally required period. Logs of blocked or rejected Contest entries (country and timestamp) are kept for
+          audit purposes for up to 12 months.
         </p>
-        <p>이용 제한을 받은 이용자의 재가입을 방지하기 위해 필요한 최소한의 정보는 이용 제한 기간 동안 보관할 수 있습니다.</p>
+        <p>The minimum information needed to prevent a restricted User from re-registering may be kept for the duration of the restriction.</p>
       </Clause>
 
-      <Clause title="4. 개인정보의 제3자 제공">
+      <Clause title="4. Sharing">
         <p>
-          운영자는 이용자의 개인정보를 이 방침에서 정한 목적 범위 안에서만 이용하며, 이용자의 동의가 있거나 법령에 근거가 있는 경우(수사기관의
-          적법한 요청 등)를 제외하고 제3자에게 제공하지 않습니다.
+          We use your information only for the purposes described here and do not sell it. We share it with third parties only with your consent, where the law requires it
+          (for example a lawful request from authorities), or with the service providers listed below.
         </p>
-        <p>단, 게시글·댓글에 표시되는 닉네임, 프로필 사진, 자기소개, 관심 분야는 다른 이용자와 방문자에게 공개됩니다.</p>
-      </Clause>
-
-      <Clause title="5. 개인정보 처리의 위탁 및 국외 이전">
-        <p>운영자는 안정적인 서비스 제공을 위해 다음과 같이 개인정보 처리 업무를 위탁합니다.</p>
-        <ul>
-          <li>Supabase Inc. — 회원 인증, 데이터베이스·파일(이미지) 저장 (이전 항목: 계정·서비스 이용 정보 전반)</li>
-          <li>웹 호스팅·배포 및 네트워크(CDN) 제공 업체 — 서비스 운영과 접속 로그 처리</li>
-        </ul>
+        <p>Your nickname, profile photo, bio and interests, and your Contest ranking if you take part, are visible to other Users and visitors.</p>
         <p>
-          위 업체의 서버는 국외에 있을 수 있으며, 이용자는 국외 이전을 원하지 않는 경우 회원 가입을 하지 않거나 탈퇴할 수 있습니다. 이전 시점은
-          서비스 이용 시점이며 이전 방법은 네트워크를 통한 전송입니다. 수탁자는 변경될 수 있으며 변경 시 이 방침을 통해 공지합니다.
+          Contest eligibility checks may involve confirming your OKX UID against the Operator&apos;s referral records with OKX. We do not receive your OKX password or funds.
         </p>
       </Clause>
 
-      <Clause title="6. 이용자의 권리와 행사 방법">
+      <Clause title="5. Service providers and international transfers">
         <ul>
-          <li>이용자는 언제든지 마이페이지 → 설정에서 닉네임, 자기소개, 프로필 사진, 알림 설정을 열람·수정할 수 있습니다.</li>
-          <li>마이페이지 → 설정의 “회원 탈퇴”로 개인정보 삭제를 요청(탈퇴)할 수 있습니다.</li>
-          <li>그 밖에 열람, 정정, 삭제, 처리정지 요청은 아래 개인정보 보호 담당 이메일로 연락하시면 지체 없이 처리합니다.</li>
+          <li>Supabase Inc. — authentication, database and file storage (all account and usage data).</li>
+          <li>Web hosting, deployment and CDN providers — operating the Service and processing access logs.</li>
         </ul>
-      </Clause>
-
-      <Clause title="7. 쿠키 및 브라우저 저장소">
         <p>
-          로그인 상태 유지를 위해 인증 쿠키를 사용하며, 화면 테마 설정과 작성 중인 글의 임시 저장은 이용자 브라우저의 저장소(localStorage 등)에
-          저장됩니다. 이용자는 브라우저 설정으로 쿠키 저장을 거부할 수 있으나, 이 경우 로그인 등 일부 기능을 이용할 수 없습니다.
+          These providers may process data on servers outside your country. By using the Service you understand that your data is transferred over the network to those
+          servers. If you do not want this, please do not register, or delete your account.
         </p>
       </Clause>
 
-      <Clause title="8. 개인정보의 안전성 확보 조치">
+      <Clause title="6. Your rights">
         <ul>
-          <li>비밀번호는 암호화하여 저장하며 운영자는 원문을 알 수 없습니다.</li>
-          <li>데이터 접근 권한을 최소화하고 행 단위 접근 제어(RLS) 등으로 본인 정보에 대한 무단 접근을 차단합니다.</li>
-          <li>전송 구간은 HTTPS로 암호화합니다.</li>
+          <li>You can view and edit your nickname, bio, profile photo and notification settings under My page → Settings.</li>
+          <li>You can delete your account and personal data with “Delete account” under My page → Settings.</li>
+          <li>
+            You can ask us to access, correct, delete, restrict or export your data, or object to processing, by emailing the contact address below. Depending on where you live
+            you may also have the right to complain to your local data protection authority.
+          </li>
         </ul>
       </Clause>
 
-      <Clause title="9. 아동의 개인정보">
-        <p>서비스는 만 14세 미만 아동을 대상으로 하지 않으며, 만 14세 미만 아동의 가입을 받지 않습니다.</p>
-      </Clause>
-
-      <Clause title="10. 개인정보 보호 담당 및 문의">
-        <ul>
-          <li>개인정보 보호책임자: {OPERATOR.ceo} (대표)</li>
-          <li>이메일: {OPERATOR.email}</li>
-          <li>상호: {OPERATOR.name} / 사업자등록번호: {OPERATOR.regNo}</li>
-          <li>주소: {OPERATOR.address}</li>
-        </ul>
+      <Clause title="7. Cookies and browser storage">
         <p>
-          개인정보 침해에 대한 신고나 상담이 필요한 경우 개인정보침해신고센터(privacy.kisa.or.kr, 국번 없이 118), 개인정보분쟁조정위원회(kopico.go.kr,
-          1833-6972) 등에 문의하실 수 있습니다.
+          We use an authentication cookie to keep you logged in. Your theme choice and unsaved post drafts are stored in your browser (localStorage). You can block cookies in your
+          browser settings, but some features such as login will not work.
         </p>
       </Clause>
 
-      <Clause title="11. 방침의 변경">
-        <p>이 방침이 변경되는 경우 시행일 7일 전부터 서비스 내에 공지합니다. 이용자의 권리에 중요한 변경은 30일 전에 공지합니다.</p>
+      <Clause title="8. Security">
+        <ul>
+          <li>Passwords are stored hashed; the Operator cannot see the original password.</li>
+          <li>Access to data is minimised and row-level security (RLS) prevents unauthorised access to your records.</li>
+          <li>Data in transit is encrypted with HTTPS.</li>
+        </ul>
       </Clause>
 
-      <p className="text-xs text-muted-foreground">부칙: 이 방침은 {OPERATOR.effective}부터 시행합니다.</p>
+      <Clause title="9. Children">
+        <p>The Service is not intended for anyone under 18, and we do not knowingly collect personal information from minors.</p>
+      </Clause>
+
+      <Clause title="10. Contact">
+        <ul>
+          <li>Privacy officer: {OPERATOR.ceo} (Representative)</li>
+          <li>Email: {OPERATOR.email}</li>
+          <li>Company: {OPERATOR.name} / Business registration no.: {OPERATOR.regNo}</li>
+          <li>Address: {OPERATOR.address}</li>
+        </ul>
+      </Clause>
+
+      <Clause title="11. Changes to this policy">
+        <p>We will announce changes in the Service at least 7 days before they take effect, and 30 days before for changes that materially affect your rights.</p>
+      </Clause>
+
+      <p className="text-xs text-muted-foreground">This policy takes effect on {OPERATOR.effective}.</p>
     </LegalPage>
   );
 }

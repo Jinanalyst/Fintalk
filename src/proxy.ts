@@ -1,9 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { countryFromHeaders, isBlockedCountry } from "@/lib/contest";
 import { SUPABASE_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/supabase/env";
 
 /** 로그인 세션 쿠키가 있을 때만 Supabase 세션을 갱신합니다. (권한 검사는 각 서버 코드 + RLS 에서 수행) */
 export async function proxy(request: NextRequest) {
+  // Contest pages are not available in restricted countries (country comes from the host's geo header).
+  const { pathname } = request.nextUrl;
+  if ((pathname === "/contest" || pathname.startsWith("/contest/")) && isBlockedCountry(countryFromHeaders(request.headers))) {
+    return NextResponse.rewrite(new URL("/contest-blocked", request.url));
+  }
   if (!isSupabaseConfigured || !request.cookies.getAll().some((c) => c.name.startsWith("sb-"))) {
     return NextResponse.next();
   }

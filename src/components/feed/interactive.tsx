@@ -17,9 +17,9 @@ export function useGuard() {
   return (r: Res) => {
     if (r.ok) return true;
     if (r.error === "login") {
-      show("로그인이 필요합니다.");
+      show("Login required.");
       router.push("/login");
-    } else show(r.error ?? "오류가 발생했습니다.");
+    } else show(r.error ?? "Something went wrong.");
     return false;
   };
 }
@@ -59,7 +59,7 @@ export function VoteBar({
   return (
     <div className={cn("flex items-center gap-1", vertical && "flex-col")}>
       <button
-        aria-label="추천"
+        aria-label="Upvote"
         aria-pressed={v === 1}
         disabled={pending}
         onClick={() => change(v === 1 ? 0 : 1)}
@@ -71,7 +71,7 @@ export function VoteBar({
         {score}
       </span>
       <button
-        aria-label="비추천"
+        aria-label="Downvote"
         aria-pressed={v === -1}
         disabled={pending}
         onClick={() => change(v === -1 ? 0 : -1)}
@@ -83,7 +83,7 @@ export function VoteBar({
   );
 }
 
-const REASONS = ["스팸/광고", "욕설/비방", "허위·과장 투자 권유", "개인정보 노출", "기타"];
+const REASONS = ["Spam / ads", "Abuse / harassment", "False or exaggerated investment claims", "Personal information", "Other"];
 
 export function ReportMenu({ type, id, compact = false }: { type: "post" | "comment"; id: string; compact?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -97,7 +97,7 @@ export function ReportMenu({ type, id, compact = false }: { type: "post" | "comm
         aria-expanded={open}
       >
         <Flag className="size-3.5" />
-        {!compact && "신고"}
+        {!compact && "Report"}
       </button>
       {open && (
         <div className="absolute right-0 z-30 mt-1 w-44 rounded-lg border bg-popover p-1 text-xs shadow-lg">
@@ -107,7 +107,7 @@ export function ReportMenu({ type, id, compact = false }: { type: "post" | "comm
               className="block w-full rounded px-2 py-1.5 text-left hover:bg-muted"
               onClick={async () => {
                 setOpen(false);
-                if (guard(await reportAction(type, id, r))) show("신고가 접수되었습니다. 검토 후 조치하겠습니다.");
+                if (guard(await reportAction(type, id, r))) show("Report submitted. We will review it.");
               }}
             >
               {r}
@@ -143,16 +143,16 @@ export function PostActions({
           const next = !saved;
           if (!live) {
             setSaved(next);
-            show(next ? "저장했습니다 (샘플 게시글)" : "저장을 취소했습니다 (샘플 게시글)");
+            show(next ? "Saved (sample post)" : "Removed from saved (sample post)");
             return;
           }
           setSaved(next);
           if (!guard(await toggleSaveAction(id, next))) setSaved(!next);
-          else show(next ? "저장했습니다." : "저장을 취소했습니다.");
+          else show(next ? "Saved." : "Removed from saved.");
         }}
       >
         <Bookmark className={cn("size-3.5", saved && "fill-current")} />
-        {!compact && "저장"}
+        {!compact && "Save"}
       </button>
       <button
         className={btn}
@@ -160,21 +160,21 @@ export function PostActions({
           const url = `${window.location.origin}/community/${id}`;
           try {
             await navigator.clipboard.writeText(url);
-            show("링크를 복사했습니다.");
+            show("Link copied.");
           } catch {
             show(url);
           }
         }}
       >
         <Share2 className="size-3.5" />
-        {!compact && "공유"}
+        {!compact && "Share"}
       </button>
       {live ? (
         <ReportMenu type="post" id={id} compact={compact} />
       ) : (
-        <button className={btn} onClick={() => comingSoon("샘플 게시글 신고")}>
+        <button className={btn} onClick={() => comingSoon("Reporting sample posts")}>
           <Flag className="size-3.5" />
-          {!compact && "신고"}
+          {!compact && "Report"}
         </button>
       )}
     </div>
@@ -187,13 +187,13 @@ export function WatchStar({ symbol, initial = false, live = false }: { symbol: s
   const guard = useGuard();
   return (
     <button
-      aria-label={`${symbol} 관심 종목`}
+      aria-label={`${symbol} watchlist`}
       aria-pressed={on}
       onClick={async () => {
         const next = !on;
         setOn(next);
         if (!live) {
-          show(next ? "관심 종목에 추가했습니다." : "관심 종목에서 제거했습니다.");
+          show(next ? "Added to watchlist." : "Removed from watchlist.");
           return;
         }
         if (!guard(await toggleWatchAction(symbol, next))) setOn(!next);
@@ -221,7 +221,7 @@ export function FollowButton({ small = false, targetId, initial = false }: { sma
         if (!targetId) return;
         start(async () => {
           if (!guard(await toggleFollowAction(targetId, next))) setOn(!next);
-          else show(next ? "팔로우했습니다." : "팔로우를 취소했습니다.");
+          else show(next ? "Followed." : "Unfollowed.");
         });
       }}
       className={cn(
@@ -230,7 +230,7 @@ export function FollowButton({ small = false, targetId, initial = false }: { sma
         on ? "bg-muted text-muted-foreground" : "border-brand bg-brand text-primary-foreground hover:opacity-90",
       )}
     >
-      {on ? "팔로잉" : "팔로우"}
+      {on ? "Following" : "Follow"}
     </button>
   );
 }

@@ -11,9 +11,9 @@ import { formatKst } from "@/lib/time";
 /** 질문 상태: 답변 대기 / 답변 완료 / 채택 완료 */
 export function questionStatus(post: Pick<Post, "type" | "comments" | "acceptedCommentId">) {
   if (post.type !== "question") return null;
-  if (post.acceptedCommentId) return { label: "채택 완료", cls: "bg-up/10 text-up" };
-  if (post.comments > 0) return { label: "답변 완료", cls: "bg-brand-soft text-brand" };
-  return { label: "답변 대기", cls: "bg-muted text-muted-foreground" };
+  if (post.acceptedCommentId) return { label: "Accepted", cls: "bg-up/10 text-up" };
+  if (post.comments > 0) return { label: "Answered", cls: "bg-brand-soft text-brand" };
+  return { label: "Awaiting answer", cls: "bg-muted text-muted-foreground" };
 }
 
 export function PostBadges({ post }: { post: Pick<Post, "type" | "comments" | "acceptedCommentId" | "sponsored" | "draft" | "scheduledFor"> }) {
@@ -23,9 +23,9 @@ export function PostBadges({ post }: { post: Pick<Post, "type" | "comments" | "a
     <>
       {post.type !== "general" && <span className={`${chip} bg-muted text-foreground`}>{postTypeLabel(post.type)}</span>}
       {q && <span className={`${chip} ${q.cls}`}>{q.label}</span>}
-      {post.sponsored && <span className={`${chip} bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300`} title="협찬 또는 이해관계가 있는 콘텐츠입니다">협찬·이해관계</span>}
-      {post.draft && <span className={`${chip} bg-down/10 text-down`}>임시 저장</span>}
-      {post.scheduledFor && <span className={`${chip} bg-brand-soft text-brand`}>{formatKst(post.scheduledFor)} 공개 예정</span>}
+      {post.sponsored && <span className={`${chip} bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300`} title="Sponsored or has a conflict of interest">Sponsored</span>}
+      {post.draft && <span className={`${chip} bg-down/10 text-down`}>Draft</span>}
+      {post.scheduledFor && <span className={`${chip} bg-brand-soft text-brand`}>Scheduled {formatKst(post.scheduledFor)}</span>}
     </>
   );
 }
@@ -38,7 +38,7 @@ export function PostCard({ post }: { post: Post }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          {post.pinned && <Pin className="size-3.5 text-brand" aria-label="고정" />}
+          {post.pinned && <Pin className="size-3.5 text-brand" aria-label="Pinned" />}
           <Link href={`/community?cat=${post.category}`} className="font-semibold text-foreground hover:text-brand">
             {boardLabel(post.category)}
           </Link>
@@ -69,7 +69,7 @@ export function PostCard({ post }: { post: Post }) {
             ))}
             {post.hasChart && (
               <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                <ImageIcon className="size-3.5" /> 차트 이미지
+                <ImageIcon className="size-3.5" /> Chart image
               </span>
             )}
           </div>
@@ -98,13 +98,13 @@ export function PostCard({ post }: { post: Post }) {
 /** 인사이트 카드: 읽는 시간과 근거 표시(차트·이미지, 종목 태그)를 함께 보여줍니다. */
 export function InsightCard({ post, featured = false }: { post: Post; featured?: boolean }) {
   const mins = readingMinutes(post.rawBody ?? post.body.join(" "));
-  const chips = [post.hasChart && "차트·이미지 포함", post.tickers.length > 0 && "종목 태그", post.sponsored && "협찬·이해관계"].filter(Boolean) as string[];
+  const chips = [post.hasChart && "Includes chart/image", post.tickers.length > 0 && "Ticker tags", post.sponsored && "Sponsored"].filter(Boolean) as string[];
   return (
     <article className={`flex flex-col gap-2.5 rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:border-brand/40 sm:p-5 ${featured ? "sm:p-6" : ""}`}>
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span className="rounded-full bg-muted px-2 py-0.5 font-semibold text-foreground">{postTypeLabel(post.type)}</span>
         <span>{boardLabel(post.category)}</span>
-        <span>· 읽는 시간 {mins}분</span>
+        <span>· {mins} min read</span>
       </div>
       {post.thumbnail && (
         <Link href={`/community/${post.id}`} tabIndex={-1} aria-hidden className="block overflow-hidden rounded-xl border">
@@ -128,7 +128,7 @@ export function InsightCard({ post, featured = false }: { post: Post; featured?:
         </Link>
         <span className="ml-auto inline-flex items-center gap-1"><MessageSquare className="size-3.5" />{post.comments}</span>
         <span className="inline-flex items-center gap-1"><Eye className="size-3.5" /><LiveViews postId={post.id} initial={post.views} live={post.live} /></span>
-        <span>좋아요 {post.upvotes}</span>
+        <span>Likes {post.upvotes}</span>
       </div>
     </article>
   );

@@ -1,131 +1,170 @@
 import type { Metadata } from "next";
 import { Clause, LegalPage, OPERATOR } from "@/components/common/legal";
+import { BLOCKED_COUNTRIES, COUNTRIES } from "@/lib/contest";
 
 export const metadata: Metadata = {
-  title: "이용약관",
-  description: "핀톡 서비스 이용약관",
+  title: "Terms of Service",
+  description: "FinTalk Terms of Service",
   alternates: { canonical: "/terms" },
 };
 
+const restricted = BLOCKED_COUNTRIES.map((c) => COUNTRIES.find((x) => x.code === c)?.name ?? c).join(", ");
+
+// LEGAL REVIEW REQUIRED: this is a draft. Have it reviewed by qualified counsel before publishing the contest.
 export default function TermsPage() {
   return (
-    <LegalPage title="이용약관">
-      <Clause title="제1조 (목적)">
+    <LegalPage title="Terms of Service">
+      <Clause title="1. Purpose">
         <p>
-          이 약관은 {OPERATOR.name}(이하 “운영자”)이 제공하는 투자 커뮤니티 서비스 {OPERATOR.service}(이하 “서비스”)의 이용과 관련하여
-          운영자와 이용자 간의 권리, 의무 및 책임사항을 정함을 목적으로 합니다.
+          These Terms govern your use of {OPERATOR.service} (the “Service”), an investing community and paper trading platform operated by{" "}
+          {OPERATOR.name} (the “Operator”). By using the Service you agree to these Terms.
         </p>
       </Clause>
 
-      <Clause title="제2조 (정의)">
+      <Clause title="2. Definitions">
         <ul>
-          <li>“이용자”란 이 약관에 따라 서비스를 이용하는 회원 및 비회원을 말합니다.</li>
-          <li>“회원”이란 이메일 등으로 가입하여 계정을 부여받은 이용자를 말합니다.</li>
-          <li>“게시물”이란 이용자가 서비스에 올린 글, 댓글, 이미지, 종목 태그 등 일체의 콘텐츠를 말합니다.</li>
-          <li>“기여도”란 서비스 내 활동(글, 답변, 채택, 추천 등)을 점수로 환산해 표시하는 활동 지표를 말합니다.</li>
+          <li>“User” means anyone who uses the Service, whether or not registered.</li>
+          <li>“Member” means a User who has created an account, for example with an email address.</li>
+          <li>“Content” means posts, comments, images, ticker tags and any other material a User submits.</li>
+          <li>“Contribution” means an activity score shown in the Service (posts, answers, accepted answers, upvotes and so on).</li>
+          <li>“Contest” means a free paper trading competition run on the Service.</li>
         </ul>
       </Clause>
 
-      <Clause title="제3조 (약관의 효력과 변경)">
+      <Clause title="3. Changes to these Terms">
         <p>
-          운영자는 약관을 서비스 화면에 게시하며, 관련 법령을 위반하지 않는 범위에서 약관을 변경할 수 있습니다. 변경 시 시행일 7일 전(이용자에게
-          불리한 변경은 30일 전)부터 서비스 내에 공지합니다. 변경 후에도 서비스를 계속 이용하면 변경 약관에 동의한 것으로 봅니다.
+          The Operator may update these Terms within the limits of applicable law. Changes are announced in the Service at least 7 days before they take
+          effect (30 days for changes that are unfavorable to Users). Continued use after the effective date means you accept the updated Terms.
         </p>
       </Clause>
 
-      <Clause title="제4조 (회원가입과 계정)">
+      <Clause title="4. Accounts">
         <ul>
-          <li>회원가입은 이용자가 약관에 동의하고 운영자가 정한 절차에 따라 가입을 신청하면 성립합니다.</li>
-          <li>회원은 정확한 정보를 제공해야 하며, 계정과 비밀번호를 스스로 안전하게 관리해야 합니다.</li>
-          <li>타인의 정보를 도용하거나 허위 정보로 가입한 경우 운영자는 가입을 거절하거나 계정을 제한할 수 있습니다.</li>
-          <li>회원은 언제든지 마이페이지에서 탈퇴할 수 있으며, 탈퇴 시 계정과 작성한 게시물이 삭제되고 복구할 수 없습니다.</li>
+          <li>You must provide accurate information and keep your password secure. You are responsible for activity on your account.</li>
+          <li>You must be at least 18 years old to create an account.</li>
+          <li>The Operator may refuse registration or restrict an account that uses another person&apos;s information or false information.</li>
+          <li>You may delete your account at any time from My page. Deleting your account permanently removes your posts and comments.</li>
         </ul>
       </Clause>
 
-      <Clause title="제5조 (서비스의 제공과 변경)">
+      <Clause title="5. The Service">
         <p>
-          운영자는 투자 정보 공유를 위한 게시판, 질문·답변, 인사이트, 크리에이터 팔로우, 알림, 기여도 기록 등의 기능을 제공합니다. 운영상·기술상
-          필요에 따라 서비스의 전부 또는 일부를 변경하거나 중단할 수 있으며, 중요한 변경은 사전에 공지합니다. 천재지변, 시스템 장애 등 불가피한
-          경우에는 사후에 공지할 수 있습니다.
+          The Service includes discussion boards, questions and answers, insights, creator following, notifications, contribution records and paper trading.
+          The Operator may change or suspend all or part of the Service when operationally or technically necessary and will announce important changes in advance
+          where possible.
         </p>
       </Clause>
 
-      <Clause title="제6조 (투자 정보에 대한 유의사항)">
+      <Clause title="6. Not financial advice; paper trading only">
         <ul>
-          <li>서비스의 게시물은 이용자 개인의 의견이며, 운영자는 그 정확성·완전성·적시성을 보증하지 않습니다.</li>
-          <li>서비스의 어떠한 내용도 투자 권유 또는 투자자문이 아니며, 투자 판단과 그에 따른 손익의 책임은 전적으로 이용자 본인에게 있습니다.</li>
-          <li>운영자는 이용자 간 또는 이용자와 제3자 간의 투자 거래에 개입하지 않으며 그로 인한 손해에 책임을 지지 않습니다.</li>
+          <li>Content in the Service consists of the personal opinions of Users. The Operator does not guarantee its accuracy, completeness or timeliness.</li>
+          <li>Nothing in the Service is investment advice, a recommendation or a solicitation. You alone are responsible for your investment decisions and their results.</li>
+          <li>Paper trading uses virtual funds only. Results are simulated, do not represent real trading, and may differ greatly from real market execution.</li>
+          <li>The Operator is not a party to any transaction between Users or between a User and a third party.</li>
         </ul>
       </Clause>
 
-      <Clause title="제7조 (게시물의 권리와 책임)">
+      <Clause title="7. Content and licence">
         <ul>
-          <li>게시물의 저작권은 작성한 이용자에게 있으며, 게시물에 대한 책임도 작성자에게 있습니다.</li>
+          <li>You keep ownership of your Content and are responsible for it.</li>
           <li>
-            이용자는 운영자가 서비스 운영·홍보·개선을 위해 게시물을 서비스 내에서 노출, 복제, 편집(검색 결과, 요약, 미리보기 등)할 수 있도록
-            무상의 비독점적 이용을 허락합니다. 이 허락은 게시물이 삭제되거나 탈퇴하면 종료됩니다. 다만 이미 다른 이용자가 공유·인용한 부분은 제외됩니다.
+            You grant the Operator a free, non-exclusive licence to display, reproduce and format your Content within the Service (for example in search results,
+            summaries and previews). The licence ends when you delete the Content or your account, except for portions already shared or quoted by other Users.
           </li>
-          <li>협찬·광고·이해관계가 있는 게시물은 작성자가 이를 명확히 표시해야 합니다.</li>
+          <li>You must clearly disclose sponsorship, paid promotion and any conflict of interest in your Content.</li>
         </ul>
       </Clause>
 
-      <Clause title="제8조 (이용자의 금지행위)">
-        <p>이용자는 다음 행위를 해서는 안 됩니다.</p>
+      <Clause title="8. Prohibited conduct">
+        <p>You must not:</p>
         <ul>
-          <li>허위·과장 정보를 유포하거나 특정 종목의 가격을 조작할 목적의 글(시세조종, 작전, 리딩방 유도 등)을 게시하는 행위</li>
-          <li>투자 일임·자문·대행을 가장하거나 수익을 보장한다는 표현으로 금전을 요구하는 행위</li>
-          <li>타인의 개인정보를 무단 수집·게시하거나 명예를 훼손하고 욕설·혐오 표현으로 괴롭히는 행위</li>
-          <li>타인의 저작권 등 권리를 침해하는 게시물을 올리는 행위</li>
-          <li>광고·스팸을 반복 게시하거나 추천·조회수·기여도를 조작하기 위해 계정을 여러 개 사용하거나 자동화 수단을 쓰는 행위</li>
-          <li>서비스의 정상적인 운영을 방해하거나 보안을 우회하려는 행위, 그 밖에 관련 법령에 위반되는 행위</li>
+          <li>spread false or exaggerated information, or post to manipulate the price of an asset (pump-and-dump, paid signal-group recruiting and similar);</li>
+          <li>pose as an investment manager or advisor, or promise profits in exchange for money;</li>
+          <li>collect or publish other people&apos;s personal data, harass others, or post hateful or defamatory material;</li>
+          <li>post Content that infringes the rights of others;</li>
+          <li>post spam or advertising repeatedly, or use multiple accounts or automation to manipulate votes, views, Contribution or Contest rankings;</li>
+          <li>disrupt the Service, bypass its security or geographic restrictions, or break applicable law.</li>
         </ul>
       </Clause>
 
-      <Clause title="제9조 (게시물 관리와 이용 제한)">
+      <Clause title="9. Moderation">
         <p>
-          운영자는 신고가 접수되었거나 제8조를 위반한 것으로 판단되는 게시물을 숨기거나 삭제할 수 있고, 위반 정도에 따라 해당 이용자의 이용을
-          제한하거나 계정을 정지할 수 있습니다. 이용 제한 시 가능한 범위에서 사유를 안내하며, 이용자는 아래 문의처로 이의를 제기할 수 있습니다.
+          The Operator may hide or delete Content that is reported or that appears to violate these Terms, and may restrict or suspend accounts depending on the severity.
+          Where possible we will explain the reason, and you may object using the contact details below.
         </p>
       </Clause>
 
-      <Clause title="제10조 (기여도와 리워드)">
+      <Clause title="10. Contribution and rewards">
         <p>
-          기여도는 서비스 내 활동을 표시하기 위한 지표이며, 현재 현금 또는 현금성 보상과 연결되어 있지 않습니다. 향후 보상 제도를 도입하는 경우
-          기준과 조건을 사전에 공지합니다. 기여도 산정 방식은 부정 이용 방지와 서비스 개선을 위해 변경될 수 있습니다.
+          Contribution is an activity indicator. It is not currently linked to cash or cash-equivalent rewards. If a rewards program is introduced, its rules will be announced in advance.
+          The way Contribution is calculated may change to prevent abuse and improve the Service.
         </p>
       </Clause>
 
-      <Clause title="제11조 (광고)">
-        <p>
-          운영자는 서비스 화면에 광고를 게재할 수 있습니다. 광고 클릭은 기여도 산정에 반영되지 않으며, 광고 내용과 그에 따른 거래에 대해
-          운영자는 보증 책임을 지지 않습니다.
-        </p>
-      </Clause>
-
-      <Clause title="제12조 (면책)">
+      <Clause title="11. Trading Contests">
         <ul>
-          <li>운영자는 천재지변, 통신·서버 장애 등 운영자의 합리적 통제를 벗어난 사유로 인한 서비스 중단에 책임을 지지 않습니다.</li>
-          <li>운영자는 이용자 상호 간 또는 이용자와 제3자 사이에 게시물을 매개로 발생한 분쟁에 개입하지 않으며 그에 대한 책임이 없습니다.</li>
-          <li>운영자의 고의 또는 중대한 과실로 인한 손해에 대해서는 관련 법령에 따라 책임을 부담합니다.</li>
+          <li>
+            <b>Free to enter.</b> No purchase or payment is necessary to enter or win a Contest. Contests use virtual funds only; no real money is traded.
+          </li>
+          <li>
+            <b>Eligibility.</b> You must be at least 18 years old and must not be a resident of a restricted country. Restricted countries currently include: {restricted}, and
+            any other country or region where the services of our exchange partner (OKX) are not available. We may block access by IP address and may reject entries based on your declared country of residence.
+          </li>
+          <li>
+            <b>Residents of South Korea are not eligible</b> to enter any Contest or receive any prize.
+          </li>
+          <li>
+            <b>OKX UID verification.</b> To enter, you must register an account on OKX using the Operator&apos;s referral link and submit your OKX UID. One account per person and one
+            OKX UID per account. The Operator may verify your UID manually or through OKX tools and may reject or disqualify entries it cannot verify.
+          </li>
+          <li>
+            <b>Affiliate disclosure.</b> The Operator may receive a commission from OKX when you register through its referral link. This does not cost you anything.
+            The Operator is not affiliated with, endorsed by or sponsored by OKX, and OKX is not a sponsor of or responsible for any Contest.
+          </li>
+          <li>
+            <b>Rules and prizes.</b> Contest period, scoring, prize amounts and payout conditions are published in the Contest rules before it starts. Prizes may be subject to identity
+            checks, a minimum number of trades, risk limits and administrator review. Winners are responsible for any taxes that apply to them.
+          </li>
+          <li>
+            <b>Fair play.</b> Multiple accounts, collusion, exploiting bugs, price-feed manipulation, or any use of VPNs or other means to hide your location may result in
+            disqualification and forfeiture of prizes. The Operator&apos;s decisions on rankings and disqualification are final.
+          </li>
+          <li>The Operator may modify, suspend or cancel a Contest at any time, including for legal or regulatory reasons.</li>
         </ul>
       </Clause>
 
-      <Clause title="제13조 (준거법과 관할)">
+      <Clause title="12. Advertising and third-party links">
         <p>
-          이 약관은 대한민국 법령에 따라 해석되며, 서비스 이용과 관련한 분쟁은 민사소송법상의 관할 법원에서 해결합니다.
+          The Service may show advertising or links to third-party websites, including referral links. The Operator does not endorse or guarantee third-party products or services, and
+          ad clicks are not counted toward Contribution.
         </p>
       </Clause>
 
-      <Clause title="운영자 정보 및 문의">
+      <Clause title="13. Disclaimer and limitation of liability">
         <ul>
-          <li>상호: {OPERATOR.name} / 대표: {OPERATOR.ceo}</li>
-          <li>사업자등록번호: {OPERATOR.regNo}</li>
-          <li>주소: {OPERATOR.address}</li>
-          <li>이메일: {OPERATOR.email}</li>
+          <li>The Service is provided “as is”. The Operator is not liable for interruptions caused by events beyond its reasonable control, such as outages of networks, servers or data providers.</li>
+          <li>The Operator is not liable for disputes between Users or between a User and a third party arising from Content.</li>
+          <li>Nothing in these Terms limits liability that cannot be limited under applicable law, including liability for willful misconduct or gross negligence.</li>
         </ul>
       </Clause>
 
-      <p className="text-xs text-muted-foreground">부칙: 이 약관은 {OPERATOR.effective}부터 시행합니다.</p>
+      <Clause title="14. Governing law">
+        <p>
+          These Terms are governed by the laws of the Republic of Korea, without prejudice to any mandatory consumer protection rules of your country of residence. Disputes will
+          be resolved by the competent courts under applicable law. {/* LEGAL REVIEW REQUIRED: confirm governing law and venue for international Users. */}
+        </p>
+      </Clause>
+
+      <Clause title="Operator and contact">
+        <ul>
+          <li>Company: {OPERATOR.name} / Representative: {OPERATOR.ceo}</li>
+          <li>Business registration no.: {OPERATOR.regNo}</li>
+          <li>Address: {OPERATOR.address}</li>
+          <li>Email: {OPERATOR.email}</li>
+        </ul>
+      </Clause>
+
+      <p className="text-xs text-muted-foreground">These Terms take effect on {OPERATOR.effective}.</p>
     </LegalPage>
   );
 }

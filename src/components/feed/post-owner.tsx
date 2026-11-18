@@ -15,20 +15,20 @@ export function PostOwnerActions({ id }: { id: string }) {
   return (
     <div className="mt-2 flex gap-3 text-xs">
       <Link href={`/community/${id}/edit`} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
-        <Pencil className="size-3.5" /> 수정
+        <Pencil className="size-3.5" /> Edit
       </Link>
       <button
         className="inline-flex items-center gap-1 text-muted-foreground hover:text-down"
         onClick={async () => {
-          if (!confirm("게시글을 삭제할까요? 되돌릴 수 없습니다.")) return;
+          if (!confirm("Delete this post? This cannot be undone.")) return;
           if (guard(await deletePostAction(id))) {
-            show("삭제했습니다.");
+            show("Deleted.");
             router.push("/community");
             router.refresh();
           }
         }}
       >
-        <Trash2 className="size-3.5" /> 삭제
+        <Trash2 className="size-3.5" /> Delete
       </button>
     </div>
   );

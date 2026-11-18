@@ -27,12 +27,12 @@ function GoogleIcon() {
 }
 
 type Mode = "login" | "signup" | "reset" | "newpw";
-const titles: Record<Mode, string> = { login: "로그인", signup: "회원가입", reset: "비밀번호 재설정", newpw: "새 비밀번호 설정" };
+const titles: Record<Mode, string> = { login: "Log in", signup: "Sign up", reset: "Reset password", newpw: "Set new password" };
 const actions = { login: signInAction, signup: signUpAction, reset: resetRequestAction, newpw: updatePasswordAction };
 const urlErrors: Record<string, string> = {
-  config: "서버에 Supabase 환경변수가 설정되지 않았습니다.",
-  oauth: "Google 로그인을 시작하지 못했습니다. 설정을 확인해 주세요.",
-  callback: "인증 링크가 만료되었거나 올바르지 않습니다. 다시 시도해 주세요.",
+  config: "Supabase environment variables are not set on the server.",
+  oauth: "Could not start Google sign-in. Please check the configuration.",
+  callback: "The verification link has expired or is invalid. Please try again.",
 };
 
 export function AuthForm({
@@ -53,14 +53,14 @@ export function AuthForm({
     <div className="mx-auto max-w-sm">
       <div className="mb-6 flex flex-col items-center gap-2 text-center">
         <Logo />
-        <p className="text-sm text-muted-foreground">시장을 읽고, 생각을 나누다.</p>
+        <p className="text-sm text-muted-foreground">Read the market. Share your ideas.</p>
       </div>
       <div className="rounded-xl border bg-card p-5 shadow-xs">
         <h1 className="mb-4 text-lg font-bold">{titles[mode]}</h1>
 
         {!configured && (
           <p className="mb-3 rounded-lg border border-amber-300/70 bg-amber-50 p-2.5 text-xs text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
-            Supabase 환경변수가 설정되지 않아 로그인이 비활성화되어 있습니다. <code>.env.local</code> 을 설정해 주세요.
+            Login is disabled because Supabase environment variables are not set. Configure <code>.env.local</code>.
           </p>
         )}
         {error && <p role="alert" className="mb-3 rounded-lg bg-down/10 p-2.5 text-sm text-down">{error}</p>}
@@ -70,28 +70,28 @@ export function AuthForm({
           <input type="hidden" name="next" value={next} />
           {mode === "signup" && (
             <div>
-              <label className="mb-1 block text-sm font-medium" htmlFor="nick">닉네임</label>
-              <input id="nick" name="nickname" required className={field} placeholder="한글/영문/숫자 2~14자" minLength={2} maxLength={14} />
+              <label className="mb-1 block text-sm font-medium" htmlFor="nick">Nickname</label>
+              <input id="nick" name="nickname" required className={field} placeholder="2-14 letters or numbers" minLength={2} maxLength={14} />
             </div>
           )}
           {mode !== "newpw" && (
             <div>
-              <label className="mb-1 block text-sm font-medium" htmlFor="email">이메일</label>
+              <label className="mb-1 block text-sm font-medium" htmlFor="email">Email</label>
               <input id="email" name="email" type="email" required autoComplete="email" className={field} placeholder="you@example.com" />
             </div>
           )}
           {mode !== "reset" && (
             <div>
-              <label className="mb-1 block text-sm font-medium" htmlFor="pw">{mode === "newpw" ? "새 비밀번호" : "비밀번호"}</label>
-              <input id="pw" name="password" type="password" required minLength={mode === "login" ? undefined : 8} autoComplete={mode === "login" ? "current-password" : "new-password"} className={field} placeholder="8자 이상" />
+              <label className="mb-1 block text-sm font-medium" htmlFor="pw">{mode === "newpw" ? "New password" : "Password"}</label>
+              <input id="pw" name="password" type="password" required minLength={mode === "login" ? undefined : 8} autoComplete={mode === "login" ? "current-password" : "new-password"} className={field} placeholder="At least 8 characters" />
             </div>
           )}
           {mode === "signup" && (
             <label className="flex items-start gap-2 text-xs text-muted-foreground">
               <input type="checkbox" name="agree" required className="mt-0.5" />
               <span>
-                <Link href="/terms" target="_blank" className="text-brand underline">이용약관</Link> 및{" "}
-                <Link href="/privacy" target="_blank" className="text-brand underline">개인정보처리방침</Link>에 동의합니다. (투자 권유가 아닌 정보 공유 커뮤니티임을 이해합니다)
+                <Link href="/terms" target="_blank" className="text-brand underline">Terms of Service</Link> and{" "}
+                <Link href="/privacy" target="_blank" className="text-brand underline">Privacy Policy</Link>. I understand FinTalk is an information-sharing community, not investment advice.
               </span>
             </label>
           )}
@@ -100,14 +100,14 @@ export function AuthForm({
             disabled={pending || !configured}
             className="w-full rounded-lg bg-brand py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {pending ? "처리 중…" : mode === "reset" ? "재설정 메일 보내기" : titles[mode]}
+            {pending ? "Processing…" : mode === "reset" ? "Send reset email" : titles[mode]}
           </button>
         </form>
 
         {(mode === "login" || mode === "signup") && (
           <>
             <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="h-px flex-1 bg-border" /> 또는 <span className="h-px flex-1 bg-border" />
+              <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
             </div>
             <form action={googleAction}>
               <input type="hidden" name="next" value={next} />
@@ -116,7 +116,7 @@ export function AuthForm({
                 disabled={!configured}
                 className="flex w-full items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
               >
-                <GoogleIcon /> Google로 계속하기
+                <GoogleIcon /> Continue with Google
               </button>
             </form>
           </>
@@ -125,16 +125,16 @@ export function AuthForm({
         <div className="mt-4 flex justify-between text-xs text-muted-foreground">
           {mode === "login" ? (
             <>
-              <Link href="/signup" className="hover:text-brand">회원가입</Link>
-              <Link href="/forgot-password" className="hover:text-brand">비밀번호를 잊으셨나요?</Link>
+              <Link href="/signup" className="hover:text-brand">Sign up</Link>
+              <Link href="/forgot-password" className="hover:text-brand">Forgot your password?</Link>
             </>
           ) : (
-            <Link href="/login" className="hover:text-brand">이미 계정이 있으신가요? 로그인</Link>
+            <Link href="/login" className="hover:text-brand">Already have an account? Log in</Link>
           )}
         </div>
       </div>
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        로그인 없이도 <Link href="/community" className="text-brand">공개 게시글</Link>과 <Link href="/insights" className="text-brand">인사이트</Link>를 읽을 수 있습니다.
+        You can read <Link href="/community" className="text-brand">public posts</Link> and <Link href="/insights" className="text-brand">insights</Link> without logging in.
       </p>
     </div>
   );

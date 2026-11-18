@@ -37,7 +37,7 @@ function subscribe(id: string, cb: Listener) {
 export function LiveViews({ postId, initial, live = false }: { postId: string; initial: number; live?: boolean }) {
   const [rt, setRt] = useState(0);
   useEffect(() => (live ? subscribe(postId, setRt) : undefined), [postId, live]);
-  return <>{Math.max(rt, initial).toLocaleString("ko-KR")}</>;
+  return <>{Math.max(rt, initial).toLocaleString("en-US")}</>;
 }
 
 /** 글을 열 때 조회수를 1회 올립니다. (새로고침·자동 갱신으로 중복 집계되지 않도록 탭당 글마다 1회) */

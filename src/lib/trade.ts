@@ -1,12 +1,12 @@
 /** 모의투자 공용 상수·계산 (서버/클라이언트 공용). DB 함수(20261111_paper_trading.sql)와 값이 같아야 합니다. */
 
 export const SYMBOLS = [
-  { symbol: "BTCUSDT", label: "BTC", name: "비트코인" },
-  { symbol: "ETHUSDT", label: "ETH", name: "이더리움" },
-  { symbol: "SOLUSDT", label: "SOL", name: "솔라나" },
-  { symbol: "XRPUSDT", label: "XRP", name: "리플" },
-  { symbol: "BNBUSDT", label: "BNB", name: "바이낸스코인" },
-  { symbol: "DOGEUSDT", label: "DOGE", name: "도지코인" },
+  { symbol: "BTCUSDT", label: "BTC", name: "Bitcoin" },
+  { symbol: "ETHUSDT", label: "ETH", name: "Ethereum" },
+  { symbol: "SOLUSDT", label: "SOL", name: "Solana" },
+  { symbol: "XRPUSDT", label: "XRP", name: "XRP" },
+  { symbol: "BNBUSDT", label: "BNB", name: "BNB" },
+  { symbol: "DOGEUSDT", label: "DOGE", name: "Dogecoin" },
 ] as const;
 
 export type TradeSymbol = string;
@@ -26,7 +26,7 @@ export type Side = "long" | "short";
 
 /** 마진 모드: 격리(포지션별 증거금만 위험) / 교차(잔고 전체가 담보) */
 export type MarginMode = "isolated" | "cross";
-export const MARGIN_MODE_LABEL: Record<MarginMode, string> = { isolated: "격리", cross: "교차" };
+export const MARGIN_MODE_LABEL: Record<MarginMode, string> = { isolated: "Isolated", cross: "Cross" };
 
 export type Position = {
   id: string;
@@ -86,11 +86,11 @@ export const unrealizedPnl = (p: Pick<Position, "side" | "qty" | "entry_price">,
   (mark - p.entry_price) * p.qty * (p.side === "long" ? 1 : -1);
 
 export const REASON_LABEL: Record<ClosedTrade["reason"], string> = {
-  manual: "직접 청산",
-  tp: "익절",
-  sl: "손절",
-  liquidation: "강제청산",
-  limit: "지정가 청산",
+  manual: "Manual close",
+  tp: "Take profit",
+  sl: "Stop loss",
+  liquidation: "Liquidation",
+  limit: "Limit close",
 };
 
 /** 가격 자릿수: 큰 값은 소수 2자리, 작은 값(밈코인 등)은 유효숫자가 보이도록 더 길게 */

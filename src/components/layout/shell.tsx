@@ -26,10 +26,10 @@ export function SideCards({ trending = true }: { trending?: boolean }) {
 
 function RightSidebar() {
   return (
-    <aside className="hidden space-y-4 xl:block" aria-label="사이드 정보">
+    <aside className="hidden space-y-4 xl:block" aria-label="Side information">
       <SideCards />
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-        핀톡의 게시글은 이용자의 개인 의견이며 투자 권유가 아닙니다. 투자 판단과 책임은 본인에게 있습니다.
+        Posts on FinTalk are personal opinions of users and are not investment advice. You are solely responsible for your own investment decisions.
       </p>
     </aside>
   );
@@ -41,7 +41,7 @@ export function MainShell({ children }: { children: React.ReactNode }) {
     <>
       <Header />
       <div className="mx-auto grid w-full max-w-[1320px] flex-1 gap-5 px-3 py-4 pb-24 sm:px-4 lg:grid-cols-[210px_minmax(0,1fr)] lg:pb-8 xl:grid-cols-[210px_minmax(0,1fr)_320px]">
-        <aside className="hidden lg:block" aria-label="카테고리">
+        <aside className="hidden lg:block" aria-label="Categories">
           <div className="sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto pr-1">
             <Suspense fallback={null}>
               <SidebarNav showMain={false} />

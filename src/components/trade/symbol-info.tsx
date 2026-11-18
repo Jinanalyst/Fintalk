@@ -115,9 +115,9 @@ export function SymbolInfo({ symbol, mark }: { symbol: string; mark?: number }) 
           )}
         </div>
       </div>
-      <Cell label="마크">{i.mark ? fmtPrice(i.mark) : dash}</Cell>
-      <Cell label="지수">{i.index ? fmtPrice(i.index) : dash}</Cell>
-      <Cell label="펀딩비 / 카운트다운">
+      <Cell label="Mark">{i.mark ? fmtPrice(i.mark) : dash}</Cell>
+      <Cell label="Index">{i.index ? fmtPrice(i.index) : dash}</Cell>
+      <Cell label="Funding / Countdown">
         {i.funding !== undefined ? (
           <>
             <span className={i.funding >= 0 ? "text-up" : "text-down"}>{(i.funding * 100).toFixed(5)}%</span>
@@ -128,11 +128,11 @@ export function SymbolInfo({ symbol, mark }: { symbol: string; mark?: number }) 
           dash
         )}
       </Cell>
-      <Cell label="고가(24h)">{i.high ? fmtPrice(i.high) : dash}</Cell>
-      <Cell label="저가(24h)">{i.low ? fmtPrice(i.low) : dash}</Cell>
-      <Cell label={`거래량(${base})`}>{i.volBase !== undefined ? compact(i.volBase) : dash}</Cell>
-      <Cell label="거래대금(USDT)">{i.volQuote !== undefined ? compact(i.volQuote) : dash}</Cell>
-      <Cell label="미결제약정">{oiUsdt !== undefined ? compact(oiUsdt) : dash}</Cell>
+      <Cell label="24h high">{i.high ? fmtPrice(i.high) : dash}</Cell>
+      <Cell label="24h low">{i.low ? fmtPrice(i.low) : dash}</Cell>
+      <Cell label={`Volume (${base})`}>{i.volBase !== undefined ? compact(i.volBase) : dash}</Cell>
+      <Cell label="Turnover (USDT)">{i.volQuote !== undefined ? compact(i.volQuote) : dash}</Cell>
+      <Cell label="Open interest">{oiUsdt !== undefined ? compact(oiUsdt) : dash}</Cell>
     </div>
   );
 }

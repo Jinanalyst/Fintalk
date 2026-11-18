@@ -36,7 +36,7 @@ export function AdminButton({
           const r = await adminAction(kind, id, value);
           if (!r.ok) show(r.error);
           else {
-            show("처리했습니다.");
+            show("Done.");
             router.refresh();
           }
         });

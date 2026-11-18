@@ -3,14 +3,14 @@ import { FlaskConical, TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** 샘플 데이터임을 명확히 표시 */
-export function SampleBadge({ className, label = "샘플 데이터" }: { className?: string; label?: string }) {
+export function SampleBadge({ className, label = "Sample data" }: { className?: string; label?: string }) {
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300",
         className,
       )}
-      title="Phase 1 디자인 검증용 가짜 데이터입니다. 실제 정보가 아닙니다."
+      title="Placeholder data for design preview. Not real information."
     >
       <FlaskConical className="size-3" />
       {label}
@@ -33,7 +33,7 @@ export function Change({ pct, className, icon = false }: { pct: number; classNam
 export function SectionHeader({
   title,
   href,
-  hrefLabel = "더보기",
+  hrefLabel = "More",
   right,
   className,
 }: {

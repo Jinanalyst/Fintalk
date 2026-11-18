@@ -38,12 +38,12 @@ export function CommentForm({
       className="rounded-xl border bg-card p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!live || !postId) return comingSoon("샘플 게시글 댓글");
+        if (!live || !postId) return comingSoon("Comments on sample posts");
         start(async () => {
           const r = await addCommentAction(postId, parentId, text);
           if (guard(r)) {
             setText("");
-            show(answer && !parentId ? "답변을 등록했습니다." : "댓글을 등록했습니다.");
+            show(answer && !parentId ? "Answer posted." : "Comment posted.");
             onDone?.();
             router.refresh();
           }
@@ -55,7 +55,7 @@ export function CommentForm({
         onChange={(e) => setText(e.target.value)}
         rows={parentId ? 2 : 3}
         maxLength={1000}
-        placeholder={placeholder ?? (answer ? "내 경험과 근거를 바탕으로 질문자에게 도움이 될 답변을 작성해 주세요. (로그인 필요)" : "서로 존중하는 토론 문화를 만들어 주세요. (로그인 필요)")}
+        placeholder={placeholder ?? (answer ? "Write an answer based on your experience and evidence. (Login required)" : "Please keep the discussion respectful. (Login required)")}
         className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
       />
       <div className="flex items-center justify-between border-t pt-2">
@@ -65,7 +65,7 @@ export function CommentForm({
           disabled={pending || !text.trim()}
           className="rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
-          {parentId ? "답글 등록" : answer ? "답변 등록" : "댓글 등록"}
+          {parentId ? "Post reply" : answer ? "Post answer" : "Post comment"}
         </button>
       </div>
     </form>
@@ -88,7 +88,7 @@ function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Com
           </Link>
           <span>· {c.createdAt}</span>
           {c.accepted && (
-            <span className="inline-flex items-center gap-1 rounded bg-up/10 px-1.5 py-0.5 text-[11px] font-semibold text-up"><CheckCircle2 className="size-3" />채택된 답변</span>
+            <span className="inline-flex items-center gap-1 rounded bg-up/10 px-1.5 py-0.5 text-[11px] font-semibold text-up"><CheckCircle2 className="size-3" />Accepted answer</span>
           )}
         </div>
         <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed">{c.body}</p>
@@ -97,9 +97,9 @@ function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Com
           {depth === 0 && (
             <button
               className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
-              onClick={() => (live ? setReplying(!replying) : comingSoon("샘플 게시글 답글"))}
+              onClick={() => (live ? setReplying(!replying) : comingSoon("Replies on sample posts"))}
             >
-              <CornerDownRight className="size-3.5" /> 답글
+              <CornerDownRight className="size-3.5" /> Reply
             </button>
           )}
           {live && canAccept && !c.mine && (
@@ -107,12 +107,12 @@ function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Com
               className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted hover:text-up"
               onClick={async () => {
                 if (guard(await acceptAnswerAction(postId!, c.accepted ? null : c.id))) {
-                  show(c.accepted ? "채택을 취소했습니다." : "도움이 된 답변으로 채택했습니다.");
+                  show(c.accepted ? "Acceptance removed." : "Accepted as the helpful answer.");
                   router.refresh();
                 }
               }}
             >
-              <CheckCircle2 className="size-3.5" /> {c.accepted ? "채택 취소" : "답변 채택"}
+              <CheckCircle2 className="size-3.5" /> {c.accepted ? "Unaccept" : "Accept answer"}
             </button>
           )}
           {live ? (
@@ -122,20 +122,20 @@ function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Com
             <button
               className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted hover:text-down"
               onClick={async () => {
-                if (!confirm("댓글을 삭제할까요?")) return;
+                if (!confirm("Delete this comment?")) return;
                 if (guard(await deleteCommentAction(c.id, postId!))) {
-                  show("삭제했습니다.");
+                  show("Deleted.");
                   router.refresh();
                 }
               }}
             >
-              <Trash2 className="size-3.5" /> 삭제
+              <Trash2 className="size-3.5" /> Delete
             </button>
           )}
         </div>
         {replying && (
           <div className="mt-2">
-            <CommentForm postId={postId} parentId={c.id} live onDone={() => setReplying(false)} placeholder="답글을 입력하세요" />
+            <CommentForm postId={postId} parentId={c.id} live onDone={() => setReplying(false)} placeholder="Write a reply" />
           </div>
         )}
       </div>
@@ -152,7 +152,7 @@ function CommentItem({ c, postId, live, depth = 0, canAccept = false }: { c: Com
 
 export function CommentList({ comments, postId, live = false, canAccept = false, answer = false }: { comments: Comment[]; postId?: string; live?: boolean; canAccept?: boolean; answer?: boolean }) {
   if (comments.length === 0)
-    return <p className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">{answer ? "아직 답변이 없어요. 아는 만큼 먼저 답해 주세요." : "첫 댓글을 남겨보세요."}</p>;
+    return <p className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">{answer ? "No answers yet. Share what you know." : "Be the first to comment."}</p>;
   // 채택된 답변을 맨 위로
   const ordered = [...comments].sort((a, b) => Number(!!b.accepted) - Number(!!a.accepted));
   return (

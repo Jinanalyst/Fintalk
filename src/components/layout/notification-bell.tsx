@@ -31,7 +31,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     // 처음 불러올 때를 제외하고 새로 도착한 안 읽은 알림이 있으면 토스트로 알림
     if (seen.current) {
       const fresh = list.find((n) => !n.read && !seen.current!.has(n.id));
-      if (fresh) show(`${fresh.actor_name}님이 ${fresh.type === "reply" ? "내 댓글에 답글을" : "내 글에 댓글을"} 남겼습니다.`);
+      if (fresh) show(`${fresh.actor_name} ${fresh.type === "reply" ? "replied to your comment" : "commented on your post"}.`);
     }
     seen.current = new Set(list.map((n) => n.id));
     setItems(list);
@@ -73,7 +73,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     <div ref={box} className="relative">
       <button
         type="button"
-        aria-label={unread ? `알림 ${unread}개` : "알림"}
+        aria-label={unread ? `${unread} notifications` : "Notifications"}
         aria-expanded={open}
         onClick={() => {
           setOpen((v) => !v);
@@ -91,15 +91,15 @@ export function NotificationBell({ userId }: { userId: string }) {
       {open && (
         <div className="fixed inset-x-2 top-14 z-50 overflow-hidden rounded-xl border bg-card shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-80">
           <div className="flex items-center justify-between border-b px-3 py-2">
-            <h2 className="text-sm font-bold">알림</h2>
+            <h2 className="text-sm font-bold">Notifications</h2>
             {unread > 0 && (
               <button className="text-xs text-brand hover:underline" onClick={() => markRead(items.filter((n) => !n.read).map((n) => n.id))}>
-                모두 읽음
+                Mark all read
               </button>
             )}
           </div>
           {items.length === 0 ? (
-            <p className="p-6 text-center text-sm text-muted-foreground">새 알림이 없습니다.</p>
+            <p className="p-6 text-center text-sm text-muted-foreground">No new notifications.</p>
           ) : (
             <ul className="max-h-96 divide-y overflow-y-auto">
               {items.map((n) => (
@@ -113,7 +113,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                     }}
                   >
                     <p className="text-sm">
-                      <b>{n.actor_name || "누군가"}</b>님이 {n.type === "reply" ? "내 댓글에 답글을" : "내 글에 댓글을"} 남겼습니다.
+                      <b>{n.actor_name || "Someone"}</b> {n.type === "reply" ? "replied to your comment" : "commented on your post"}.
                     </p>
                     {n.snippet && <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">“{n.snippet}”</p>}
                     <p className="mt-0.5 text-[11px] text-muted-foreground">{timeAgo(n.created_at)}</p>

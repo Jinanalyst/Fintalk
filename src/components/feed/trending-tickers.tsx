@@ -48,20 +48,20 @@ export function TrendingTickers({ initial, live, variant, limit = 6 }: { initial
 
   const top = Math.max(1, ...items.map((i) => i.score));
   const dot = live && (
-    <span className="relative flex size-2" title="실시간 집계">
+    <span className="relative flex size-2" title="Live count">
       <span className="absolute inline-flex size-full animate-ping rounded-full bg-up/60" />
       <span className="relative inline-flex size-2 rounded-full bg-up" />
     </span>
   );
-  const stat = (t: TrendingTicker) => (t.posts > 0 ? `글 ${t.posts} · 댓글 ${t.comments}` : "첫 토론을 열어 보세요");
+  const stat = (t: TrendingTicker) => (t.posts > 0 ? `Posts ${t.posts} · Comments ${t.comments}` : "Start the first discussion");
 
   if (variant === "strip") {
     return (
-      <section aria-label="인기 종목 토론">
+      <section aria-label="Trending ticker discussions">
         <div className="mb-2 flex items-center gap-2">
-          <h2 className="inline-flex items-center gap-1.5 text-sm font-bold"><Flame className="size-4 text-down" />인기 종목 토론</h2>
+          <h2 className="inline-flex items-center gap-1.5 text-sm font-bold"><Flame className="size-4 text-down" />Trending ticker discussions</h2>
           {dot}
-          <span className="text-[11px] text-muted-foreground">최근 7일 · 지금 활발한 순</span>
+          <span className="text-[11px] text-muted-foreground">Last 7 days · most active first</span>
         </div>
         <ol className="scrollbar-none -mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
           {items.map((t, i) => (
@@ -82,12 +82,12 @@ export function TrendingTickers({ initial, live, variant, limit = 6 }: { initial
   }
 
   return (
-    <section className="rounded-2xl border bg-card p-4 shadow-xs" aria-label="인기 종목 토론">
+    <section className="rounded-2xl border bg-card p-4 shadow-xs" aria-label="Trending ticker discussions">
       <div className="flex items-center gap-2">
-        <h2 className="inline-flex items-center gap-1.5 text-sm font-bold"><Flame className="size-4 text-down" />인기 종목 토론</h2>
+        <h2 className="inline-flex items-center gap-1.5 text-sm font-bold"><Flame className="size-4 text-down" />Trending ticker discussions</h2>
         {dot}
       </div>
-      <p className="mt-0.5 text-[11px] text-muted-foreground">최근 7일 글·댓글·추천 기준, 지금 활발한 순</p>
+      <p className="mt-0.5 text-[11px] text-muted-foreground">Based on posts, comments and upvotes in the last 7 days</p>
       <ol className="mt-3 space-y-2.5">
         {items.map((t, i) => (
           <li key={t.symbol}>

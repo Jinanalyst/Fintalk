@@ -15,6 +15,7 @@ import {
   Settings,
   ChevronDown,
   Trophy,
+  Medal,
   UserRound,
 } from "lucide-react";
 import {
@@ -27,21 +28,22 @@ import { cn } from "@/lib/utils";
 import { BOARD_CATEGORIES } from "@/lib/sample-data";
 
 export const MAIN_NAV = [
-  { href: "/", label: "홈", icon: Home },
-  { href: "/community", label: "커뮤니티", icon: MessagesSquare },
-  { href: "/insights", label: "인사이트", icon: Lightbulb },
-  { href: "/creators", label: "크리에이터", icon: Users },
-  { href: "/trade", label: "모의투자", icon: CandlestickChart },
-  { href: "/rewards", label: "리워드", icon: Gift },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/community", label: "Community", icon: MessagesSquare },
+  { href: "/insights", label: "Insights", icon: Lightbulb },
+  { href: "/creators", label: "Creators", icon: Users },
+  { href: "/trade", label: "Paper Trading", icon: CandlestickChart },
+  { href: "/rewards", label: "Rewards", icon: Gift },
 ] as const;
 
 export const isActive = (pathname: string, href: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 
 const TRADE_MENU = [
-  { href: "/trade", label: "거래 터미널", desc: "차트 보며 모의 주문", icon: CandlestickChart },
-  { href: "/trade/leaderboard", label: "리더보드", desc: "이용자별 수익률 순위", icon: Trophy },
-  { href: "/me?tab=paper", label: "내 성과", desc: "수익률 · 승률 · PnL 곡선", icon: UserRound },
+  { href: "/trade", label: "Trading terminal", desc: "Place paper orders with live charts", icon: CandlestickChart },
+  { href: "/trade/leaderboard", label: "Leaderboard", desc: "Ranking by return", icon: Trophy },
+  { href: "/contest", label: "Contest", desc: "Join the trading contest · verify OKX UID", icon: Medal },
+  { href: "/me?tab=paper", label: "My performance", desc: "Return · win rate · PnL curve", icon: UserRound },
 ] as const;
 
 const topLink = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors";
@@ -52,7 +54,7 @@ const topOff = "text-muted-foreground hover:bg-muted hover:text-foreground";
 export function TopNav() {
   const pathname = usePathname();
   return (
-    <nav className="hidden items-center gap-1 lg:flex" aria-label="주요 메뉴">
+    <nav className="hidden items-center gap-1 lg:flex" aria-label="Main menu">
       {MAIN_NAV.map((n) =>
         n.href === "/trade" ? (
           <DropdownMenu key={n.href}>
@@ -91,7 +93,7 @@ export function BottomNav() {
   const items = MAIN_NAV.filter((n) => n.href !== "/rewards");
   return (
     <nav
-      aria-label="하단 메뉴"
+      aria-label="Bottom menu"
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
     >
       <ul className="mx-auto grid max-w-xl grid-cols-5">
@@ -125,7 +127,7 @@ export function SidebarNav({ onNavigate, showMain = true }: { onNavigate?: () =>
   const item = "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors";
   return (
     <div className="space-y-5">
-      <nav aria-label="사이드 메뉴" className={cn("space-y-0.5", !showMain && "hidden")}>
+      <nav aria-label="Side menu" className={cn("space-y-0.5", !showMain && "hidden")}>
         {MAIN_NAV.map((n) => (
           <div key={n.href}>
             <Link
@@ -152,7 +154,21 @@ export function SidebarNav({ onNavigate, showMain = true }: { onNavigate?: () =>
                 )}
               >
                 <Trophy className="size-4" />
-                리더보드
+                Leaderboard
+              </Link>
+            )}
+            {n.href === "/trade" && (
+              <Link
+                href="/contest"
+                onClick={onNavigate}
+                className={cn(
+                  item,
+                  "ml-5 py-1.5",
+                  isActive(pathname, "/contest") ? "bg-brand-soft text-brand" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Medal className="size-4" />
+                Contest
               </Link>
             )}
           </div>
@@ -161,7 +177,7 @@ export function SidebarNav({ onNavigate, showMain = true }: { onNavigate?: () =>
 
       <div>
         <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          커뮤니티 게시판
+          Community boards
         </p>
         <div className="space-y-0.5">
           {BOARD_CATEGORIES.map((c) => (
@@ -186,17 +202,17 @@ export function SidebarNav({ onNavigate, showMain = true }: { onNavigate?: () =>
 
       <div>
         <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          내 활동
+          My activity
         </p>
         <div className="space-y-0.5">
           <Link href="/me?tab=saved" onClick={onNavigate} className={cn(item, "py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground")}>
-            <Bookmark className="size-4" /> 저장한 게시글
+            <Bookmark className="size-4" /> Saved posts
           </Link>
           <Link href="/me?tab=watchlist" onClick={onNavigate} className={cn(item, "py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground")}>
-            <Star className="size-4" /> 관심 종목
+            <Star className="size-4" /> Watchlist
           </Link>
           <Link href="/me?tab=settings" onClick={onNavigate} className={cn(item, "py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground")}>
-            <Settings className="size-4" /> 설정
+            <Settings className="size-4" /> Settings
           </Link>
         </div>
       </div>

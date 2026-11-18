@@ -8,17 +8,17 @@ import type { FormState } from "./auth";
 import { INTEREST_OPTIONS } from "@/lib/sample-data";
 
 export async function updateProfileAction(_: FormState, form: FormData): Promise<FormState> {
-  if (!isSupabaseConfigured) return { error: "서버에 Supabase 환경변수가 설정되지 않았습니다." };
+  if (!isSupabaseConfigured) return { error: "Supabase environment variables are not set on the server." };
   const sb = await createClient();
   const { data } = await sb.auth.getUser();
-  if (!data.user) return { error: "로그인이 필요합니다." };
+  if (!data.user) return { error: "Login required." };
 
   const nickname = String(form.get("nickname") ?? "").trim();
   const bio = String(form.get("bio") ?? "").trim().slice(0, 200);
-  if (!/^[0-9A-Za-z가-힣_]{2,14}$/.test(nickname)) return { error: "닉네임은 한글/영문/숫자/밑줄 2~14자로 입력해 주세요." };
+  if (!/^[0-9A-Za-z가-힣_]{2,14}$/.test(nickname)) return { error: "Nickname must be 2-14 letters, numbers or underscores." };
 
   const interests = Array.from(new Set(form.getAll("interests").map(String).filter((v) => INTEREST_OPTIONS.includes(v))));
-  if (interests.length > 5) return { error: "관심 분야는 최대 5개까지 선택할 수 있습니다." };
+  if (interests.length > 5) return { error: "You can select up to 5 interests." };
 
   const { error } = await sb
     .from("profiles")
@@ -31,22 +31,22 @@ export async function updateProfileAction(_: FormState, form: FormData): Promise
       notify_follow: form.get("notify_follow") === "on",
     })
     .eq("id", data.user.id);
-  if (error) return { error: /duplicate|unique/i.test(error.message) ? "이미 사용 중인 닉네임입니다." : "저장하지 못했습니다." };
+  if (error) return { error: /duplicate|unique/i.test(error.message) ? "That nickname is already taken." : "Could not save." };
   revalidatePath("/me");
-  return { message: "저장했습니다." };
+  return { message: "Saved." };
 }
 
 /** 프로필 사진 저장. url=null 이면 제거. 내 폴더의 avatars 버킷 URL 만 허용합니다. */
 export async function setAvatarAction(url: string | null): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!isSupabaseConfigured) return { ok: false, error: "서버에 Supabase 환경변수가 설정되지 않았습니다." };
+  if (!isSupabaseConfigured) return { ok: false, error: "Supabase environment variables are not set on the server." };
   const sb = await createClient();
   const { data } = await sb.auth.getUser();
-  if (!data.user) return { ok: false, error: "로그인이 필요합니다." };
+  if (!data.user) return { ok: false, error: "Login required." };
   if (url !== null && !url.startsWith(`${SUPABASE_URL}/storage/v1/object/public/avatars/${data.user.id}/`)) {
-    return { ok: false, error: "잘못된 이미지 주소입니다." };
+    return { ok: false, error: "Invalid image URL." };
   }
   const { error } = await sb.from("profiles").update({ avatar_url: url }).eq("id", data.user.id);
-  if (error) return { ok: false, error: "프로필 사진을 저장하지 못했습니다." };
+  if (error) return { ok: false, error: "Could not save the profile photo." };
   revalidatePath("/", "layout");
   return { ok: true };
 }

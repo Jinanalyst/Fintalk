@@ -21,15 +21,15 @@ export function findResult(trades: ClosedTrade[], seen: Set<string>): TradeResul
 }
 
 const LOSS_MOODS = [
-  { title: "아쉬운 손실", line: "괜찮아요, 다음에 만회해요 💧" },
-  { title: "연속 손실", line: "잠깐 쉬어가도 좋아요 ☕" },
-  { title: "연패 중...", line: "무리하지 말고 리스크부터 점검해요 🌧" },
+  { title: "Tough loss", line: "It is okay, you can make it back next time 💧" },
+  { title: "Losing streak", line: "Maybe take a short break ☕" },
+  { title: "Rough patch...", line: "Do not force it. Check your risk first 🌧" },
 ];
 
 const MOODS = [
-  { title: "수익 실현!", line: "잘했어요! 깔끔한 청산이에요 👏" },
-  { title: "연속 수익!", line: "또 해냈어요! 흐름이 좋아요 ✨" },
-  { title: "불꽃 연승!", line: "대단해요! 지금 완전 물올랐어요 🔥" },
+  { title: "Profit locked in!", line: "Nice work! A clean exit 👏" },
+  { title: "Winning streak!", line: "Another win! You are on a roll ✨" },
+  { title: "On fire!", line: "Amazing! You are in the zone 🔥" },
 ];
 
 /** 코인 캐릭터: 연승이 길수록 멋있어집니다. 1회 = 자신만만한 표정, 2회 = 선글라스 + 주먹, 3회 이상 = 왕관 + 망토 */
@@ -41,7 +41,7 @@ function Mascot({ streak }: { streak: number }) {
   const leftUp = tier === 2;
   const fist = (cx: number, cy: number) => <circle cx={cx} cy={cy} r={10} fill={GOLD} stroke={EDGE} strokeWidth="4" />;
   return (
-    <svg viewBox="0 0 160 164" className="win-mascot size-32" role="img" aria-label="멋진 코인 캐릭터">
+    <svg viewBox="0 0 160 164" className="win-mascot size-32" role="img" aria-label="Happy coin mascot">
       {tier === 2 && <path d="M42 72 Q14 126 26 152 L134 152 Q146 126 118 72 Z" fill="#dc2626" stroke="#991b1b" strokeWidth="3" strokeLinejoin="round" />}
       <path d="M64 143 V156 M96 143 V156" stroke={EDGE} strokeWidth="8" strokeLinecap="round" />
       <ellipse cx="60" cy="158" rx="11" ry="5" fill="#1f2937" />
@@ -108,7 +108,7 @@ function SadMascot({ streak }: { streak: number }) {
     </>
   );
   return (
-    <svg viewBox="0 0 160 164" className="lose-mascot size-32" role="img" aria-label="슬퍼하는 코인 캐릭터">
+    <svg viewBox="0 0 160 164" className="lose-mascot size-32" role="img" aria-label="Sad coin mascot">
       {tier === 2 && (
         <>
           <g fill="#94a3b8" stroke="#64748b" strokeWidth="2.5">
@@ -211,7 +211,7 @@ export function WinPopup({ win, onClose }: { win: TradeResult; onClose: () => vo
           Array.from({ length: 18 }, (_, i) => (
             <span key={i} className="win-conf" aria-hidden style={{ left: `${(i * 37) % 100}%`, background: CONFETTI[i % CONFETTI.length], animationDelay: `${(i % 6) * 0.35}s`, animationDuration: `${2 + (i % 4) * 0.4}s` }} />
           ))}
-        <button type="button" onClick={onClose} aria-label="닫기" className="absolute right-3 top-3 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white">
+        <button type="button" onClick={onClose} aria-label="Close" className="absolute right-3 top-3 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white">
           <X className="size-4" />
         </button>
 
@@ -222,21 +222,21 @@ export function WinPopup({ win, onClose }: { win: TradeResult; onClose: () => vo
         ) : (
           <p className={`mt-1 text-3xl font-black ${loss ? "text-[#93c5fd]" : "text-[#f0b90b]"}`}>{mood.title}</p>
         )}
-        {streak >= 2 && <p className="mt-0.5 text-sm font-bold text-white/90">{streak}번 연속 {loss ? "손실" : "수익"} · {mood.title}</p>}
+        {streak >= 2 && <p className="mt-0.5 text-sm font-bold text-white/90">{streak} {loss ? "losses" : "wins"} in a row · {mood.title}</p>}
         <p className="mt-1 text-xs text-white/70">{mood.line}</p>
 
         <div className="mt-4 rounded-2xl bg-white/5 p-4 text-left">
           <div className="flex items-center gap-2 text-sm">
             <span className="font-bold">{coin}USDT</span>
             <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${long ? "bg-[#22c55e]" : "bg-[#ef4444]"}`}>
-              {long ? "롱" : "숏"} {t.leverage}x
+              {long ? "Long" : "Short"} {t.leverage}x
             </span>
           </div>
           <p className="mt-1 text-4xl font-black tabular-nums" style={{ color: tone }}>{sign}{roe.toFixed(2)}%</p>
           <p className="text-sm font-semibold tabular-nums" style={{ color: tone }}>{sign}{fmtUsd(t.pnl)} USDT</p>
           <div className="mt-2 flex justify-between text-xs text-white/60 tabular-nums">
-            <span>진입 {fmtPrice(t.entry_price)}</span>
-            <span>청산 {fmtPrice(t.exit_price)}</span>
+            <span>Entry {fmtPrice(t.entry_price)}</span>
+            <span>Exit {fmtPrice(t.exit_price)}</span>
           </div>
         </div>
 
@@ -254,13 +254,13 @@ export function WinPopup({ win, onClose }: { win: TradeResult; onClose: () => vo
               }
             }}
           >
-            <Share2 /> 인증 카드 공유
+            <Share2 /> Share result card
           </Button>}
           <Button variant="outline" className="flex-1 border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={onClose}>
-            계속 거래
+            Keep trading
           </Button>
         </div>
-        <p className="mt-3 text-[10px] text-white/40">가상 자금 모의투자 기록이며 실제 {loss ? "손실" : "수익"}이 아닙니다.</p>
+        <p className="mt-3 text-[10px] text-white/40">Virtual funds paper trading record; not a real {loss ? "loss" : "profit"}.</p>
       </div>
     </div>
   );

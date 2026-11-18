@@ -69,7 +69,7 @@ export function PriceChart({ values, up }: { values: number[]; up: boolean }) {
           </button>
         ))}
       </div>
-      <svg viewBox="0 0 600 220" preserveAspectRatio="none" className="h-56 w-full" role="img" aria-label="가격 차트(샘플)">
+      <svg viewBox="0 0 600 220" preserveAspectRatio="none" className="h-56 w-full" role="img" aria-label="Price chart (sample)">
         <defs>
           <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.25" />
@@ -92,7 +92,7 @@ export function SplitBar({ up, className }: { up: number; className?: string }) 
     <div
       className={cn("flex h-2.5 w-full overflow-hidden rounded-full bg-muted", className)}
       role="img"
-      aria-label={`상승 ${up}% 하락 ${100 - up}%`}
+      aria-label={`Up ${up}% Down ${100 - up}%`}
     >
       <div className="bg-up" style={{ width: `${up}%` }} />
       <div className="bg-down" style={{ width: `${100 - up}%` }} />

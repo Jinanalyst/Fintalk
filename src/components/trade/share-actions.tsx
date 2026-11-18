@@ -9,7 +9,7 @@ import { postShareAction } from "@/app/actions/share";
 
 const origin = () => (typeof window === "undefined" ? "" : window.location.origin);
 
-/** 공유 카드 아래 버튼들: 이미지 저장 · 링크 복사 · 외부 공유 · 커뮤니티 게시 · 프로필 이동 */
+/** 공유 카드 아래 버튼들: Save image · Copy link · 외부 공유 · 커뮤니티 게시 · Profile 이동 */
 export function ShareActions({ id, nickname, postId, demo }: { id: string; nickname: string; postId: string | null; demo?: boolean }) {
   const toast = useToast();
   const [post, setPost] = useState<string | null>(postId);
@@ -19,9 +19,9 @@ export function ShareActions({ id, nickname, postId, demo }: { id: string; nickn
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(link());
-      toast.show("공유 링크를 복사했습니다.");
+      toast.show("Share link copied.");
     } catch {
-      toast.show("복사하지 못했습니다. 주소창의 링크를 직접 복사해 주세요.");
+      toast.show("Could not copy. Please copy the link from the address bar.");
     }
   };
 
@@ -36,12 +36,12 @@ export function ShareActions({ id, nickname, postId, demo }: { id: string; nickn
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      toast.show("이미지를 저장하지 못했습니다.");
+      toast.show("Could not save the image.");
     }
   };
 
   const share = async () => {
-    const data = { title: "핀톡 모의투자 포지션", text: `${nickname}님의 모의투자 포지션 (가상 자금)`, url: link() };
+    const data = { title: "FinTalk paper trading position", text: `${nickname}'s paper trading position (virtual funds)`, url: link() };
     if (navigator.share) {
       try {
         await navigator.share(data);
@@ -54,38 +54,38 @@ export function ShareActions({ id, nickname, postId, demo }: { id: string; nickn
   };
 
   const toCommunity = async () => {
-    if (demo) return toast.show("샘플 카드는 게시할 수 없습니다.");
+    if (demo) return toast.show("Sample cards cannot be posted.");
     setBusy(true);
     const r = await postShareAction(id);
     setBusy(false);
     if (r.ok) {
       setPost(r.postId);
-      toast.show("커뮤니티에 게시했습니다.");
-    } else toast.show(r.error === "login" ? "로그인이 필요합니다." : r.error);
+      toast.show("Posted to the community.");
+    } else toast.show(r.error === "login" ? "Login required." : r.error);
   };
 
   return (
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" onClick={save}>
-        <Download /> 이미지 저장
+        <Download /> Save image
       </Button>
       <Button variant="outline" onClick={copy}>
-        <Copy /> 링크 복사
+        <Copy /> Copy link
       </Button>
       <Button variant="outline" onClick={share}>
-        <Share2 /> SNS 공유
+        <Share2 /> Share
       </Button>
       {post ? (
         <Link href={`/community/${post}`} className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium hover:bg-muted">
-          <MessageSquarePlus className="size-4" /> 게시글 보기
+          <MessageSquarePlus className="size-4" /> View post
         </Link>
       ) : (
         <Button disabled={busy} onClick={toCommunity}>
-          <MessageSquarePlus /> 커뮤니티에 게시
+          <MessageSquarePlus /> Post to community
         </Button>
       )}
       <Link href={`/creators/${encodeURIComponent(nickname)}`} className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium hover:bg-muted">
-        <User className="size-4" /> 프로필
+        <User className="size-4" /> Profile
       </Link>
     </div>
   );

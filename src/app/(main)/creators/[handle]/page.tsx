@@ -20,10 +20,10 @@ async function loadProfile(raw: string): Promise<Profile | null> {
     return {
       interests: [sample.focus], name: sample.name, handle: sample.handle, bio: sample.bio, focus: sample.focus, featured: !!sample.featured, live: false,
       stats: [
-        { l: "팔로워", v: fmtNum(sample.followers) },
-        { l: "게시글", v: sample.posts.toLocaleString("ko-KR") },
-        { l: "받은 추천", v: fmtNum(sample.upvotes) },
-        { l: "조회수", v: fmtNum(sample.views) },
+        { l: "Followers", v: fmtNum(sample.followers) },
+        { l: "Posts", v: sample.posts.toLocaleString("en-US") },
+        { l: "Upvotes received", v: fmtNum(sample.upvotes) },
+        { l: "Views", v: fmtNum(sample.views) },
       ],
       posts: POSTS.filter((p) => p.author === sample.handle),
     };
@@ -33,14 +33,14 @@ async function loadProfile(raw: string): Promise<Profile | null> {
   if (!p?.id) return null;
   const { posts } = await listPosts({ authorId: p.id, sort: "new", limit: 50 });
   return {
-    id: p.id, avatar: p.avatar, interests: p.interests, name: p.name, handle: p.handle, bio: p.bio || "아직 자기소개가 없습니다.", focus: p.interests.join(" · ") || "핀톡 이용자", featured: p.accepted >= 3, live: true,
+    id: p.id, avatar: p.avatar, interests: p.interests, name: p.name, handle: p.handle, bio: p.bio || "No bio yet.", focus: p.interests.join(" · ") || "FinTalk user", featured: p.accepted >= 3, live: true,
     stats: [
-      { l: "팔로워", v: fmtNum(p.followers) },
-      { l: "팔로잉", v: fmtNum(p.following) },
-      { l: "게시글", v: fmtNum(p.posts) },
-      { l: "인사이트", v: fmtNum(p.insights) },
-      { l: "채택 답변", v: fmtNum(p.accepted) },
-      { l: "기여도", v: fmtNum(p.score) },
+      { l: "Followers", v: fmtNum(p.followers) },
+      { l: "Following", v: fmtNum(p.following) },
+      { l: "Posts", v: fmtNum(p.posts) },
+      { l: "Insights", v: fmtNum(p.insights) },
+      { l: "Accepted", v: fmtNum(p.accepted) },
+      { l: "Contribution", v: fmtNum(p.score) },
     ],
     posts,
   };
@@ -65,7 +65,7 @@ export default async function CreatorProfile({ params }: PageProps<"/creators/[h
   return (
     <div className="space-y-4">
       <Link href="/creators" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand">
-        <ArrowLeft className="size-4" /> 크리에이터
+        <ArrowLeft className="size-4" /> Creators
       </Link>
       <Card className="p-5">
         <div className="flex items-start gap-4">
@@ -73,8 +73,8 @@ export default async function CreatorProfile({ params }: PageProps<"/creators/[h
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-bold">{c.name}</h1>
-              {c.featured && <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-400/15 dark:text-amber-300"><Award className="size-3.5" />우수 크리에이터</span>}
-              {!c.live && <SampleBadge label="샘플 프로필" />}
+              {c.featured && <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-400/15 dark:text-amber-300"><Award className="size-3.5" />Top creator</span>}
+              {!c.live && <SampleBadge label="Sample profile" />}
             </div>
             <p className="text-sm text-muted-foreground">@{c.handle} · {c.focus}</p>
             <p className="mt-2 text-sm">{c.bio}</p>
@@ -89,11 +89,11 @@ export default async function CreatorProfile({ params }: PageProps<"/creators/[h
       </Card>
 
       <section>
-        <SectionHeader title="작성한 게시글" className="mb-2" />
+        <SectionHeader title="Posts" className="mb-2" />
         {c.posts.length ? (
           <div className="space-y-2.5">{c.posts.map((p) => <PostCard key={p.id} post={p} />)}</div>
         ) : (
-          <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">작성한 게시글이 없습니다.</div>
+          <div className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No posts yet.</div>
         )}
       </section>
     </div>

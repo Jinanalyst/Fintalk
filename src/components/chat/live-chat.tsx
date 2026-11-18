@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronDown, Maximize2, MessageCircle, Minimize2, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { translateDbMessage } from "@/lib/db-messages";
 import { REASON_LABEL, fmtPrice, fmtUsd, type ClosedTrade } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,7 @@ type Msg = {
 type Mode = "closed" | "open" | "tall";
 const K_MODE = "fintalk.chat.mode.v1";
 const MAX_KEEP = 200;
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
 function Face({ name, url, size = 24 }: { name: string; url: string | null; size?: number }) {
   return url ? (
@@ -47,12 +48,12 @@ function CloseCard({ m }: { m: Msg }) {
   return (
     <div className={cn("rounded-xl border px-3 py-2 text-sm", liq ? "border-down/60" : win ? "border-up/60" : "border-border")}>
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-bold text-white", liq ? "bg-down" : "bg-brand")}>{liq ? "강제청산" : "선물"}</span>
+        <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-bold text-white", liq ? "bg-down" : "bg-brand")}>{liq ? "Liquidation" : "Futures"}</span>
         <Face name={m.nickname} url={m.avatar_url} size={20} />
         <span className="font-semibold">{m.nickname}</span>
         <span className="font-bold">{c.symbol}</span>
         <span className={cn("font-bold", long ? "text-up" : "text-down")}>{long ? "LONG" : "SHORT"}</span>
-        <span className="text-muted-foreground">{c.leverage}x 청산{extra ? ` · ${extra}` : ""}</span>
+        <span className="text-muted-foreground">{c.leverage}x closed{extra ? ` · ${extra}` : ""}</span>
       </div>
       <div className="mt-1 flex items-baseline justify-between gap-2">
         <span className={cn("text-base font-extrabold tabular-nums", c.pnl >= 0 ? "text-up" : "text-down")}>
@@ -63,7 +64,7 @@ function CloseCard({ m }: { m: Msg }) {
         <span className="shrink-0 text-[11px] text-muted-foreground">{time(m.created_at)}</span>
       </div>
       <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
-        진입 {fmtPrice(c.entry)} → 청산 {fmtPrice(c.exit)}
+        Entry {fmtPrice(c.entry)} → Exit {fmtPrice(c.exit)}
       </p>
     </div>
   );
@@ -185,7 +186,7 @@ function ChatInner() {
     setErr("");
     const { error } = await createClient().rpc("chat_send", { p_body: body });
     setSending(false);
-    if (error) setErr(error.message);
+    if (error) setErr(translateDbMessage(error.message) ?? "Could not send the message.");
     else {
       setText("");
       stick.current = true;
@@ -200,10 +201,10 @@ function ChatInner() {
         type="button"
         onClick={() => setMode("open")}
         className="fixed bottom-[76px] right-3 z-[60] flex items-center gap-2 rounded-full border bg-card px-4 py-2.5 text-sm font-semibold shadow-lg transition-colors hover:bg-muted lg:bottom-4"
-        aria-label="실시간 채팅 열기"
+        aria-label="Open live chat"
       >
         <MessageCircle className="size-4 text-brand" />
-        실시간 채팅
+        Live chat
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <span className="size-1.5 rounded-full bg-up" />
           {online}
@@ -215,7 +216,7 @@ function ChatInner() {
 
   return (
     <section
-      aria-label="실시간 채팅"
+      aria-label="Live chat"
       className={cn(
         "fixed bottom-[76px] right-3 z-[60] flex w-[min(94vw,380px)] flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl lg:bottom-4",
         mode === "tall" ? "h-[calc(100dvh-110px)] sm:w-[min(94vw,440px)]" : "h-[min(68dvh,480px)]",
@@ -225,16 +226,16 @@ function ChatInner() {
         <span className="grid size-8 place-items-center rounded-lg bg-brand text-white">
           <MessageCircle className="size-4" />
         </span>
-        <h2 className="text-sm font-bold">실시간 채팅</h2>
-        <span className="flex items-center gap-1 rounded-full border border-up/40 bg-up/10 px-2 py-0.5 text-[11px] font-semibold text-up" title="지금 접속 중인 사람">
+        <h2 className="text-sm font-bold">Live chat</h2>
+        <span className="flex items-center gap-1 rounded-full border border-up/40 bg-up/10 px-2 py-0.5 text-[11px] font-semibold text-up" title="People online now">
           <span className="size-1.5 rounded-full bg-up" />
           {online}
         </span>
         <span className="ml-auto flex items-center gap-0.5">
-          <button type="button" onClick={() => setMode(mode === "tall" ? "open" : "tall")} aria-label={mode === "tall" ? "채팅 작게" : "채팅 크게"} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <button type="button" onClick={() => setMode(mode === "tall" ? "open" : "tall")} aria-label={mode === "tall" ? "Smaller chat" : "Larger chat"} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
             {mode === "tall" ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
           </button>
-          <button type="button" onClick={() => setMode("closed")} aria-label="채팅 접기" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+          <button type="button" onClick={() => setMode("closed")} aria-label="Collapse chat" className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
             <ChevronDown className="size-4" />
           </button>
         </span>
@@ -249,7 +250,7 @@ function ChatInner() {
         className="flex-1 space-y-2.5 overflow-y-auto px-3 py-3"
       >
         {msgs.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">아직 대화가 없습니다. 첫 메시지를 남겨 보세요!</p>
+          <p className="py-10 text-center text-sm text-muted-foreground">No messages yet. Say hello!</p>
         ) : (
           msgs.map((m) => (m.kind === "close" ? <CloseCard key={m.id} m={m} /> : <Bubble key={m.id} m={m} mine={m.user_id === uid} />))
         )}
@@ -269,11 +270,11 @@ function ChatInner() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 maxLength={300}
-                placeholder="메시지를 입력하세요"
-                aria-label="채팅 메시지"
+                placeholder="Type a message"
+                aria-label="Chat message"
                 className="h-9 min-w-0 flex-1 rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               />
-              <button type="submit" disabled={sending || !text.trim()} aria-label="보내기" className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand text-white disabled:opacity-40">
+              <button type="submit" disabled={sending || !text.trim()} aria-label="Send" className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand text-white disabled:opacity-40">
                 <Send className="size-4" />
               </button>
             </form>
@@ -281,7 +282,7 @@ function ChatInner() {
           </>
         ) : (
           <p className="rounded-lg border border-dashed bg-muted/40 py-2.5 text-center text-sm text-muted-foreground">
-            <Link href="/login" className="font-semibold text-brand hover:underline">로그인</Link> 후 이용해주세요.
+            <Link href="/login" className="font-semibold text-brand hover:underline">Log in</Link> to chat.
           </p>
         )}
       </footer>

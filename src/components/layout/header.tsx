@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { LogoMark } from "@/components/common/logo-mark";
 import { ThemeToggle } from "@/components/common/theme";
-import { LangToggle } from "@/components/common/lang-toggle";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { NotificationBell } from "./notification-bell";
 import { SidebarNav, TopNav } from "./nav";
@@ -17,9 +16,9 @@ import { signOutAction } from "@/app/actions/auth";
 
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <Link href="/" className={`flex shrink-0 items-center gap-1.5 sm:gap-2 ${className}`} aria-label="FinTalk 홈">
+    <Link href="/" className={`flex shrink-0 items-center gap-1.5 sm:gap-2 ${className}`} aria-label="FinTalk home">
       <LogoMark className="size-7 sm:size-8" />
-      <span className="text-lg font-extrabold tracking-tighter sm:text-xl">핀톡</span>
+      <span className="text-lg font-extrabold tracking-tighter sm:text-xl">FinTalk</span>
     </Link>
   );
 }
@@ -42,8 +41,8 @@ export function SearchBox({ className = "" }: { className?: string }) {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="게시글, 종목, 작성자, 태그 검색"
-          aria-label="통합 검색"
+          placeholder="Search posts, tickers, authors, tags"
+          aria-label="Search"
           className="h-9 w-full rounded-full border bg-muted/60 pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-brand focus:bg-background focus:ring-2 focus:ring-brand/20"
         />
       </div>
@@ -57,7 +56,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b bg-card/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1320px] items-center gap-1 px-2 sm:gap-3 sm:px-4">
-        <Button variant="ghost" size="icon" className="lg:hidden" aria-label="메뉴 열기" onClick={() => setOpen(true)}>
+        <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu" onClick={() => setOpen(true)}>
           <Menu className="size-5" />
         </Button>
         <Logo />
@@ -68,13 +67,13 @@ export function Header() {
           <SearchBox />
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1 [&_button]:shrink-0">
-          <Link href="/search" className="md:hidden" aria-label="검색">
+          <Link href="/search" className="md:hidden" aria-label="Search">
             <span className="grid size-9 place-items-center rounded-md hover:bg-muted">
               <Search className="size-5" />
             </span>
           </Link>
           <ThemeToggle />
-          <Link href={user ? `/me/${encodeURIComponent(user.nickname)}` : "/me"} className="sm:hidden" aria-label="내 정보">
+          <Link href={user ? `/me/${encodeURIComponent(user.nickname)}` : "/me"} className="sm:hidden" aria-label="My profile">
             <span className="grid size-9 place-items-center rounded-md hover:bg-muted">
               <UserRound className="size-5" />
             </span>
@@ -82,20 +81,20 @@ export function Header() {
           {user ? (
             <NotificationBell userId={user.id} />
           ) : (
-            <Link href="/login" aria-label="알림 (로그인 필요)" className="hidden sm:block">
+            <Link href="/login" aria-label="Notifications (login required)" className="hidden sm:block">
               <span className="grid size-9 place-items-center rounded-md hover:bg-muted"><Bell className="size-[18px]" /></span>
             </Link>
           )}
           <Link href="/community/write" className="hidden sm:block">
             <Button size="lg" className="gap-1.5 bg-brand px-3 text-primary-foreground hover:bg-brand/90">
-              <PenLine className="size-4" /> 글쓰기
+              <PenLine className="size-4" /> Write
             </Button>
           </Link>
           {user ? (
             <>
               {user.role === "admin" && (
                 <Link href="/admin" className="hidden md:block">
-                  <Button variant="ghost" size="lg">관리자</Button>
+                  <Button variant="ghost" size="lg">Admin</Button>
                 </Link>
               )}
               <Link href={`/me/${encodeURIComponent(user.nickname)}`} className="hidden max-w-36 items-center gap-1.5 truncate rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted sm:flex">
@@ -103,15 +102,14 @@ export function Header() {
                 <span className="truncate">{user.nickname}</span>
               </Link>
               <form action={signOutAction}>
-                <Button variant="outline" size="lg" type="submit" className="px-2.5 text-xs sm:px-3 sm:text-sm">로그아웃</Button>
+                <Button variant="outline" size="lg" type="submit" className="px-2.5 text-xs sm:px-3 sm:text-sm">Log out</Button>
               </form>
             </>
           ) : (
             <Link href="/login">
-              <Button variant="outline" size="lg" className="px-2.5 text-xs sm:px-3 sm:text-sm">로그인</Button>
+              <Button variant="outline" size="lg" className="px-2.5 text-xs sm:px-3 sm:text-sm">Log in</Button>
             </Link>
           )}
-          <LangToggle />
         </div>
       </div>
 

@@ -18,8 +18,8 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      aria-label="화이트/다크 모드 전환"
-      title="화이트/다크 모드 전환"
+      aria-label="Toggle light/dark mode"
+      title="Toggle light/dark mode"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
       <Sun className="hidden size-[18px] dark:block" />

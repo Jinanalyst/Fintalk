@@ -30,14 +30,14 @@ export function LeverageSlider({ value, onChange, className }: { value: number; 
           step={0.01}
           value={toPos(value)}
           onChange={(e) => onChange(fromPos(Number(e.target.value)))}
-          aria-label="레버리지"
+          aria-label="Leverage"
           className="h-1 flex-1 cursor-pointer accent-foreground"
         />
         <label className="flex h-7 w-16 items-center rounded-md border bg-muted/40 px-1.5 focus-within:ring-2 focus-within:ring-ring/50">
           <input
             className="w-full min-w-0 bg-transparent text-right text-xs font-semibold tabular-nums outline-none"
             inputMode="numeric"
-            aria-label="레버리지 직접 입력"
+            aria-label="Enter leverage"
             value={value}
             onChange={(e) => {
               const n = Math.trunc(Number(e.target.value));

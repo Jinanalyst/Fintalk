@@ -102,7 +102,7 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-xs">
       <div role="tablist" className="flex gap-4 border-b px-3">
-        {([["book", "호가창"], ["trades", "체결"]] as const).map(([k, t]) => (
+        {([["book", "Order book"], ["trades", "Trades"]] as const).map(([k, t]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
             className={cn("-mb-px border-b-2 py-2 text-sm font-semibold", tab === k ? "border-brand text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
             {t}
@@ -114,23 +114,23 @@ export function OrderBook({ symbol, mark, onPick }: { symbol: string; mark?: num
       ) : (
       <>
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 px-2 py-1.5 text-[11px] text-muted-foreground">
-        <span>가격(USDT)</span>
-        <span className="text-right">현재가 대비</span>
-        <span className="text-right">수량</span>
+        <span>Price (USDT)</span>
+        <span className="text-right">vs. mark</span>
+        <span className="text-right">Size</span>
       </div>
       {!book ? (
-        <p className="grid flex-1 place-items-center py-16 text-xs text-muted-foreground">호가 불러오는 중…</p>
+        <p className="grid flex-1 place-items-center py-16 text-xs text-muted-foreground">Loading order book…</p>
       ) : (
         <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden">
           <div className="flex flex-col-reverse">{asks.map((l) => row(l, "ask"))}</div>
           <div className="notranslate my-1 flex items-baseline justify-between border-y px-2 py-1.5">
             <span className="text-base font-bold tabular-nums">{mark ? fmtPrice(mark) : "—"}</span>
-            {spread !== null && <span className="text-[11px] text-muted-foreground tabular-nums">스프레드 {fmtPrice(spread)}</span>}
+            {spread !== null && <span className="text-[11px] text-muted-foreground tabular-nums">Spread{fmtPrice(spread)}</span>}
           </div>
           <div>{bids.map((l) => row(l, "bid"))}</div>
         </div>
       )}
-      <p className="px-3 py-1.5 text-[10px] text-muted-foreground">가격을 누르면 지정가로 채워집니다.</p>
+      <p className="px-3 py-1.5 text-[10px] text-muted-foreground">Click a price to fill it in as the limit price.</p>
       </>
       )}
     </div>

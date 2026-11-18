@@ -36,7 +36,7 @@ function Curve({ points }: { points: { t: number; v: number }[] }) {
   const area = `${line} L${x(points.length - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`;
   const up = last >= 0;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-44 w-full" role="img" aria-label={`누적 실현 손익 ${signed(last)} USDT`} preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-44 w-full" role="img" aria-label={`Cumulative realized PnL ${signed(last)} USDT`} preserveAspectRatio="none">
       <line x1={0} x2={W} y1={y(0)} y2={y(0)} className="stroke-border" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
       <path d={area} className={up ? "fill-up/10" : "fill-down/10"} />
       <path d={line} fill="none" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" className={up ? "stroke-up" : "stroke-down"} />
@@ -47,7 +47,7 @@ function Curve({ points }: { points: { t: number; v: number }[] }) {
 /** 비율 막대: 항목 수에 비례해 칸을 나눕니다. */
 function SplitRow({ items }: { items: { label: string; n: number; cls: string }[] }) {
   const total = items.reduce((a, i) => a + i.n, 0);
-  if (!total) return <p className="text-xs text-muted-foreground">데이터가 없습니다.</p>;
+  if (!total) return <p className="text-xs text-muted-foreground">No data.</p>;
   return (
     <div className="space-y-2">
       <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
@@ -75,41 +75,41 @@ export function PaperDashboard({ stats: s, trades, sample = false }: { stats: Tr
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-bold">모의투자 연습 대시보드</h2>
-          {sample && <SampleBadge label="샘플 데이터 (Supabase 미연결)" />}
+          <h2 className="text-base font-bold">Paper trading dashboard</h2>
+          {sample && <SampleBadge label="Sample data (Supabase not connected)" />}
         </div>
         <div className="flex items-center gap-3">
           {s.openCount > 0 && !sample && <LiveRefresh seconds={30} />}
-          <Link href="/trade" className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-brand/90">모의투자 하러 가기</Link>
+          <Link href="/trade" className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-brand/90">Go paper trading</Link>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Tile
-          label="계좌 수익률"
+          label="Account return"
           value={`${s.returnPct >= 0 ? "+" : ""}${s.returnPct.toFixed(2)}%`}
           valueClass={tone(s.returnPct)}
-          sub={`총자산 ${fmtUsd(s.equity)} USDT`}
-          hint={`시작 자금 ${fmtUsd(START_BALANCE)} USDT 대비. 총자산 = 잔고 + 열린 포지션 증거금 + 미실현 손익`}
+          sub={`Equity ${fmtUsd(s.equity)} USDT`}
+          hint={`Versus the ${fmtUsd(START_BALANCE)} USDT starting balance. Equity = balance + open position margin + unrealized PnL`}
         />
-        <Tile label="실현 손익" value={signed(s.realized)} valueClass={tone(s.realized)} sub={`수수료 ${fmtUsd(s.fees)} 반영`} hint="청산된 거래의 순손익 합계(수수료 포함). 계정 초기화 후에도 누적됩니다." />
-        <Tile label="거래 횟수" value={`${s.count}회`} sub={`최근 7일 ${s.week.count}회`} hint="청산 1건 = 1회. 부분 청산도 각각 1회로 셉니다." />
-        <Tile label="승률" value={pct(s.winRate)} sub={`${s.wins}승 ${s.losses}패`} />
-        <Tile label="손익비" value={s.payoff === null ? "—" : s.payoff.toFixed(2)} sub={`평균 이익 ${s.avgWin === null ? "—" : signed(s.avgWin)}`} hint="평균 이익 ÷ 평균 손실. 1보다 크면 이길 때 더 크게 이긴다는 뜻입니다." />
-        <Tile label="최대 낙폭" value={s.mdd ? `-${s.mdd.toFixed(1)}%` : "0%"} valueClass={s.mdd ? "text-down" : ""} sub={s.mddAmount ? `-${fmtUsd(s.mddAmount)} USDT` : "—"} hint="누적 손익 곡선에서 고점 대비 가장 크게 내려간 폭" />
+        <Tile label="Realized PnL" value={signed(s.realized)} valueClass={tone(s.realized)} sub={`After ${fmtUsd(s.fees)} fees`} hint="Net PnL of closed trades, including fees. Keeps accumulating after account resets." />
+        <Tile label="Trades" value={`${s.count}`} sub={`${s.week.count} in the last 7 days`} hint="Each close counts as one trade, including partial closes." />
+        <Tile label="Win rate" value={pct(s.winRate)} sub={`${s.wins}W / ${s.losses}L`} />
+        <Tile label="Payoff ratio" value={s.payoff === null ? "—" : s.payoff.toFixed(2)} sub={`Avg win ${s.avgWin === null ? "—" : signed(s.avgWin)}`} hint="Average win ÷ average loss. Above 1 means your wins are larger than your losses." />
+        <Tile label="Max drawdown" value={s.mdd ? `-${s.mdd.toFixed(1)}%` : "0%"} valueClass={s.mdd ? "text-down" : ""} sub={s.mddAmount ? `-${fmtUsd(s.mddAmount)} USDT` : "—"} hint="Largest drop from a peak on the cumulative PnL curve" />
       </div>
 
       <Card>
         <SectionHeader
-          title="누적 실현 손익"
+          title="Cumulative realized PnL"
           right={s.count > 0 && <span className={cn("text-sm font-bold tabular-nums", tone(s.realized))}>{signed(s.realized)} USDT</span>}
         />
         <div className="mt-2">
-          {s.curve.length >= 2 ? <Curve points={s.curve} /> : <p className="py-10 text-center text-sm text-muted-foreground">거래를 청산하면 손익 곡선이 그려집니다.</p>}
+          {s.curve.length >= 2 ? <Curve points={s.curve} /> : <p className="py-10 text-center text-sm text-muted-foreground">The PnL curve appears once you close a trade.</p>}
         </div>
         {s.unrealized !== 0 && (
           <p className="mt-1 text-xs text-muted-foreground">
-            열린 포지션 {s.openCount}개의 미실현 손익 <span className={cn("font-semibold tabular-nums", tone(s.unrealized))}>{signed(s.unrealized)} USDT</span> (곡선에는 포함되지 않음)
+            Unrealized PnL of {s.openCount} open positions<span className={cn("font-semibold tabular-nums", tone(s.unrealized))}>{signed(s.unrealized)} USDT</span> (not included in the curve)
           </p>
         )}
       </Card>
@@ -117,17 +117,17 @@ export function PaperDashboard({ stats: s, trades, sample = false }: { stats: Tr
       {s.count > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="space-y-4">
-            <SectionHeader title="거래 습관" />
+            <SectionHeader title="Trading habits" />
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">롱 / 숏</p>
-              <SplitRow items={[{ label: "롱", n: s.bySide.long.count, cls: "bg-up" }, { label: "숏", n: s.bySide.short.count, cls: "bg-down" }]} />
+              <p className="text-xs font-medium text-muted-foreground">Long / Short</p>
+              <SplitRow items={[{ label: "Long", n: s.bySide.long.count, cls: "bg-up" }, { label: "Short", n: s.bySide.short.count, cls: "bg-down" }]} />
               <p className="text-[11px] text-muted-foreground">
-                롱 승률 {s.bySide.long.count ? pct((s.bySide.long.wins / s.bySide.long.count) * 100, 0) : "—"} · 숏 승률 {s.bySide.short.count ? pct((s.bySide.short.wins / s.bySide.short.count) * 100, 0) : "—"}
-                {s.avgLeverage !== null && ` · 평균 레버리지 ${s.avgLeverage.toFixed(1)}x`}
+                Long win rate{s.bySide.long.count ? pct((s.bySide.long.wins / s.bySide.long.count) * 100, 0) : "—"} · Short win rate{s.bySide.short.count ? pct((s.bySide.short.wins / s.bySide.short.count) * 100, 0) : "—"}
+                {s.avgLeverage !== null && ` · Avg leverage ${s.avgLeverage.toFixed(1)}x`}
               </p>
             </div>
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">청산 방식</p>
+              <p className="text-xs font-medium text-muted-foreground">Close type</p>
               <SplitRow
                 items={[
                   { label: REASON_LABEL.manual, n: s.byReason.manual, cls: "bg-brand" },
@@ -137,20 +137,20 @@ export function PaperDashboard({ stats: s, trades, sample = false }: { stats: Tr
                   { label: REASON_LABEL.liquidation, n: s.byReason.liquidation, cls: "bg-down" },
                 ]}
               />
-              {s.byReason.liquidation > 0 && <p className="text-[11px] text-down">강제청산 {s.byReason.liquidation}회 — 레버리지를 낮추거나 손절을 설정해 보세요.</p>}
+              {s.byReason.liquidation > 0 && <p className="text-[11px] text-down">{s.byReason.liquidation} liquidations — try lower leverage or set a stop loss.</p>}
             </div>
           </Card>
 
           <Card className="p-0">
-            <div className="p-4 pb-2"><SectionHeader title="종목별 성과" /></div>
+            <div className="p-4 pb-2"><SectionHeader title="Performance by symbol" /></div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[320px] text-sm">
                 <thead>
                   <tr className="text-left text-[11px] text-muted-foreground">
-                    <th className="px-4 py-1.5 font-medium">종목</th>
-                    <th className="px-2 py-1.5 text-right font-medium">거래</th>
-                    <th className="px-2 py-1.5 text-right font-medium">승률</th>
-                    <th className="px-4 py-1.5 text-right font-medium">손익 (USDT)</th>
+                    <th className="px-4 py-1.5 font-medium">Symbol</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Trades</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Win rate</th>
+                    <th className="px-4 py-1.5 text-right font-medium">PnL (USDT)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -171,34 +171,34 @@ export function PaperDashboard({ stats: s, trades, sample = false }: { stats: Tr
 
       <Card className="p-0">
         <div className="flex items-center justify-between p-4 pb-2">
-          <SectionHeader title="최근 거래" />
+          <SectionHeader title="Recent trades" />
           {s.best && s.worst && (
             <span className="text-[11px] text-muted-foreground tabular-nums">
-              최고 <span className="font-semibold text-up">{signed(s.best.pnl)}</span> · 최악 <span className="font-semibold text-down">{signed(s.worst.pnl)}</span>
+              Best <span className="font-semibold text-up">{signed(s.best.pnl)}</span> · Worst <span className="font-semibold text-down">{signed(s.worst.pnl)}</span>
             </span>
           )}
         </div>
         {recent.length === 0 ? (
-          <p className="px-4 pb-8 pt-4 text-center text-sm text-muted-foreground">아직 청산한 거래가 없습니다. 모의투자에서 포지션을 열고 청산하면 여기에 기록됩니다.</p>
+          <p className="px-4 pb-8 pt-4 text-center text-sm text-muted-foreground">No closed trades yet. Open and close a position in paper trading to see it here.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="text-left text-[11px] text-muted-foreground">
-                  <th className="px-4 py-1.5 font-medium">종목</th>
-                  <th className="px-2 py-1.5 font-medium">방향</th>
-                  <th className="px-2 py-1.5 font-medium">청산 방식</th>
-                  <th className="px-2 py-1.5 font-medium">청산 시각</th>
-                  <th className="px-4 py-1.5 text-right font-medium">손익 (USDT)</th>
+                  <th className="px-4 py-1.5 font-medium">Symbol</th>
+                  <th className="px-2 py-1.5 font-medium">Side</th>
+                  <th className="px-2 py-1.5 font-medium">Close type</th>
+                  <th className="px-2 py-1.5 font-medium">Closed at</th>
+                  <th className="px-4 py-1.5 text-right font-medium">PnL (USDT)</th>
                 </tr>
               </thead>
               <tbody>
                 {recent.map((t) => (
                   <tr key={t.id} className="border-t">
                     <td className="px-4 py-2 font-semibold">{symbolLabel(t.symbol)} <span className="text-xs font-normal text-muted-foreground">{t.leverage}x</span></td>
-                    <td className={cn("px-2 py-2", t.side === "long" ? "text-up" : "text-down")}>{t.side === "long" ? "롱" : "숏"}</td>
+                    <td className={cn("px-2 py-2", t.side === "long" ? "text-up" : "text-down")}>{t.side === "long" ? "Long" : "Short"}</td>
                     <td className="px-2 py-2 text-muted-foreground">{REASON_LABEL[t.reason] ?? t.reason}</td>
-                    <td className="px-2 py-2 tabular-nums text-muted-foreground">{new Date(t.closed_at).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                    <td className="px-2 py-2 tabular-nums text-muted-foreground">{new Date(t.closed_at).toLocaleString("en-US", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
                     <td className={cn("px-4 py-2 text-right font-semibold tabular-nums", tone(t.pnl))}>{signed(t.pnl)}</td>
                   </tr>
                 ))}
@@ -209,7 +209,7 @@ export function PaperDashboard({ stats: s, trades, sample = false }: { stats: Tr
       </Card>
 
       <p className="text-xs leading-relaxed text-muted-foreground">
-        가상 자금으로 진행하는 연습 기록이며 실제 수익이 아닙니다. 이 화면은 본인에게만 보입니다. 거래 횟수는 청산 1건당 1회이고 부분 청산도 각각 셉니다. 최근 1,000건까지 집계합니다.
+        Practice record using virtual funds; not real profit. Only you can see this page. Each close counts as one trade, including partial closes. The latest 1,000 trades are counted.
       </p>
     </div>
   );

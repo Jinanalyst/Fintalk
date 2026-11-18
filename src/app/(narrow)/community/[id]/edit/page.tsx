@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, getPostDetail } from "@/lib/data/community";
 import { WriteForm } from "../../write/write-form";
 
-export const metadata: Metadata = { title: "글 수정", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Edit post", robots: { index: false, follow: false } };
 
 export default async function EditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,7 +14,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   const p = detail.post;
   return (
     <div className="sm:relative sm:left-1/2 sm:w-[min(56rem,calc(100vw-2rem))] sm:-translate-x-1/2">
-      <h1 className="mb-4 text-xl font-bold sm:text-2xl">글 수정</h1>
+      <h1 className="mb-4 text-xl font-bold sm:text-2xl">Edit post</h1>
       <WriteForm
         live
         initial={{ id: p.id, category: p.category, type: p.type, sponsored: !!p.sponsored, draft: !!p.draft, scheduledFor: p.scheduledFor ?? null, title: p.title, body: p.rawBody ?? "", tickers: p.tickers, images: p.images ?? [] }}

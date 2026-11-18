@@ -76,7 +76,7 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
     <div className="space-y-4">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Link href={["analysis", "strategy", "review", "resource"].includes(post.type) ? "/insights" : "/community"} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand">
-        <ArrowLeft className="size-4" /> {post.type === "question" || post.type === "general" || post.type === "discussion" ? "커뮤니티" : "인사이트"}
+        <ArrowLeft className="size-4" /> {post.type === "question" || post.type === "general" || post.type === "discussion" ? "Community" : "Insights"}
       </Link>
 
       <Card className="p-4 sm:p-6">
@@ -86,9 +86,9 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
           </Link>
           <PostBadges post={post} />
           <span>· {post.createdAt}</span>
-          {["analysis", "strategy", "review", "resource"].includes(post.type) && <span>· 약 {readingMinutes(post.rawBody ?? post.body.join(" "))}분</span>}
+          {["analysis", "strategy", "review", "resource"].includes(post.type) && <span>· about {readingMinutes(post.rawBody ?? post.body.join(" "))} min read</span>}
           <span className="inline-flex items-center gap-1"><Eye className="size-3.5" /><LiveViews postId={post.id} initial={post.views} live={live} />{live && <ViewCounter postId={post.id} />}</span>
-          {!live && <SampleBadge label="샘플 게시글" />}
+          {!live && <SampleBadge label="Sample post" />}
         </div>
         <h1 className="text-xl font-bold leading-snug sm:text-2xl">{post.title}</h1>
 
@@ -97,7 +97,7 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
             <UserAvatar name={creatorName(post.author)} url={post.authorAvatar} className="size-9 text-base" />
             <span>
               <span className="block text-sm font-semibold">{creatorName(post.author)}</span>
-              {author && <span className="block text-xs text-muted-foreground">팔로워 {fmtNum(author.followers)}</span>}
+              {author && <span className="block text-xs text-muted-foreground">Followers {fmtNum(author.followers)}</span>}
             </span>
           </Link>
           {!live ? <FollowButton /> : viewerId !== post.authorId && post.authorId ? <FollowButton targetId={post.authorId} initial={followed} /> : null}
@@ -109,7 +109,7 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {legacyImages.map((u) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={u} src={u} alt="첨부 이미지" loading="lazy" className="w-full rounded-lg border object-contain" />
+              <img key={u} src={u} alt="Attached image" loading="lazy" className="w-full rounded-lg border object-contain" />
             ))}
           </div>
         )}
@@ -118,7 +118,7 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
             <div className="flex h-36 items-center justify-center rounded-md bg-card">
               <div className="text-center text-xs text-muted-foreground">
                 <ImageIcon className="mx-auto mb-1 size-6" />
-                첨부된 차트 이미지 (샘플 자리표시)
+                Attached chart image (sample placeholder)
               </div>
             </div>
           </figure>
@@ -129,7 +129,7 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
             {post.tickers.map((t) => (
               <Link key={t} href={`/community?ticker=${t}`} className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs hover:border-brand/40">
                 <Tag>${t}</Tag>
-                <span className="text-muted-foreground">{tickerName(t) !== t ? tickerName(t) : "관련 토론"}</span>
+                <span className="text-muted-foreground">{tickerName(t) !== t ? tickerName(t) : "Related discussion"}</span>
               </Link>
             ))}
           </div>
@@ -142,7 +142,7 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
         {isMine && <PostOwnerActions id={post.id} />}
         {!live && (
           <p className="mt-2 text-xs text-muted-foreground">
-            샘플 게시글입니다. <ComingSoonButton feature="샘플 게시글 수정/삭제" className="underline">수정·삭제</ComingSoonButton>는 실제 게시글에서 작성자에게만 표시됩니다.
+            This is a sample post. <ComingSoonButton feature="Editing or deleting sample posts" className="underline">Edit/Delete</ComingSoonButton> is only shown to the author on real posts.
           </p>
         )}
       </Card>
@@ -150,8 +150,8 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
 
       <section>
         <SectionHeader
-          title={isQuestion ? `답변 ${post.comments}개` : `댓글 ${post.comments}`}
-          right={!live ? <SampleBadge label={isQuestion ? "샘플 답변" : "샘플 댓글"} /> : undefined}
+          title={isQuestion ? `${post.comments} answers` : `${post.comments} comments`}
+          right={!live ? <SampleBadge label={isQuestion ? "Sample answers" : "Sample comments"} /> : undefined}
           className="mb-2"
         />
         <div className="mt-3">
@@ -160,8 +160,8 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
         <div id="answer" className="mt-4 scroll-mt-20">
           {isQuestion && (
             <div className="mb-2">
-              <h2 className="text-base font-bold">내 경험으로 답해 주세요</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">결론부터 한 문장으로, 근거와 출처를 함께 적으면 채택될 확률이 높아져요. 채택되면 기여도 +15점이 기록됩니다.</p>
+              <h2 className="text-base font-bold">Answer from your own experience</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">Start with the conclusion in one sentence, then add evidence and sources to improve your chance of being accepted. An accepted answer earns +15 contribution points.</p>
             </div>
           )}
           <CommentForm postId={post.id} live={live} answer={isQuestion} />
@@ -171,22 +171,22 @@ export default async function PostDetail({ params }: PageProps<"/community/[id]"
       {isQuestion && (
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="bg-brand-soft/60">
-            <h2 className="text-sm font-bold">좋은 답변이 되려면</h2>
+            <h2 className="text-sm font-bold">What makes a good answer</h2>
             <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-foreground/80">
-              <li>질문의 핵심부터 답해요</li>
-              <li>근거 데이터나 출처를 남겨요</li>
-              <li>모르는 부분은 모른다고 말해요</li>
-              <li>수익 보장·유료 리딩방 홍보는 금지예요</li>
+              <li>Answer the core of the question first</li>
+              <li>Include supporting data or sources</li>
+              <li>Say so when you are not sure</li>
+              <li>No profit guarantees or paid signal-group promotion</li>
             </ul>
           </Card>
           <Card>
-            <h2 className="text-sm font-bold">비슷한 질문</h2>
+            <h2 className="text-sm font-bold">Similar questions</h2>
             <ul className="mt-2 space-y-2">
-              {similar.length === 0 && <li className="text-sm text-muted-foreground">비슷한 질문이 아직 없어요.</li>}
+              {similar.length === 0 && <li className="text-sm text-muted-foreground">No similar questions yet.</li>}
               {similar.map((p) => (
                 <li key={p.id}>
                   <Link href={`/community/${p.id}`} className="line-clamp-2 text-sm font-medium leading-snug hover:text-brand">{p.title}</Link>
-                  <span className="text-xs text-muted-foreground">답변 {p.comments}{p.acceptedCommentId ? " · 채택 완료" : ""}</span>
+                  <span className="text-xs text-muted-foreground">Answers {p.comments}{p.acceptedCommentId ? " · Accepted" : ""}</span>
                 </li>
               ))}
             </ul>

@@ -1,20 +1,20 @@
 import type { ReactNode } from "react";
 
 export const OPERATOR = {
-  service: "핀톡",
-  name: "체인랩스",
-  ceo: "장진우",
+  service: "FinTalk",
+  name: "ChainLabs",
+  ceo: "Jang Jin-woo",
   regNo: "382-25-02223",
-  address: "경기도 성남시 중원구 여수울로 50, 406동 403호 (여수동, 연꽃마을)",
+  address: "406-403, 50 Yeosuul-ro, Jungwon-gu, Seongnam-si, Gyeonggi-do, Republic of Korea",
   email: "jangj6091@gmail.com",
-  effective: "2026년 11월 5일",
+  effective: "November 5, 2026",
 };
 
 export function LegalPage({ title, children }: { title: string; children: ReactNode }) {
   return (
     <article className="rounded-2xl border bg-card p-5 shadow-xs sm:p-8">
       <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
-      <p className="mt-1 text-xs text-muted-foreground">시행일: {OPERATOR.effective}</p>
+      <p className="mt-1 text-xs text-muted-foreground">Effective date: {OPERATOR.effective}</p>
       <div className="mt-6 space-y-6 text-sm leading-relaxed">{children}</div>
     </article>
   );

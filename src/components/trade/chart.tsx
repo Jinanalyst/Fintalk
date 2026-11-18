@@ -39,16 +39,16 @@ function bucketStart(itv: string, tsSec: number): number {
   const st = SECONDS[itv];
   return Math.floor(tsSec / st) * st;
 }
-const INTERVAL_LABEL: Record<string, string> = { "1m": "1분", "3m": "3분", "5m": "5분", "15m": "15분", "1h": "1시간", "4h": "4시간", "1d": "일봉", "1w": "주봉", "1M": "월봉" };
-const FIRST_LOAD = 1500; // Binance klines 1회 최대치
+const INTERVAL_LABEL: Record<string, string> = { "1m": "1m", "3m": "3m", "5m": "5m", "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1D", "1w": "1W", "1M": "1M" };
+const FIRST_LOAD = 1500; // max candles per Binance klines request
 const OLDER_LOAD = 1000;
 const MAX_CANDLES = 8000;
 
 const KINDS = [
-  ["candle", "캔들"],
-  ["ha", "하이킨아시"],
-  ["line", "라인"],
-  ["area", "면적"],
+  ["candle", "Candles"],
+  ["ha", "Heikin-Ashi"],
+  ["line", "Line"],
+  ["area", "Area"],
 ] as const;
 type Kind = (typeof KINDS)[number][0];
 
@@ -65,7 +65,7 @@ function HeikinAshiIcon({ className }: { className?: string }) {
 const KIND_ICON = { candle: ChartCandlestick, ha: HeikinAshiIcon, line: ChartLine, area: ChartArea } as const;
 
 const INDS = [
-  ["vol", "거래량"],
+  ["vol", "Volume"],
   ["ma", "MA"],
   ["ema", "EMA"],
   ["boll", "BOLL"],
@@ -76,19 +76,19 @@ const INDS = [
 type Ind = (typeof INDS)[number][0];
 
 const TOOLS = [
-  ["hline", "수평선"],
-  ["trend", "추세선"],
-  ["ray", "연장선"],
-  ["box", "매물대(박스)"],
-  ["ruler", "자"],
-  ["brush", "브러시"],
-  ["text", "텍스트"],
+  ["hline", "Horizontal line"],
+  ["trend", "Trend line"],
+  ["ray", "Ray"],
+  ["box", "Box"],
+  ["ruler", "Ruler"],
+  ["brush", "Brush"],
+  ["text", "Text"],
 ] as const;
 const TOOL_ICON = { hline: Minus, trend: TrendingUp, ray: MoveUpRight, box: Square, ruler: Ruler, brush: Brush, text: Type } as const;
 // 피보나치 그룹 (되돌림: 점 2개, 익스텐션: 점 3개)
 const FIB_TOOLS = [
-  ["fib", "피보나치 되돌림"],
-  ["fibext", "피보나치 익스텐션"],
+  ["fib", "Fib retracement"],
+  ["fibext", "Fib extension"],
 ] as const;
 const FIB_LEVELS: Record<string, number[]> = {
   fib: [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1],
@@ -121,7 +121,7 @@ function tpSlTitle(kind: "tp" | "sl", pos: Position, price: number): string {
   const fee = pos.qty * price * FEE_RATE;
   const pnl = unrealizedPnl(pos, price) - fee;
   const roe = (pnl / pos.margin) * 100;
-  return `${kind === "tp" ? "익절" : "손절"} ↕ ${pnl >= 0 ? "+" : ""}${fmtUsd(pnl)} (${roe >= 0 ? "+" : ""}${roe.toFixed(1)}%)`;
+  return `${kind === "tp" ? "TP" : "SL"} ↕ ${pnl >= 0 ? "+" : ""}${fmtUsd(pnl)} (${roe >= 0 ? "+" : ""}${roe.toFixed(1)}%)`;
 }
 
 type Ticket = { symbol: string; side: Side; type: "limit" | "market"; entry: number; size: number; lev: number; tp: number | null; sl: number | null };
@@ -292,7 +292,7 @@ export function PriceChart({
   });
   const [cfg, setCfg] = useState<IndCfg>(() => mergeCfg(readJson<{ cfg?: unknown }>(K_PREFS, {}).cfg));
   const cfgRef = useRef(cfg);
-  const [version, setVersion] = useState(0); // 캔들 데이터가 바뀔 때마다 증가
+  const [version, setVersion] = useState(0); // increments whenever candle data changes
   const [error, setError] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -390,33 +390,33 @@ export function PriceChart({
     try {
       if (kind === "download") {
         const blob = await captureShot();
-        if (!blob) return note("이미지를 만들지 못했습니다.");
+        if (!blob) return note("Could not create the image.");
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         a.download = `${symbol}-${interval}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       } else if (kind === "copy") {
-        note((await copyShot()) ? "이미지를 복사했습니다." : "이미지를 복사하지 못했습니다.");
+        note((await copyShot()) ? "Image copied." : "Could not copy the image.");
       } else if (kind === "link") {
         await navigator.clipboard.writeText(location.href);
-        note("링크를 복사했습니다.");
+        note("Link copied.");
       } else if (kind === "tab") {
         const w = window.open("", "_blank");
         const blob = await captureShot();
         if (!blob || !w) {
           w?.close();
-          return note("새 탭을 열지 못했습니다.");
+          return note("Could not open a new tab.");
         }
         w.location.href = URL.createObjectURL(blob);
       } else {
         const copied = await copyShot();
-        const text = `${symbol} ${INTERVAL_LABEL[interval]} 차트`;
+        const text = `${symbol} ${INTERVAL_LABEL[interval]} chart`;
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(location.href)}`, "_blank", "noopener");
-        if (copied) note("이미지를 복사했습니다. 게시글에 붙여넣기(Ctrl+V) 하세요.");
+        if (copied) note("Image copied. Paste it into your post (Ctrl+V).");
       }
     } catch {
-      note("실행하지 못했습니다.");
+      note("Action failed.");
     }
   };
   // 차트 위에서 바로 쓰는 텍스트 입력 (id 가 있으면 기존 글 수정)
@@ -613,7 +613,7 @@ export function PriceChart({
       }
       return { ticket: ticketPx, chips, ghost: g && gy !== null ? { y: gy, kind: g.kind } : null, closeBtns, closeLines };
     })();
-    if (!list.length) return { w, h, items: [], ...ex }; // 도형이 없어도 그리기 도구가 클릭을 받을 영역 크기는 필요
+    if (!list.length) return { w, h, items: [], ...ex }; // the size is needed even without shapes so drawing tools can receive clicks
     const step = SECONDS[intervalRef.current];
     const items: Item[] = [];
     for (const sh of list) {
@@ -681,7 +681,7 @@ export function PriceChart({
         const diff = sh.b.p - sh.a.p;
         const bars = Math.round((sh.b.t - sh.a.t) / step);
         color = diff >= 0 ? colors.current.up : colors.current.down;
-        label = `${diff >= 0 ? "+" : ""}${fmtPrice(diff)} (${diff >= 0 ? "+" : ""}${((diff / sh.a.p) * 100).toFixed(2)}%) · ${Math.abs(bars)}봉`;
+        label = `${diff >= 0 ? "+" : ""}${fmtPrice(diff)} (${diff >= 0 ? "+" : ""}${((diff / sh.a.p) * 100).toFixed(2)}%) · ${Math.abs(bars)} bars`;
       }
       items.push({ id: sh.id, kind: sh.kind, x1: r1(pa.x), y1: r1(pa.y), x2: r1(x2), y2: r1(y2), hx1: r1(pa.x), hy1: r1(pa.y), hx2: r1(pb.x), hy2: r1(pb.y), color, width: sh.width, label, draft: sh.draft });
     }
@@ -725,17 +725,17 @@ export function PriceChart({
       return l;
     };
     for (const pos of overlay.current.positions) {
-      const line = add(pos.entry_price, `${pos.side === "long" ? "롱" : "숏"} ${pos.margin_mode === "cross" ? "교차" : "격리"} ${pos.leverage}x`, pos.side === "long" ? up : down, LineStyle.Solid, 2);
+      const line = add(pos.entry_price, `${pos.side === "long" ? "Long" : "Short"} ${pos.margin_mode === "cross" ? "Cross" : "Isolated"} ${pos.leverage}x`, pos.side === "long" ? up : down, LineStyle.Solid, 2);
       entryLines.current.push({ line, pos });
       // 교차 롱은 담보가 충분하면 청산가가 0 이하(=청산 없음)일 수 있어 선을 그리지 않습니다.
-      if (!(pos.margin_mode === "cross" && pos.side === "long" && pos.liq_price <= 0.00000002)) add(pos.liq_price, "청산가", down, LineStyle.Dashed);
+      if (!(pos.margin_mode === "cross" && pos.side === "long" && pos.liq_price <= 0.00000002)) add(pos.liq_price, "Liq. price", down, LineStyle.Dashed);
       if (pos.tp) dragLines.current.push({ line: add(pos.tp, tpSlTitle("tp", pos, pos.tp), up, LineStyle.Dashed), pos, kind: "tp" });
       if (pos.sl) dragLines.current.push({ line: add(pos.sl, tpSlTitle("sl", pos, pos.sl), down, LineStyle.Dashed), pos, kind: "sl" });
     }
     for (const o of overlay.current.orders) {
-      add(o.price, `미체결 ${o.side === "long" ? "롱" : "숏"}`, text, LineStyle.Dotted);
-      if (o.tp) add(o.tp, "익절(예약)", up, LineStyle.SparseDotted);
-      if (o.sl) add(o.sl, "손절(예약)", down, LineStyle.SparseDotted);
+      add(o.price, `Open ${o.side === "long" ? "long" : "short"}`, text, LineStyle.Dotted);
+      if (o.tp) add(o.tp, "TP (pending)", up, LineStyle.SparseDotted);
+      if (o.sl) add(o.sl, "SL (pending)", down, LineStyle.SparseDotted);
     }
   }, []);
 
@@ -751,7 +751,7 @@ export function PriceChart({
       const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=${itv}&endTime=${end}&limit=${OLDER_LOAD}`);
       if (!res.ok) throw new Error();
       const older = parseKlines((await res.json()) as Kline[]);
-      if (sym !== symRef.current || itv !== intervalRef.current) return; // 그 사이 종목·주기가 바뀜
+      if (sym !== symRef.current || itv !== intervalRef.current) return; // symbol or interval changed in the meantime
       if (older.length < OLDER_LOAD) hasMore.current = false;
       if (older.length) {
         keepRange.current = c.timeScale().getVisibleRange();
@@ -996,7 +996,7 @@ export function PriceChart({
     }
     for (const { line, pos } of entryLines.current) {
       const pnl = unrealizedPnl(pos, price);
-      line.applyOptions({ title: `${pos.side === "long" ? "롱" : "숏"} ${pos.margin_mode === "cross" ? "교차" : "격리"} ${pos.leverage}x  ${pnl >= 0 ? "+" : ""}${fmtUsd(pnl)}` });
+      line.applyOptions({ title: `${pos.side === "long" ? "Long" : "Short"} ${pos.margin_mode === "cross" ? "Cross" : "Isolated"} ${pos.leverage}x  ${pnl >= 0 ? "+" : ""}${fmtUsd(pnl)}` });
     }
   }, [price, interval, kind]);
 
@@ -1034,14 +1034,14 @@ export function PriceChart({
     e.stopPropagation();
     if (textEdit) {
       e.preventDefault();
-      return finishText(true); // 입력 중에 빈 곳을 누르면 입력 확정
+      return finishText(true); // clicking elsewhere while typing confirms the input
     }
     const { x, y } = rel(e);
     const pt = toAnchor(x, y);
     if (!pt) return;
     if (tool === "order") {
       const mark = price ?? pt.p;
-      const side: Side = pt.p < mark ? "long" : "short"; // 현재가 아래면 롱(매수 지정가), 위면 숏(매도 지정가)
+      const side: Side = pt.p < mark ? "long" : "short"; // below the mark price = long (buy limit), above = short (sell limit)
       const entry = Number(pt.p.toPrecision(7));
       const lev = 10;
       const size = Math.max(10, Math.floor(balance * lev * 0.1 * 100) / 100);
@@ -1062,16 +1062,16 @@ export function PriceChart({
     const d = draftRef.current;
     if (tool === "hline") return commit("hline", pt, pt);
     if (tool === "text") {
-      e.preventDefault(); // 입력창이 포커스를 잃지 않게
+      e.preventDefault(); // keep the input focused
       textDone.current = false;
       return setTextEdit({ id: null, anchor: pt, x, y, value: "", size: 15 });
     }
     if (tool === "brush") return setDraft({ kind: "brush", a: pt, b: pt, pts: [pt], down: true, sx: e.clientX, sy: e.clientY, moved: false });
     if (d && d.kind === "fibext") {
-      if (!d.c) return setDraft({ ...d, b: pt, c: pt, down: false }); // 두 번째 점 확정 → 세 번째 점 대기
+      if (!d.c) return setDraft({ ...d, b: pt, c: pt, down: false }); // second point set; waiting for the third
       return commit(d.kind, d.a, d.b, pt);
     }
-    if (d) return commit(d.kind, d.a, pt); // 두 번째 클릭
+    if (d) return commit(d.kind, d.a, pt); // second click
     setDraft({ kind: tool, a: pt, b: pt, down: true, sx: e.clientX, sy: e.clientY, moved: false });
   };
 
@@ -1127,7 +1127,7 @@ export function PriceChart({
       if (d.kind === "brush") {
         if (!pt || !d.down) return;
         const last = toPx(d.pts![d.pts!.length - 1]);
-        if (!last || Math.hypot(last.x - x, last.y - y) < 3) return; // 너무 촘촘한 점은 건너뜀
+        if (!last || Math.hypot(last.x - x, last.y - y) < 3) return; // skip points that are too close together
         return setDraft({ ...d, b: pt, pts: [...d.pts!, pt], moved: true });
       }
       if (pt && d.c) setDraft({ ...d, c: pt });
@@ -1160,9 +1160,9 @@ export function PriceChart({
     if (d.moved || Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 6) {
       const { x, y } = rel(e);
       const end = toAnchor(x, y) ?? d.b;
-      if (d.kind === "fibext") setDraft({ ...d, b: end, c: end, down: false }); // 세 번째 점 대기
-      else commit(d.kind, d.a, end); // 끌어서 그리기
-    } else setDraft({ ...d, down: false }); // 클릭 후 두 번째 점 대기
+      if (d.kind === "fibext") setDraft({ ...d, b: end, c: end, down: false }); // waiting for the third point
+      else commit(d.kind, d.a, end); // draw by dragging
+    } else setDraft({ ...d, down: false }); // waiting for the second point after a click
   };
 
   const startDrag = (e: React.PointerEvent, it: Item, mode: Drag["mode"]) => {
@@ -1238,14 +1238,14 @@ export function PriceChart({
     if (!c) return;
     c.timeScale().fitContent();
     c.priceScale("right").applyOptions({ autoScale: true });
-    c.panes().forEach((_, i) => { try { c.priceScale("right", i).applyOptions({ autoScale: true }); } catch { /* 해당 패널 없음 */ } });
+    c.panes().forEach((_, i) => { try { c.priceScale("right", i).applyOptions({ autoScale: true }); } catch { /* pane does not exist */ } });
   };
 
   const sel = shapes.find((s) => s.id === selected) ?? null;
   // 이 종목에 열린 포지션이 있으면 그 레버리지로 고정
   const lockedLev = positions.find((p) => p.symbol === symbol)?.leverage ?? null;
   const activeTicket = ticket && ticket.symbol === symbol ? (lockedLev !== null ? { ...ticket, lev: lockedLev } : ticket) : null;
-  const hint = tool === "order" ? "주문할 가격을 클릭하세요 — 현재가보다 아래면 롱, 위면 숏 지정가가 됩니다" : tool ? (tool === "hline" ? "차트를 클릭해 수평선을 놓으세요" : tool === "brush" ? "차트 위를 끌어서 자유롭게 그리세요" : tool === "text" ? "텍스트를 놓을 위치를 클릭하세요" : draft?.c ? "세 번째 점(되돌림 끝)을 클릭하세요" : draft ? "두 번째 점을 클릭하세요" : "첫 번째 점을 클릭하세요 (끌어서 그려도 됩니다)") : null;
+  const hint = tool === "order" ? "Click the order price — below the mark price makes a long limit, above makes a short limit" : tool ? (tool === "hline" ? "Click the chart to place a horizontal line" : tool === "brush" ? "Drag on the chart to draw freely" : tool === "text" ? "Click where to place the text" : draft?.c ? "Click the third point (end of the retracement)" : draft ? "Click the second point" : "Click the first point (or drag to draw)") : null;
   const btn = (on: boolean) => cn("rounded-md px-2 py-1 text-xs font-medium transition-colors", on ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted");
 
   return (
@@ -1253,7 +1253,7 @@ export function PriceChart({
       <div className="mb-1.5 flex flex-nowrap items-center gap-x-3 gap-y-1 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0 [&>*]:shrink-0">
         <div className="flex gap-0.5">
           <select
-            aria-label="차트 주기"
+            aria-label="Chart interval"
             value={interval}
             onChange={(e) => setIntervalKey(e.target.value as (typeof INTERVALS)[number])}
             className="h-7 cursor-pointer rounded-md border bg-brand-soft px-2 text-xs font-semibold text-brand outline-none [&>option]:bg-card [&>option]:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
@@ -1288,12 +1288,12 @@ export function PriceChart({
             </button>
           ))}
           <button type="button" aria-expanded={settingsOpen} onClick={() => setSettingsOpen((o) => !o)} className={cn("ml-0.5 rounded-md border px-2 py-0.5 text-[11px] font-medium", settingsOpen ? "border-foreground" : "border-transparent text-muted-foreground hover:bg-muted")}>
-            ⚙ 설정
+            ⚙ Settings
           </button>
           <button
             type="button"
             aria-pressed={showTrades}
-            title={showTrades ? "매수/매도 기록 숨기기" : "매수/매도 기록 표시"}
+            title={showTrades ? "Hide buy/sell markers" : "Show buy/sell markers"}
             onClick={() => setShowTrades((v) => !v)}
             className={cn("ml-0.5 rounded-md border px-2 py-0.5 text-[11px] font-bold transition-colors", showTrades ? "border-brand bg-brand-soft" : "border-transparent text-muted-foreground hover:bg-muted")}
           >
@@ -1302,8 +1302,8 @@ export function PriceChart({
           <div ref={shotRef} className="relative ml-0.5">
             <button
               type="button"
-              title="차트 스냅샷"
-              aria-label="차트 스냅샷"
+              title="Chart snapshot"
+              aria-label="Chart snapshot"
               aria-expanded={!!shotPos}
               onClick={(e) => {
                 if (shotPos) return setShotPos(null);
@@ -1316,14 +1316,14 @@ export function PriceChart({
             </button>
             {shotPos && (
               <div style={{ top: shotPos.top, left: shotPos.left }} className="fixed z-50 w-56 rounded-xl border bg-card p-1 text-sm shadow-lg">
-                <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground">차트 스냅샷</p>
+                <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground">Chart snapshot</p>
                 {(
                   [
-                    ["download", "이미지 다운로드", <Download key="d" className="size-4" />],
-                    ["copy", "이미지 복사", <Copy key="c" className="size-4" />],
-                    ["link", "링크 복사", <Link2 key="l" className="size-4" />],
-                    ["tab", "새 탭에서 열기", <ExternalLink key="t" className="size-4" />],
-                    ["x", "X에 게시", <span key="x" className="flex size-4 items-center justify-center text-[13px] font-black leading-none">𝕏</span>],
+                    ["download", "Download image", <Download key="d" className="size-4" />],
+                    ["copy", "Copy image", <Copy key="c" className="size-4" />],
+                    ["link", "Copy link", <Link2 key="l" className="size-4" />],
+                    ["tab", "Open in new tab", <ExternalLink key="t" className="size-4" />],
+                    ["x", "Post to X", <span key="x" className="flex size-4 items-center justify-center text-[13px] font-black leading-none">𝕏</span>],
                   ] as const
                 ).map(([k, label, icon]) => (
                   <button key={k} type="button" onClick={() => void shotAction(k)} className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-muted">
@@ -1341,7 +1341,7 @@ export function PriceChart({
       <div className="flex min-h-0 flex-1 gap-1">
         {/* 그리기 도구: 아이콘 (이름은 마우스를 올리면 표시) */}
         <div className="relative z-20 flex w-9 shrink-0 flex-col items-center gap-1 border-r pr-1">
-          <button type="button" title="차트 주문" aria-label="차트 주문" aria-pressed={tool === "order" || !!activeTicket} onClick={pickOrderTool} className={cn("flex size-8 items-center justify-center rounded-md transition-colors", tool === "order" || activeTicket ? "bg-brand text-white" : "text-brand hover:bg-brand-soft")}>
+          <button type="button" title="Chart order" aria-label="Chart order" aria-pressed={tool === "order" || !!activeTicket} onClick={pickOrderTool} className={cn("flex size-8 items-center justify-center rounded-md transition-colors", tool === "order" || activeTicket ? "bg-brand text-white" : "text-brand hover:bg-brand-soft")}>
             <CirclePlus className="size-[18px]" />
           </button>
           <span className="my-0.5 h-px w-5 bg-border" />
@@ -1354,13 +1354,13 @@ export function PriceChart({
             );
           })}
           <div ref={fibRef} className="relative">
-            <button type="button" title="피보나치" aria-label="피보나치" aria-expanded={fibMenu} onClick={() => setFibMenu((o) => !o)} className={cn("relative flex size-8 items-center justify-center rounded-md transition-colors", tool === "fib" || tool === "fibext" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+            <button type="button" title="Fibonacci" aria-label="Fibonacci" aria-expanded={fibMenu} onClick={() => setFibMenu((o) => !o)} className={cn("relative flex size-8 items-center justify-center rounded-md transition-colors", tool === "fib" || tool === "fibext" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
               <AlignJustify className="size-[18px]" />
               <ChevronRight className="absolute right-[-3px] size-2.5 opacity-60" />
             </button>
             {fibMenu && (
               <div className="absolute left-full top-0 z-30 ml-2 w-48 rounded-xl border bg-card p-1 shadow-lg">
-                <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground">피보나치</p>
+                <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground">Fibonacci</p>
                 {FIB_TOOLS.map(([k, name]) => (
                   <button key={k} type="button" onClick={() => pickTool(k)} className={cn("flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted", tool === k && "bg-muted font-semibold")}>
                     <AlignJustify className="size-4 shrink-0" />
@@ -1371,14 +1371,14 @@ export function PriceChart({
             )}
           </div>
           <span className="my-0.5 h-px w-5 bg-border" />
-          <button type="button" title="모두 지우기" aria-label="모두 지우기" onClick={clearAll} className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground">
+          <button type="button" title="Clear all" aria-label="Clear all" onClick={clearAll} className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground">
             <Trash2 className="size-[18px]" />
           </button>
         </div>
       <div className="relative min-h-0 min-w-0 flex-1">
         <div ref={box} className="absolute inset-0" />
-        <button type="button" onClick={resetView} title="확대·축소·이동한 차트를 처음 상태로 되돌립니다" aria-label="차트 초기화" className="absolute bottom-9 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-md border bg-card/90 px-2 py-1 text-[11px] font-medium text-muted-foreground shadow-xs backdrop-blur transition-colors hover:bg-muted hover:text-foreground">
-          ↺ 초기화
+        <button type="button" onClick={resetView} title="Reset the zoomed or panned chart to its default view" aria-label="Reset chart" className="absolute bottom-9 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-md border bg-card/90 px-2 py-1 text-[11px] font-medium text-muted-foreground shadow-xs backdrop-blur transition-colors hover:bg-muted hover:text-foreground">
+          ↺ Reset
         </button>
 
         {/* 그리기 레이어: 도형 위에서만 마우스를 받고, 나머지는 차트로 통과시킵니다. */}
@@ -1482,9 +1482,9 @@ export function PriceChart({
               <g clipPath={`url(#${clipId})`}>
                 {t.ty !== null && <rect x={0} y={Math.min(t.ey, t.ty)} width={w} height={Math.abs(t.ty - t.ey)} style={{ fill: "var(--up)" }} fillOpacity={0.12} pointerEvents="none" />}
                 {t.sy !== null && <rect x={0} y={Math.min(t.ey, t.sy)} width={w} height={Math.abs(t.sy - t.ey)} style={{ fill: "var(--down)" }} fillOpacity={0.12} pointerEvents="none" />}
-                {lineEl("entry", t.ey, sideVar, undefined, `${side === "long" ? "롱" : "숏"} ${activeTicket.type === "market" ? "시장가" : "지정가"} ${fmtPrice(entry)}`, activeTicket.type === "limit")}
-                {t.ty !== null && lineEl("tp", t.ty, "var(--up)", "6 4", tag("익절", activeTicket.tp), true)}
-                {t.sy !== null && lineEl("sl", t.sy, "var(--down)", "6 4", tag("손절", activeTicket.sl), true)}
+                {lineEl("entry", t.ey, sideVar, undefined, `${side === "long" ? "Long" : "Short"} ${activeTicket.type === "market" ? "Market" : "Limit"} ${fmtPrice(entry)}`, activeTicket.type === "limit")}
+                {t.ty !== null && lineEl("tp", t.ty, "var(--up)", "6 4", tag("TP", activeTicket.tp), true)}
+                {t.sy !== null && lineEl("sl", t.sy, "var(--down)", "6 4", tag("SL", activeTicket.sl), true)}
               </g>
             );
           })()}
@@ -1492,25 +1492,25 @@ export function PriceChart({
             <g key={c.id}>
               <line x1={0} y1={c.y} x2={layout.w} y2={c.y} style={{ stroke: "#f59e0b" }} strokeWidth={1.5} strokeDasharray="2 4" pointerEvents="none" />
               <text x={layout.w - 8} y={c.y - 5} textAnchor="end" fontSize={11} fontWeight={600} style={{ fill: "#f59e0b", paintOrder: "stroke", stroke: "var(--background)", strokeWidth: 3 }} pointerEvents="none">
-                {"지정가 청산 " + c.pct + "% " + fmtPrice(c.price)}
+                {"Limit close " + c.pct + "% " + fmtPrice(c.price)}
               </text>
               <g transform={"translate(8," + (c.y - 9) + ")"} style={{ pointerEvents: "all", cursor: "pointer" }} onPointerDown={(e) => { e.stopPropagation(); void onCancelClose?.(c.id); }}>
                 <rect width={44} height={18} rx={4} style={{ fill: "var(--card)", stroke: "#f59e0b" }} strokeWidth={1.2} />
-                <text x={22} y={12.5} textAnchor="middle" fontSize={10.5} fontWeight={700} style={{ fill: "#f59e0b" }} pointerEvents="none">취소 ✕</text>
+                <text x={22} y={12.5} textAnchor="middle" fontSize={10.5} fontWeight={700} style={{ fill: "#f59e0b" }} pointerEvents="none">Cancel ✕</text>
               </g>
             </g>
           ))}
           {layout.closeBtns.map((c) => (
             <g key={"cb" + c.id} transform={"translate(60," + (c.y - 9) + ")"} style={{ pointerEvents: "all", cursor: "pointer" }} onPointerDown={(e) => { e.stopPropagation(); setCloseId((cur) => (cur === c.id ? null : c.id)); }}>
               <rect width={48} height={18} rx={4} style={{ fill: closeId === c.id ? "var(--foreground)" : "var(--card)", stroke: "var(--foreground)" }} strokeWidth={1.2} />
-              <text x={24} y={12.5} textAnchor="middle" fontSize={10.5} fontWeight={700} style={{ fill: closeId === c.id ? "var(--background)" : "var(--foreground)" }} pointerEvents="none">청산 ▾</text>
+              <text x={24} y={12.5} textAnchor="middle" fontSize={10.5} fontWeight={700} style={{ fill: closeId === c.id ? "var(--background)" : "var(--foreground)" }} pointerEvents="none">Close ▾</text>
             </g>
           ))}
           {layout.chips.map((c) => (
             <g key={c.id + c.kind} transform={`translate(${Math.max(0, layout.w - 84)},${c.y})`} style={{ pointerEvents: "all", cursor: "grab" }} onPointerDown={(e) => startGhost(e, c.id, c.kind)}>
               <rect width={76} height={18} rx={4} style={{ fill: "var(--card)", stroke: c.kind === "tp" ? "var(--up)" : "var(--down)" }} strokeWidth={1.2} />
               <text x={38} y={12.5} textAnchor="middle" fontSize={10.5} fontWeight={700} style={{ fill: c.kind === "tp" ? "var(--up)" : "var(--down)" }} pointerEvents="none">
-                {c.kind === "tp" ? "＋ 익절 끌기" : "＋ 손절 끌기"}
+                {c.kind === "tp" ? "＋ Drag TP" : "＋ Drag SL"}
               </text>
             </g>
           ))}
@@ -1518,7 +1518,7 @@ export function PriceChart({
             <g pointerEvents="none">
               <line x1={0} y1={layout.ghost.y} x2={layout.w} y2={layout.ghost.y} style={{ stroke: layout.ghost.kind === "tp" ? "var(--up)" : "var(--down)" }} strokeWidth={1.5} strokeDasharray="6 4" />
               <text x={layout.w - 8} y={layout.ghost.y - 5} textAnchor="end" fontSize={11} fontWeight={600} style={{ fill: layout.ghost.kind === "tp" ? "var(--up)" : "var(--down)", paintOrder: "stroke", stroke: "var(--background)", strokeWidth: 3 }}>
-                {layout.ghost.kind === "tp" ? "익절" : "손절"} {ghost ? fmtPrice(ghost.price) : ""} — 놓으면 저장
+                {layout.ghost.kind === "tp" ? "TP" : "SL"} {ghost ? fmtPrice(ghost.price) : ""} — release to save
               </text>
             </g>
           )}
@@ -1538,8 +1538,8 @@ export function PriceChart({
             autoFocus
             value={textEdit.value}
             maxLength={100}
-            placeholder="텍스트 입력 후 Enter"
-            aria-label="차트 텍스트"
+            placeholder="Type text, then press Enter"
+            aria-label="Chart text"
             onChange={(e) => setTextEdit((t) => (t ? { ...t, value: e.target.value } : t))}
             onKeyDown={(e) => {
               e.stopPropagation();
@@ -1552,25 +1552,25 @@ export function PriceChart({
           />
         )}
 
-        {hint && <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border bg-card/90 px-2 py-1 text-xs shadow-xs">{hint} · Esc 취소</div>}
+        {hint && <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-md border bg-card/90 px-2 py-1 text-xs shadow-xs">{hint} · Esc to cancel</div>}
 
         {/* 선택한 그림 편집 바 */}
         {sel && !tool && !activeTicket && (
           <div className="absolute left-2 top-2 z-10 flex items-center gap-2 rounded-lg border bg-card px-2 py-1.5 shadow-sm">
             <div className="flex gap-1">
               {PALETTE.map((c) => (
-                <button key={c} type="button" aria-label={`색상 ${c}`} onClick={() => patchSelected({ color: c })} className={cn("size-4 rounded-full border", sel.color === c && "ring-2 ring-foreground ring-offset-1 ring-offset-card")} style={{ background: c }} />
+                <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => patchSelected({ color: c })} className={cn("size-4 rounded-full border", sel.color === c && "ring-2 ring-foreground ring-offset-1 ring-offset-card")} style={{ background: c }} />
               ))}
             </div>
             <div className="flex gap-0.5 border-l pl-2">
               {[1, 2, 3].map((w) => (
-                <button key={w} type="button" onClick={() => patchSelected({ width: w })} className={cn("grid h-5 w-6 place-items-center rounded border", sel.width === w ? "border-foreground" : "border-transparent hover:bg-muted")} aria-label={`굵기 ${w}`}>
+                <button key={w} type="button" onClick={() => patchSelected({ width: w })} className={cn("grid h-5 w-6 place-items-center rounded border", sel.width === w ? "border-foreground" : "border-transparent hover:bg-muted")} aria-label={`Width ${w}`}>
                   <span className="block w-4 rounded bg-foreground" style={{ height: w }} />
                 </button>
               ))}
             </div>
             <button type="button" onClick={removeSelected} className="border-l pl-2 text-xs font-medium text-down hover:underline">
-              삭제
+              Delete
             </button>
           </div>
         )}
@@ -1580,7 +1580,7 @@ export function PriceChart({
         )}
         {closeId && positions.find((x) => x.id === closeId) && (
           <div className="absolute right-16 top-2 z-20 w-64 rounded-xl border bg-card p-3 shadow-lg">
-            <h3 className="mb-2 text-sm font-bold">포지션 청산</h3>
+            <h3 className="mb-2 text-sm font-bold">Close position</h3>
             <ClosePanel
               pos={positions.find((x) => x.id === closeId)!}
               mark={price}
@@ -1602,7 +1602,7 @@ export function PriceChart({
           </div>
         )}
         {settingsOpen && <IndSettings cfg={cfg} setCfg={setCfg} onClose={() => setSettingsOpen(false)} />}
-        {error && <p className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">차트 데이터를 불러오지 못했습니다.</p>}
+        {error && <p className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">Could not load chart data.</p>}
       </div>
       </div>
     </div>
@@ -1641,7 +1641,7 @@ function DashToggle({ on, label, onChange }: { on: boolean; label: string; onCha
   return (
     <label className="ml-auto flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
       <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} aria-label={label} className="size-3.5 accent-foreground" />
-      점선
+      Dashed
     </label>
   );
 }
@@ -1683,18 +1683,18 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
       <div className="mb-1 flex items-center justify-between">
         <h4 className="text-xs font-semibold">{title}</h4>
         <button type="button" disabled={cfg[key].length >= MAX_LINES} onClick={() => addLine(key)} className="text-[11px] text-muted-foreground underline-offset-2 hover:underline disabled:opacity-40">
-          + 추가
+          + Add
         </button>
       </div>
       <div className="space-y-1">
         {cfg[key].map((l, i) => (
           <div key={i} className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={l.on} onChange={(e) => setCfg({ ...cfg, [key]: cfg[key].map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)) })} className="size-3.5 accent-foreground" aria-label={`${title} ${i + 1} 사용`} />
-            <ColorPick value={cfg.colors[`${key}${i}`]} label={`${title} ${i + 1} 색`} onChange={(c) => setColor(`${key}${i}`, c)} />
-            <span className="w-8 text-muted-foreground">기간</span>
-            <NumField label={`${title} ${i + 1} 기간`} value={l.period} min={1} max={500} onCommit={(n) => setCfg({ ...cfg, [key]: cfg[key].map((x, j) => (j === i ? { ...x, period: n } : x)) })} />
-            <DashToggle on={cfg.dashed[`${key}${i}`]} label={`${title} ${i + 1} 점선`} onChange={(v) => setDash(`${key}${i}`, v)} />
-            <button type="button" onClick={() => removeLine(key, i)} aria-label={`${title} ${i + 1} 삭제`} className="shrink-0 text-muted-foreground hover:text-foreground">
+            <input type="checkbox" checked={l.on} onChange={(e) => setCfg({ ...cfg, [key]: cfg[key].map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)) })} className="size-3.5 accent-foreground" aria-label={`Enable ${title} ${i + 1}`} />
+            <ColorPick value={cfg.colors[`${key}${i}`]} label={`${title} ${i + 1} color`} onChange={(c) => setColor(`${key}${i}`, c)} />
+            <span className="w-8 text-muted-foreground">Period</span>
+            <NumField label={`${title} ${i + 1} period`} value={l.period} min={1} max={500} onCommit={(n) => setCfg({ ...cfg, [key]: cfg[key].map((x, j) => (j === i ? { ...x, period: n } : x)) })} />
+            <DashToggle on={cfg.dashed[`${key}${i}`]} label={`${title} ${i + 1} dashed`} onChange={(v) => setDash(`${key}${i}`, v)} />
+            <button type="button" onClick={() => removeLine(key, i)} aria-label={`Remove ${title} ${i + 1}`} className="shrink-0 text-muted-foreground hover:text-foreground">
               ×
             </button>
           </div>
@@ -1706,81 +1706,81 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
     <div className="flex items-center gap-2 text-xs">
       <span className="w-14 text-muted-foreground">{label}</span>
       {children}
-      {dash && <DashToggle on={cfg.dashed[dash]} label={`${label} 점선`} onChange={(v) => setDash(dash, v)} />}
+      {dash && <DashToggle on={cfg.dashed[dash]} label={`${label} dashed`} onChange={(v) => setDash(dash, v)} />}
     </div>
   );
   return (
     <div className="absolute right-2 top-2 z-20 max-h-[calc(100%-16px)] w-64 max-w-[calc(100%-16px)] space-y-3 overflow-y-auto rounded-xl border bg-card p-3 shadow-lg">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold">지표 설정</h3>
+        <h3 className="text-sm font-bold">Indicator settings</h3>
         <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">
-          닫기
+          Close
         </button>
       </div>
       <section className="space-y-1">
-        <h4 className="text-xs font-semibold">캔들</h4>
-        {row("상승", <ColorPick value={hex6(cfg.candle.up, themeUp)} label="상승 캔들 색" onChange={(c) => setCfg({ ...cfg, candle: { ...cfg.candle, up: c } })} />)}
-        {row("하락", <ColorPick value={hex6(cfg.candle.down, themeDown)} label="하락 캔들 색" onChange={(c) => setCfg({ ...cfg, candle: { ...cfg.candle, down: c } })} />)}
+        <h4 className="text-xs font-semibold">Candles</h4>
+        {row("Up", <ColorPick value={hex6(cfg.candle.up, themeUp)} label="Up candle color" onChange={(c) => setCfg({ ...cfg, candle: { ...cfg.candle, up: c } })} />)}
+        {row("Down", <ColorPick value={hex6(cfg.candle.down, themeDown)} label="Down candle color" onChange={(c) => setCfg({ ...cfg, candle: { ...cfg.candle, down: c } })} />)}
         {(cfg.candle.up || cfg.candle.down) && (
           <button type="button" onClick={() => setCfg({ ...cfg, candle: { up: "", down: "" } })} className="text-[11px] text-muted-foreground underline-offset-2 hover:underline">
-            캔들 색 기본값
+            Reset candle colors
           </button>
         )}
       </section>
-      {lineGroup("ma", "이동평균 (MA)")}
-      {lineGroup("ema", "지수이동평균 (EMA)")}
+      {lineGroup("ma", "Moving average (MA)")}
+      {lineGroup("ema", "Exponential MA (EMA)")}
       <section className="space-y-1">
-        <h4 className="text-xs font-semibold">볼린저 밴드</h4>
-        {row("기간", <NumField label="볼린저 기간" value={cfg.boll.period} min={2} max={500} onCommit={(n) => setCfg({ ...cfg, boll: { ...cfg.boll, period: n } })} />)}
-        {row("밴드 색", <ColorPick value={cfg.colors.bollBand} label="볼린저 밴드 색" onChange={(c) => setColor("bollBand", c)} />, "bollBand")}
-        {row("중심선 색", <ColorPick value={cfg.colors.bollMid} label="볼린저 중심선 색" onChange={(c) => setColor("bollMid", c)} />, "bollMid")}
-        {row("표준편차", <NumField label="볼린저 표준편차 배수" value={cfg.boll.mult} min={0.1} max={10} step={0.1} onCommit={(n) => setCfg({ ...cfg, boll: { ...cfg.boll, mult: n } })} />)}
+        <h4 className="text-xs font-semibold">Bollinger Bands</h4>
+        {row("Period", <NumField label="Bollinger period" value={cfg.boll.period} min={2} max={500} onCommit={(n) => setCfg({ ...cfg, boll: { ...cfg.boll, period: n } })} />)}
+        {row("Band color", <ColorPick value={cfg.colors.bollBand} label="Bollinger band color" onChange={(c) => setColor("bollBand", c)} />, "bollBand")}
+        {row("Midline color", <ColorPick value={cfg.colors.bollMid} label="Bollinger midline color" onChange={(c) => setColor("bollMid", c)} />, "bollMid")}
+        {row("Std. dev.", <NumField label="Bollinger std. dev. multiplier" value={cfg.boll.mult} min={0.1} max={10} step={0.1} onCommit={(n) => setCfg({ ...cfg, boll: { ...cfg.boll, mult: n } })} />)}
       </section>
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">RSI</h4>
-        {row("색", <ColorPick value={cfg.colors.rsi} label="RSI 색" onChange={(c) => setColor("rsi", c)} />, "rsi")}
-        {row("기간", <NumField label="RSI 기간" value={cfg.rsi.period} min={2} max={200} onCommit={(n) => setCfg({ ...cfg, rsi: { period: n } })} />)}
+        {row("Color", <ColorPick value={cfg.colors.rsi} label="RSI color" onChange={(c) => setColor("rsi", c)} />, "rsi")}
+        {row("Period", <NumField label="RSI period" value={cfg.rsi.period} min={2} max={200} onCommit={(n) => setCfg({ ...cfg, rsi: { period: n } })} />)}
       </section>
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">MACD</h4>
-        {row("MACD 색", <ColorPick value={cfg.colors.macd} label="MACD 선 색" onChange={(c) => setColor("macd", c)} />, "macd")}
-        {row("시그널 색", <ColorPick value={cfg.colors.macdSig} label="MACD 시그널 선 색" onChange={(c) => setColor("macdSig", c)} />, "macdSig")}
-        {row("단기", <NumField label="MACD 단기" value={cfg.macd.fast} min={1} max={200} onCommit={(n) => n < cfg.macd.slow && setCfg({ ...cfg, macd: { ...cfg.macd, fast: n } })} />)}
-        {row("장기", <NumField label="MACD 장기" value={cfg.macd.slow} min={2} max={400} onCommit={(n) => n > cfg.macd.fast && setCfg({ ...cfg, macd: { ...cfg.macd, slow: n } })} />)}
-        {row("시그널", <NumField label="MACD 시그널" value={cfg.macd.signal} min={1} max={200} onCommit={(n) => setCfg({ ...cfg, macd: { ...cfg.macd, signal: n } })} />)}
-        <p className="text-[11px] text-muted-foreground">단기는 장기보다 작아야 합니다.</p>
+        {row("MACD color", <ColorPick value={cfg.colors.macd} label="MACD line color" onChange={(c) => setColor("macd", c)} />, "macd")}
+        {row("Signal color", <ColorPick value={cfg.colors.macdSig} label="MACD signal line color" onChange={(c) => setColor("macdSig", c)} />, "macdSig")}
+        {row("Fast", <NumField label="MACD fast" value={cfg.macd.fast} min={1} max={200} onCommit={(n) => n < cfg.macd.slow && setCfg({ ...cfg, macd: { ...cfg.macd, fast: n } })} />)}
+        {row("Slow", <NumField label="MACD slow" value={cfg.macd.slow} min={2} max={400} onCommit={(n) => n > cfg.macd.fast && setCfg({ ...cfg, macd: { ...cfg.macd, slow: n } })} />)}
+        {row("Signal", <NumField label="MACD signal" value={cfg.macd.signal} min={1} max={200} onCommit={(n) => setCfg({ ...cfg, macd: { ...cfg.macd, signal: n } })} />)}
+        <p className="text-[11px] text-muted-foreground">Fast must be smaller than slow.</p>
       </section>
       <section className="space-y-1">
         <h4 className="text-xs font-semibold">VWAP</h4>
-        {row("색", <ColorPick value={cfg.colors.vwap} label="VWAP 색" onChange={(c) => setColor("vwap", c)} />, "vwap")}
+        {row("Color", <ColorPick value={cfg.colors.vwap} label="VWAP color" onChange={(c) => setColor("vwap", c)} />, "vwap")}
         <div className="flex items-center gap-2 text-xs">
-          <span className="w-14 text-muted-foreground">초기화</span>
+          <span className="w-14 text-muted-foreground">Reset</span>
           <select
             value={cfg.vwap.anchor}
-            aria-label="VWAP 초기화 기준"
+            aria-label="VWAP reset anchor"
             onChange={(e) => setCfg({ ...cfg, vwap: { ...cfg.vwap, anchor: e.target.value as IndCfg["vwap"]["anchor"] } })}
             className="h-7 rounded-md border bg-background px-1.5 text-xs"
           >
-            <option value="day">매일</option>
-            <option value="week">매주</option>
-            <option value="month">매월</option>
-            <option value="none">없음(전체)</option>
+            <option value="day">Daily</option>
+            <option value="week">Weekly</option>
+            <option value="month">Monthly</option>
+            <option value="none">None (all)</option>
           </select>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="w-14 text-muted-foreground">밴드</span>
-          <input type="checkbox" checked={cfg.vwap.band} onChange={(e) => setCfg({ ...cfg, vwap: { ...cfg.vwap, band: e.target.checked } })} className="size-3.5 accent-foreground" aria-label="VWAP 밴드 표시" />
+          <span className="w-14 text-muted-foreground">Band</span>
+          <input type="checkbox" checked={cfg.vwap.band} onChange={(e) => setCfg({ ...cfg, vwap: { ...cfg.vwap, band: e.target.checked } })} className="size-3.5 accent-foreground" aria-label="Show VWAP band" />
         </div>
         {cfg.vwap.band && (
           <>
-            {row("밴드 색", <ColorPick value={cfg.colors.vwapBand} label="VWAP 밴드 색" onChange={(c) => setColor("vwapBand", c)} />, "vwapBand")}
-            {row("표준편차", <NumField label="VWAP 밴드 표준편차 배수" value={cfg.vwap.mult} min={0.1} max={10} step={0.1} onCommit={(n) => setCfg({ ...cfg, vwap: { ...cfg.vwap, mult: n } })} />)}
+            {row("Band color", <ColorPick value={cfg.colors.vwapBand} label="VWAP band color" onChange={(c) => setColor("vwapBand", c)} />, "vwapBand")}
+            {row("Std. dev.", <NumField label="VWAP band std. dev. multiplier" value={cfg.vwap.mult} min={0.1} max={10} step={0.1} onCommit={(n) => setCfg({ ...cfg, vwap: { ...cfg.vwap, mult: n } })} />)}
           </>
         )}
-        <p className="text-[11px] text-muted-foreground">기준은 UTC 0시입니다. 일봉 이상에서는 매일 기준이 의미가 없어 매주·매월을 권장합니다.</p>
+        <p className="text-[11px] text-muted-foreground">Anchored at 00:00 UTC. On daily or higher timeframes a daily anchor is meaningless, so weekly or monthly is recommended.</p>
       </section>
       <button type="button" onClick={() => setCfg(DEFAULT_CFG)} className="text-xs text-muted-foreground underline-offset-2 hover:underline">
-        기본값으로 되돌리기
+        Restore defaults
       </button>
     </div>
   );
@@ -1797,13 +1797,13 @@ function TicketPanel({ t, locked, set, mark, balance, loggedIn, busy, onSubmit, 
   const round = (n: number) => Number(n.toPrecision(7));
 
   let error: string | null = null;
-  if (!loggedIn) error = "로그인이 필요합니다.";
-  else if (!(entry > 0)) error = "가격을 확인해 주세요.";
-  else if (t.size < 10) error = "주문 규모는 최소 10 USDT 입니다.";
-  else if (margin + fee > balance) error = `잔고가 부족합니다. (필요 ${fmtUsd(margin + fee)} USDT)`;
-  else if (t.type === "limit" && mark && ((t.side === "long" && entry >= mark) || (t.side === "short" && entry <= mark))) error = `${t.side === "long" ? "롱 지정가는 현재가보다 낮아야" : "숏 지정가는 현재가보다 높아야"} 합니다.`;
-  else if (t.tp !== null && (t.tp - entry) * dir <= 0) error = `${t.side === "long" ? "롱" : "숏"} 익절가는 진입가보다 ${t.side === "long" ? "높아야" : "낮아야"} 합니다.`;
-  else if (t.sl !== null && (t.sl - entry) * dir >= 0) error = `${t.side === "long" ? "롱" : "숏"} 손절가는 진입가보다 ${t.side === "long" ? "낮아야" : "높아야"} 합니다.`;
+  if (!loggedIn) error = "Login required.";
+  else if (!(entry > 0)) error = "Check the price.";
+  else if (t.size < 10) error = "The minimum order size is 10 USDT.";
+  else if (margin + fee > balance) error = `Insufficient balance (${fmtUsd(margin + fee)} USDT required).`;
+  else if (t.type === "limit" && mark && ((t.side === "long" && entry >= mark) || (t.side === "short" && entry <= mark))) error = `A ${t.side === "long" ? "long limit must be below" : "short limit must be above"} the current price.`;
+  else if (t.tp !== null && (t.tp - entry) * dir <= 0) error = `A ${t.side === "long" ? "long" : "short"} take profit must be ${t.side === "long" ? "above" : "below"} the entry price.`;
+  else if (t.sl !== null && (t.sl - entry) * dir >= 0) error = `A ${t.side === "long" ? "long" : "short"} stop loss must be ${t.side === "long" ? "below" : "above"} the entry price.`;
 
   const flip = (side: Side) => {
     if (side === t.side) return;
@@ -1818,12 +1818,12 @@ function TicketPanel({ t, locked, set, mark, balance, loggedIn, busy, onSubmit, 
           <span className={cn("w-8 font-semibold", key === "tp" ? "text-up" : "text-down")}>{name}</span>
           {v === null ? (
             <button type="button" onClick={() => set({ ...t, [key]: round(entry * (1 + dir * (key === "tp" ? 0.02 : -0.01))) })} className="rounded-md border px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted">
-              ＋ 설정
+              ＋ Set
             </button>
           ) : (
             <>
-              <NumField wide label={`${name} 가격`} value={v} min={0.0000001} max={1e9} step={0.0000001} onCommit={(n) => set({ ...t, [key]: n })} />
-              <button type="button" aria-label={`${name} 제거`} onClick={() => set({ ...t, [key]: null })} className="text-muted-foreground hover:text-foreground">
+              <NumField wide label={`${name} price`} value={v} min={0.0000001} max={1e9} step={0.0000001} onCommit={(n) => set({ ...t, [key]: n })} />
+              <button type="button" aria-label={`Remove ${name}`} onClick={() => set({ ...t, [key]: null })} className="text-muted-foreground hover:text-foreground">
                 ✕
               </button>
             </>
@@ -1843,46 +1843,46 @@ function TicketPanel({ t, locked, set, mark, balance, loggedIn, busy, onSubmit, 
   return (
     <div className="absolute left-2 top-2 z-20 w-64 space-y-2.5 rounded-xl border bg-card p-3 shadow-lg">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold">차트 주문</h3>
+        <h3 className="text-sm font-bold">Chart order</h3>
         <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">
-          취소
+          Cancel
         </button>
       </div>
       <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-xs font-semibold">
         {(["long", "short"] as const).map((sd) => (
           <button key={sd} type="button" onClick={() => flip(sd)} className={cn("rounded-md py-1.5", t.side === sd ? (sd === "long" ? "bg-up text-white" : "bg-down text-white") : "text-muted-foreground")}>
-            {sd === "long" ? "롱" : "숏"}
+            {sd === "long" ? "Long" : "Short"}
           </button>
         ))}
       </div>
       <div className="grid grid-cols-2 gap-1 rounded-lg border p-0.5 text-xs font-medium">
         {(["limit", "market"] as const).map((ty) => (
           <button key={ty} type="button" onClick={() => set({ ...t, type: ty })} className={cn("rounded-md py-1", t.type === ty ? "bg-foreground text-background" : "text-muted-foreground")}>
-            {ty === "limit" ? "지정가" : "시장가"}
+            {ty === "limit" ? "Limit" : "Market"}
           </button>
         ))}
       </div>
       <div className="flex items-center gap-2 text-xs">
-        <span className="w-12 text-muted-foreground">진입가</span>
-        {t.type === "limit" ? <NumField wide label="진입가" value={t.entry} min={0.0000001} max={1e9} step={0.0000001} onCommit={(n) => set({ ...t, entry: n })} /> : <span className="tabular-nums">{mark ? fmtPrice(mark) : "—"} (현재가)</span>}
+        <span className="w-12 text-muted-foreground">Entry</span>
+        {t.type === "limit" ? <NumField wide label="Entry" value={t.entry} min={0.0000001} max={1e9} step={0.0000001} onCommit={(n) => set({ ...t, entry: n })} /> : <span className="tabular-nums">{mark ? fmtPrice(mark) : "—"} (mark)</span>}
       </div>
       <div className="flex items-center gap-2 text-xs">
-        <span className="w-12 text-muted-foreground">금액</span>
-        <NumField wide label="주문 금액" value={t.size} min={10} max={1000000} step={0.01} onCommit={(n) => set({ ...t, size: n })} />
+        <span className="w-12 text-muted-foreground">Amount</span>
+        <NumField wide label="Order amount" value={t.size} min={10} max={1000000} step={0.01} onCommit={(n) => set({ ...t, size: n })} />
         <span className="text-muted-foreground">USDT</span>
       </div>
       <div className="space-y-1 text-xs">
-        <span className="text-muted-foreground">레버리지</span>
+        <span className="text-muted-foreground">Leverage</span>
         {locked ? (
-          <p className="font-semibold tabular-nums" title="이 종목에 열린 포지션이 있어 레버리지가 고정됩니다.">{t.lev}x <span className="font-normal text-muted-foreground">🔒 포지션 고정</span></p>
+          <p className="font-semibold tabular-nums" title="Leverage is locked because this symbol has an open position.">{t.lev}x <span className="font-normal text-muted-foreground">🔒 Locked by position</span></p>
         ) : (
           <LeverageSlider value={t.lev} onChange={(l) => set({ ...t, lev: l })} />
         )}
       </div>
-      {level("tp", "익절")}
-      {level("sl", "손절")}
+      {level("tp", "Take profit")}
+      {level("sl", "Stop loss")}
       <p className="text-[11px] text-muted-foreground">
-        증거금 {fmtUsd(margin)} · 수수료 {fmtUsd(fee)} USDT. 차트의 선을 끌어서 가격을 바꿀 수 있습니다.
+        Margin {fmtUsd(margin)} · Fee {fmtUsd(fee)} USDT. Drag the lines on the chart to change prices.
       </p>
       {error && <p className="text-[11px] font-medium text-down">{error}</p>}
       <button
@@ -1891,7 +1891,7 @@ function TicketPanel({ t, locked, set, mark, balance, loggedIn, busy, onSubmit, 
         onClick={onSubmit}
         className={cn("h-9 w-full rounded-lg text-sm font-semibold text-white transition-opacity disabled:opacity-40", t.side === "long" ? "bg-up" : "bg-down")}
       >
-        {busy ? "주문 중…" : `${t.side === "long" ? "롱" : "숏"} ${t.type === "limit" ? "지정가" : "시장가"} 주문 확정`}
+        {busy ? "Placing order…" : `Confirm ${t.side === "long" ? "long" : "short"} ${t.type === "limit" ? "limit" : "market"} order`}
       </button>
     </div>
   );

@@ -7,25 +7,25 @@ import { listPosts } from "@/lib/data/community";
 import { INSIGHT_TYPES, POST_TYPES, type Category, type PostType } from "@/lib/sample-data";
 
 export const metadata: Metadata = {
-  title: "인사이트",
-  description: "국내 주식, 미국 주식, 암호화폐 투자자들이 쓴 양질의 분석 콘텐츠를 만나보세요.",
+  title: "Insights",
+  description: "Read quality analysis written by stock and crypto investors.",
   alternates: { canonical: "/insights" },
 };
 
 const CATS: Category[] = [
-  { slug: "all", label: "전체" },
-  { slug: "kr-stock", label: "국내 주식" },
-  { slug: "us-stock", label: "미국 주식" },
-  { slug: "crypto", label: "암호화폐" },
-  { slug: "macro", label: "거시경제" },
-  { slug: "trading", label: "트레이딩" },
+  { slug: "all", label: "All" },
+  { slug: "kr-stock", label: "Korean stocks" },
+  { slug: "us-stock", label: "US stocks" },
+  { slug: "crypto", label: "Crypto" },
+  { slug: "macro", label: "Macro" },
+  { slug: "trading", label: "Trading" },
 ];
 
-const TYPE_PILLS = [{ slug: "all", label: "전체 유형" }, ...POST_TYPES.filter((t) => t.insight).map((t) => ({ slug: t.slug as string, label: t.label }))];
+const TYPE_PILLS = [{ slug: "all", label: "All types" }, ...POST_TYPES.filter((t) => t.insight).map((t) => ({ slug: t.slug as string, label: t.label }))];
 const SORTS = [
-  { slug: "hot", label: "인기" },
-  { slug: "new", label: "최신" },
-  { slug: "comments", label: "댓글순" },
+  { slug: "hot", label: "Hot" },
+  { slug: "new", label: "Newest" },
+  { slug: "comments", label: "Most comments" },
 ];
 type Sort = "hot" | "new" | "comments";
 
@@ -55,19 +55,19 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
   return (
     <div className="min-w-0 space-y-5">
       <PageTitle
-        title="근거 있는 분석을, 깊이 있게 읽어요"
-        desc="시장 분석, 투자 전략, 매매 복기, 학습 자료. 출처와 데이터가 있는 글을 모았어요."
+        title="Read evidence-based analysis in depth"
+        desc="Market analysis, strategies, trade reviews and learning resources, with sources and data."
         right={
           <Link href={`/community/write?type=${type === "all" ? "analysis" : type}`} className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-brand px-5 text-sm font-bold text-primary-foreground hover:opacity-90">
-            <PenLine className="size-4" /> 인사이트 쓰기
+            <PenLine className="size-4" /> Write an insight
           </Link>
         }
       />
-      {!live && <SampleBadge label="샘플 게시글 (Supabase 미연결)" />}
+      {!live && <SampleBadge label="Sample posts (Supabase not connected)" />}
 
       {lead && (
-        <section aria-label="이번 주 인사이트">
-          <p className="mb-2 text-xs font-bold text-amber-700 dark:text-amber-300">이번 주 인사이트</p>
+        <section aria-label="Insights this week">
+          <p className="mb-2 text-xs font-bold text-amber-700 dark:text-amber-300">Insights this week</p>
           <InsightCard post={lead} featured />
         </section>
       )}
@@ -88,7 +88,7 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
               ))}
             </ul>
           </details>
-          <nav aria-label="정렬" className="flex items-center gap-1 text-sm">
+          <nav aria-label="Sort" className="flex items-center gap-1 text-sm">
             {SORTS.map((o) => (
               <Link key={o.slug} href={href({ sort: o.slug })} className={`rounded-md px-2.5 py-1.5 ${o.slug === sort ? "bg-muted font-bold text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{o.label}</Link>
             ))}
@@ -98,7 +98,7 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
 
       {rest.length === 0 && !lead ? (
         <div className="rounded-2xl border bg-card p-10 text-center text-sm text-muted-foreground">
-          아직 인사이트가 없습니다. <Link href="/community/write?type=analysis" className="text-brand underline">첫 분석을 공유해 보세요.</Link>
+          No insights yet. <Link href="/community/write?type=analysis" className="text-brand underline">Share the first analysis.</Link>
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
@@ -111,14 +111,14 @@ export default async function InsightsPage({ searchParams }: PageProps<"/insight
       )}
 
       <section className="rounded-2xl bg-brand-soft p-5 sm:p-6">
-        <h2 className="text-lg font-extrabold tracking-tight text-brand">내 분석이 누군가의 판단에 도움이 돼요</h2>
+        <h2 className="text-lg font-extrabold tracking-tight text-brand">Your analysis can help someone decide</h2>
         <ul className="mt-2 space-y-1 text-sm text-foreground/80">
-          <li>① 결론을 첫 문단에 먼저 써요</li>
-          <li>② 근거 데이터와 출처를 붙여요</li>
-          <li>③ 이해관계가 있으면 표시해요</li>
+          <li>1. Put the conclusion in the first paragraph</li>
+          <li>2. Attach supporting data and sources</li>
+          <li>3. Disclose any conflicts of interest</li>
         </ul>
-        <Link href="/community/write?type=analysis" className="mt-4 inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-primary-foreground hover:opacity-90">첫 인사이트 쓰기</Link>
-        <p className="mt-3 text-xs text-muted-foreground">인사이트는 기여도에 더 높은 가중치(+5점)로 기록됩니다. 현금 정산은 준비 중이에요.</p>
+        <Link href="/community/write?type=analysis" className="mt-4 inline-flex h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-primary-foreground hover:opacity-90">Write your first insight</Link>
+        <p className="mt-3 text-xs text-muted-foreground">Insights earn extra contribution points (+5). Cash payouts are not available yet.</p>
       </section>
     </div>
   );

@@ -30,12 +30,12 @@ export function TradesList({ symbol }: { symbol: string }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="grid grid-cols-3 gap-2 px-2 py-1.5 text-[11px] text-muted-foreground">
-        <span>가격(USDT)</span>
-        <span className="text-right">수량</span>
-        <span className="text-right">시간</span>
+        <span>Price (USDT)</span>
+        <span className="text-right">Size</span>
+        <span className="text-right">Time</span>
       </div>
       {fills.length === 0 ? (
-        <p className="grid flex-1 place-items-center py-16 text-xs text-muted-foreground">체결 불러오는 중…</p>
+        <p className="grid flex-1 place-items-center py-16 text-xs text-muted-foreground">Loading trades…</p>
       ) : (
         <ul className="notranslate min-h-0 flex-1 overflow-y-auto">
           {fills.map((f) => (

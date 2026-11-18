@@ -27,7 +27,7 @@ export type Share = {
 export const DEMO_SHARE: Share = {
   id: "demo",
   userId: "demo",
-  nickname: "핀톡러",
+  nickname: "FinTalker",
   kind: "position",
   symbol: "BTCUSDT",
   side: "short",
@@ -60,7 +60,7 @@ export async function getShare(id: string): Promise<Share | null> {
   return {
     id: r.id,
     userId: r.user_id,
-    nickname: prof?.nickname ?? "탈퇴한 사용자",
+    nickname: prof?.nickname ?? "Deleted user",
     kind: r.kind,
     symbol: r.symbol,
     side: r.side,

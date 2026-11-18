@@ -16,7 +16,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     timer.current = setTimeout(() => setMsg(null), 2600);
   }, []);
   const comingSoon = useCallback(
-    (feature?: string) => show(`${feature ?? "이 기능"}은(는) 개발 예정입니다 (Phase 2 이후 제공).`),
+    (feature?: string) => show(`${feature ?? "This feature"} is coming soon.`),
     [show],
   );
 

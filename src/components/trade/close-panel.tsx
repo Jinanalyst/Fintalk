@@ -43,10 +43,10 @@ export function ClosePanel({
   const est = ref && qty > 0 ? unrealizedPnl({ ...pos, qty }, ref) - qty * ref * FEE_RATE - qty * pos.entry_price * FEE_RATE : null;
 
   let error: string | null = null;
-  if (!pctOk) error = "청산 비율은 1~100% 로 입력해 주세요.";
+  if (!pctOk) error = "Enter a close percentage between 1 and 100.";
   else if (mode === "limit") {
-    if (!(limit > 0)) error = "지정가를 입력해 주세요.";
-    else if (mark && ((long && limit <= mark) || (!long && limit >= mark))) error = `${long ? "롱은 현재가보다 높게" : "숏은 현재가보다 낮게"} 입력해 주세요. 바로 청산하려면 시장가를 쓰세요.`;
+    if (!(limit > 0)) error = "Enter a limit price.";
+    else if (mark && ((long && limit <= mark) || (!long && limit >= mark))) error = `Enter a price ${long ? "above" : "below"} the current price. Use market to close immediately.`;
   }
 
   return (
@@ -54,8 +54,8 @@ export function ClosePanel({
       <div className="grid grid-cols-2 gap-1 rounded-lg border bg-muted/40 p-0.5 text-xs font-medium">
         {(
           [
-            ["market", "시장가"],
-            ["limit", "지정가"],
+            ["market", "Market"],
+            ["limit", "Limit"],
           ] as const
         ).map(([k, t]) => (
           <button key={k} type="button" onClick={() => setMode(k)} className={cn("rounded-md py-1.5", mode === k ? "bg-foreground text-background" : "text-muted-foreground")}>
@@ -66,7 +66,7 @@ export function ClosePanel({
 
       {mode === "limit" && (
         <label className="flex h-9 items-center rounded-lg border bg-background px-3 focus-within:ring-2 focus-within:ring-ring/50">
-          <span className="text-xs text-muted-foreground">가격</span>
+          <span className="text-xs text-muted-foreground">Price</span>
           <input className="min-w-0 flex-1 bg-transparent px-2 text-right tabular-nums outline-none" inputMode="decimal" value={price} placeholder={mark ? fmtPrice(mark) : ""} onChange={(e) => setPrice(e.target.value)} />
           <button type="button" className="text-[11px] text-brand hover:underline" onClick={() => mark && setPrice(String(Number((mark * (long ? 1.005 : 0.995)).toPrecision(8))))}>
             ±0.5%
@@ -81,17 +81,17 @@ export function ClosePanel({
           </button>
         ))}
         <label className="flex h-7 w-16 items-center rounded-md border bg-background px-1.5 focus-within:ring-2 focus-within:ring-ring/50">
-          <input className="w-full min-w-0 bg-transparent text-right text-xs tabular-nums outline-none" inputMode="decimal" aria-label="청산 비율" value={pct} onChange={(e) => setPct(e.target.value)} />
+          <input className="w-full min-w-0 bg-transparent text-right text-xs tabular-nums outline-none" inputMode="decimal" aria-label="Close percentage" value={pct} onChange={(e) => setPct(e.target.value)} />
           <span className="text-xs text-muted-foreground">%</span>
         </label>
       </div>
 
       <p className="text-[11px] leading-relaxed text-muted-foreground">
-        청산 규모 {fmtUsd(qty * (ref ?? pos.entry_price))} USDT
+        Close size {fmtUsd(qty * (ref ?? pos.entry_price))} USDT
         {est !== null && (
           <>
             {" "}
-            · 수수료 반영 예상 <span className={cn("font-semibold", est >= 0 ? "text-up" : "text-down")}>{est >= 0 ? "+" : ""}{fmtUsd(est)}</span>
+            · Est. after fees<span className={cn("font-semibold", est >= 0 ? "text-up" : "text-down")}>{est >= 0 ? "+" : ""}{fmtUsd(est)}</span>
           </>
         )}
       </p>
@@ -99,11 +99,11 @@ export function ClosePanel({
 
       <div className="flex gap-2">
         <Button className="flex-1" disabled={busy || !!error} onClick={() => (mode === "market" ? onMarket(p) : onLimit(p, limit))}>
-          {mode === "market" ? `시장가 ${p || ""}% 청산` : `지정가 ${p || ""}% 청산 등록`}
+          {mode === "market" ? `Close ${p || ""}% at market` : `Place ${p || ""}% limit close`}
         </Button>
         {onCancel && (
           <Button variant="outline" onClick={onCancel}>
-            닫기
+            Close
           </Button>
         )}
       </div>
