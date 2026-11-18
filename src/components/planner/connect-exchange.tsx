@@ -8,21 +8,23 @@ import { cn } from "@/lib/utils";
 import { Notice, inputCls, primaryBtn, secondaryBtn } from "./ui";
 import { applySync } from "./use-exchanges";
 
-type Meta = { id: string; name: string; short: string; url: string; passphrase: boolean; note?: string };
+type Meta = { id: string; name: string; url: string; passphrase: boolean; note?: string };
 
 export const CONNECT_EXCHANGES: Meta[] = [
-  { id: "OKX", name: "OKX", short: "OKX", url: "https://www.okx.com/account/my-api", passphrase: true },
-  { id: "Binance", name: "Binance", short: "BN", url: "https://www.binance.com/en/my/settings/api-management", passphrase: false,
+  { id: "OKX", name: "OKX", url: "https://www.okx.com/account/my-api", passphrase: true },
+  { id: "Binance", name: "Binance", url: "https://www.binance.com/en/my/settings/api-management", passphrase: false,
     note: "Binance needs “Enable Futures” on to read futures history. Leave withdrawals, transfers and spot trading off." },
-  { id: "Bybit", name: "Bybit", short: "BY", url: "https://www.bybit.com/app/user/api-management", passphrase: false },
-  { id: "Bitget", name: "Bitget", short: "BG", url: "https://www.bitget.com/account/newapi", passphrase: true },
+  { id: "Bybit", name: "Bybit", url: "https://www.bybit.com/app/user/api-management", passphrase: false },
+  { id: "Bitget", name: "Bitget", url: "https://www.bitget.com/account/newapi", passphrase: true },
 ];
 
 const SERVER_IPS = (process.env.NEXT_PUBLIC_PLANNER_SERVER_IPS ?? "").trim();
 const STEPS = ["Create key", "Paste key", "Verify"] as const;
 
-export function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-[11px] font-extrabold tracking-tight">{children}</span>;
+/** The exchange's real logo (files in /public/exchanges). */
+export function Badge({ id, name }: { id: string; name: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={`/exchanges/${id.toLowerCase()}.png`} alt={`${name} logo`} width={40} height={40} className="size-10 shrink-0 rounded-xl border bg-white object-contain" />;
 }
 
 /** The "Connect an exchange" cards plus the 3-step connect dialog. */
@@ -53,7 +55,7 @@ export function ConnectExchange({ connections, setConnections, signedIn, configu
           const blocked = !conn && !canAddMore;
           return (
             <div key={m.id} className={cn("flex items-center gap-3 rounded-2xl border p-3", conn && "border-up/40 bg-up/5")}>
-              <Badge>{m.short}</Badge>
+              <Badge id={m.id} name={m.name} />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{m.name}</p>
                 {conn ? (
@@ -119,7 +121,7 @@ function ConnectDialog({ meta, signedIn, configured, onClose, onDone }: { meta: 
       className="m-auto max-h-[94vh] w-[min(96vw,640px)] overflow-hidden rounded-2xl border bg-card p-0 text-foreground backdrop:bg-black/60">
       <div className="flex max-h-[94vh] flex-col">
         <header className="flex items-center gap-3 border-b px-6 py-4">
-          <Badge>{meta.short}</Badge>
+          <Badge id={meta.id} name={meta.name} />
           <h2 className="flex-1 text-xl font-extrabold tracking-tight">Connect {meta.name}</h2>
           <button type="button" onClick={() => ref.current?.close()} aria-label="Close" className="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-muted"><X className="size-5" /></button>
         </header>
