@@ -48,6 +48,15 @@ export const planner = {
     if (!hasSample && key(old) === key(paper)) return;
     commit({ ...cur, trades: [...paper, ...cur.trades.filter((t) => t.source !== "paper" && t.source !== "sample")] });
   },
+  /** Replaces the trades synced from one connected exchange (ids start with "ex-<exchange>-"). Idempotent. */
+  syncExchange: (exch: string, trades: Trade[]) => {
+    const cur = load();
+    const prefix = `ex-${exch}-`;
+    const old = cur.trades.filter((t) => t.id.startsWith(prefix));
+    const key = (a: Trade[]) => JSON.stringify([...a].sort((x, y) => (x.id < y.id ? -1 : 1)));
+    if (key(old) === key(trades)) return;
+    commit({ ...cur, trades: [...trades, ...cur.trades.filter((t) => !t.id.startsWith(prefix))] });
+  },
   add: (t: Trade) => commit({ ...load(), trades: [t, ...load().trades] }),
   addMany: (ts: Trade[]) => commit({ ...load(), trades: [...ts, ...load().trades] }),
   update: (id: string, patch: Partial<Trade>) =>

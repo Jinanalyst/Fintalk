@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Pill, Panel, Notice } from "./ui";
 import { useIsPro } from "./use-pro";
 import { usePaperSync } from "./use-paper-sync";
+import { useExchanges } from "./use-exchanges";
 import { PlanTab } from "./plan-tab";
 import { JournalTab } from "./journal-tab";
 import { CalendarTab } from "./calendar-tab";
@@ -35,6 +36,7 @@ export function PlannerApp() {
   const justPaid = sp.get("paid") === "1";
   const { pro } = useIsPro(justPaid);
   const paper = usePaperSync();
+  const exchanges = useExchanges();
   const [now] = useState(() => Date.now());
 
   // Free keeps the last 90 days of history on screen; Pro is unlimited.
@@ -104,7 +106,7 @@ export function PlannerApp() {
       {tab === "journal" && <JournalTab trades={trades} />}
       {tab === "calendar" && <CalendarTab trades={trades} />}
       {tab === "analysis" && <AnalysisTab trades={trades} pro={pro} />}
-      {tab === "import" && <ImportTab trades={store.trades} pro={pro} />}
+      {tab === "import" && <ImportTab trades={store.trades} pro={pro} exchanges={exchanges} />}
 
       {pro ? null : (
         <Panel className="flex flex-wrap items-center justify-between gap-3 bg-brand-soft/50">

@@ -84,3 +84,10 @@ Run `supabase/migrations/20261127_planner_images.sql` in the SQL Editor. It crea
 (JPEG only, 5 MB per file) where each user can only read, upload and delete files in their own `<user_id>/` folder.
 Signed-in users' screenshots upload there and are shown through 1-hour signed URLs; visitors (or if the bucket is missing)
 keep them in the browser instead. No new environment variables are needed.
+
+## Planner: exchange connections (migration `20261128_planner_connections.sql`)
+
+Run it in the SQL Editor. It creates `planner_connections` (readable by the owner) and `planner_connection_secrets`
+(encrypted API keys, no client access at all: only the server's service-role key can read them).
+Set `PLANNER_ENCRYPTION_KEY` (any long random string) on the host. Optionally set `NEXT_PUBLIC_PLANNER_SERVER_IPS`
+to your server's outbound IP so users can whitelist it on their exchange key. Requires `SUPABASE_SERVICE_ROLE_KEY`.
