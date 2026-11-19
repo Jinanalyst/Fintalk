@@ -793,7 +793,7 @@ export function PriceChart({
     const itv = intervalRef.current;
     try {
       const end = candles.current[0].time * 1000 - 1;
-      const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=${itv}&endTime=${end}&limit=${OLDER_LOAD}`);
+      const res = await fetch(`/api/klines?symbol=${sym}&interval=${itv}&endTime=${end}&limit=${OLDER_LOAD}`);
       if (!res.ok) throw new Error();
       const older = parseKlines((await res.json()) as Kline[]);
       if (sym !== symRef.current || itv !== intervalRef.current) return; // symbol or interval changed in the meantime
@@ -926,7 +926,7 @@ export function PriceChart({
     let alive = true;
     hasMore.current = true;
     keepRange.current = null;
-    fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${FIRST_LOAD}`)
+    fetch(`/api/klines?symbol=${symbol}&interval=${interval}&limit=${FIRST_LOAD}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((rows: Kline[]) => {
         if (!alive) return;
