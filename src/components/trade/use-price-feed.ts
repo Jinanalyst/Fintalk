@@ -62,6 +62,34 @@ export function usePriceFeed(initial: Record<string, number>, symbol: string) {
     );
   }, []);
 
+  // WebSocket 이 3초 넘게 안 붙으면 서버 경유 폴링(2초)으로 대신 받습니다. 다시 붙으면 폴링을 멈춥니다.
+  useEffect(() => {
+    if (live) return;
+    let stop = false;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/price", { cache: "no-store" });
+        if (!res.ok || stop) return;
+        const all = (await res.json()) as Record<string, number>;
+        const next: Record<string, number> = {};
+        for (const [s, p] of Object.entries(all)) if (isSymbol(s) && p > 0) next[s] = p;
+        setPrices((prev) => ({ ...prev, ...next }));
+      } catch {
+        /* 다음 주기에 다시 */
+      }
+    };
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = setTimeout(() => {
+      void poll();
+      timer = setInterval(poll, 2000);
+    }, 3000);
+    return () => {
+      stop = true;
+      clearTimeout(start);
+      if (timer) clearInterval(timer);
+    };
+  }, [live]);
+
   useEffect(() => {
     return connectStream(`${symbol.toLowerCase()}@aggTrade`, (d) => {
       const t = d as { s: string; p: string };

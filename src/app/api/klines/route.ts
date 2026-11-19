@@ -1,4 +1,8 @@
+import { makeCache } from "@/lib/server-cache";
+
 export const dynamic = "force-dynamic";
+
+const cache = makeCache<Row[]>();
 
 const INTERVALS = new Set(["1m", "3m", "5m", "15m", "1h", "4h", "1d", "1w", "1M"]);
 const BYBIT_ITV: Record<string, string> = { "1m": "1", "3m": "3", "5m": "5", "15m": "15", "1h": "60", "4h": "240", "1d": "D", "1w": "W", "1M": "M" };
@@ -61,13 +65,22 @@ export async function GET(req: Request) {
     return Response.json({ error: "bad request" }, { status: 400 });
   }
   const q: Q = { symbol, interval, limit, endTime: end ? Number(end) : null };
-  for (const src of SOURCES) {
-    try {
-      const rows = await src(q);
-      if (rows.length) return Response.json(rows, { headers: { "Cache-Control": "public, s-maxage=3, stale-while-revalidate=10" } });
-    } catch {
-      /* 다음 서버로 */
-    }
+  // 최신 봉은 2초, 지난 구간(endTime 지정)은 바뀌지 않으니 10분 보관. 거래소가 모두 실패하면 최대 10분 전 데이터라도 보여 줍니다.
+  const ttl = q.endTime ? 600_000 : 2_000;
+  try {
+    const rows = await cache(`${symbol}|${interval}|${limit}|${q.endTime ?? ""}`, ttl, 600_000, async () => {
+      for (const src of SOURCES) {
+        try {
+          const rows = await src(q);
+          if (rows.length) return rows;
+        } catch {
+          /* 다음 서버로 */
+        }
+      }
+      throw new Error("klines unavailable");
+    });
+    return Response.json(rows, { headers: { "Cache-Control": "public, s-maxage=2, stale-while-revalidate=10" } });
+  } catch {
+    return Response.json({ error: "klines unavailable" }, { status: 502 });
   }
-  return Response.json({ error: "klines unavailable" }, { status: 502 });
 }
