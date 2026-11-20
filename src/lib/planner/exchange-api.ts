@@ -126,8 +126,22 @@ export async function fetchClosed(ex: ApiExchange, c: Creds): Promise<ClosedPosi
     } as ClosedPosition)).filter((t) => t.closedAt >= since);
   }
   if (ex === "Bybit") {
-    const r = (await bybit(c, "/v5/position/closed-pnl", `category=linear&limit=100&startTime=${since}`)) as { list?: Record<string, string>[] };
-    return (r.list ?? []).map((x) => ({
+    // Bybit caps each request at a 7-day window (only startTime → startTime..startTime+7d), so walk back week by week.
+    const WEEK = 7 * 86_400_000;
+    const list: Record<string, string>[] = [];
+    for (let end = Date.now(); end > since; end -= WEEK) {
+      const start = Math.max(since, end - WEEK);
+      let cursor = "";
+      for (let page = 0; page < 10; page++) {
+        const q = `category=linear&endTime=${end}&limit=100&startTime=${start}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+        const r = (await bybit(c, "/v5/position/closed-pnl", q)) as { list?: Record<string, string>[]; nextPageCursor?: string };
+        list.push(...(r.list ?? []));
+        cursor = r.nextPageCursor ?? "";
+        if (!cursor || !r.list?.length) break;
+      }
+    }
+    const seen = new Set<string>();
+    return list.filter((x) => !seen.has(x.orderId) && seen.add(x.orderId)).map((x) => ({
       id: `${x.orderId}`, sym: x.symbol.replace(/USDT$/, "-USDT"), dir: x.side === "Sell" ? "long" : "short", // side is the closing order's side
       entry: num(x.avgEntryPrice), exit: num(x.avgExitPrice), pnl: num(x.closedPnl), fee: Math.abs(num(x.openFee)) + Math.abs(num(x.closeFee)),
       leverage: num(x.leverage) || undefined, qty: num(x.qty) || undefined, openedAt: num(x.createdTime), closedAt: num(x.updatedTime),
