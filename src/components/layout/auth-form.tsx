@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Logo } from "./header";
 import {
-  googleAction,
+  oauthAction,
   resetRequestAction,
   signInAction,
   signUpAction,
@@ -26,18 +26,53 @@ function GoogleIcon() {
   );
 }
 
+function XIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+/** Google / X one-click buttons (sign-up and log-in are the same flow). */
+function OAuthButtons({ next, configured }: { next: string; configured: boolean }) {
+  const btn = "flex h-12 w-full items-center justify-center gap-2.5 rounded-xl text-[15px] font-bold transition-opacity hover:opacity-90 disabled:opacity-50";
+  return (
+    <div className="space-y-2.5">
+      <form action={oauthAction}>
+        <input type="hidden" name="next" value={next} />
+        <input type="hidden" name="provider" value="google" />
+        <button type="submit" disabled={!configured} className={`${btn} border-2 bg-card`}>
+          <GoogleIcon /> Continue with Google
+        </button>
+      </form>
+      <form action={oauthAction}>
+        <input type="hidden" name="next" value={next} />
+        <input type="hidden" name="provider" value="x" />
+        <button type="submit" disabled={!configured} className={`${btn} bg-foreground text-background`}>
+          <XIcon /> Continue with X
+        </button>
+      </form>
+    </div>
+  );
+}
+
 type Mode = "login" | "signup" | "reset" | "newpw";
-const titles: Record<Mode, string> = { login: "Log in", signup: "Sign up", reset: "Reset password", newpw: "Set new password" };
+const titles: Record<Mode, string> = { login: "Log in", signup: "Join the contest", reset: "Reset password", newpw: "Set new password" };
+const subtitles: Partial<Record<Mode, string>> = {
+  login: "Welcome back. Pick up where you left off.",
+  signup: "Free crypto paper trading · $10,000 virtual · no card needed",
+};
 const actions = { login: signInAction, signup: signUpAction, reset: resetRequestAction, newpw: updatePasswordAction };
 const urlErrors: Record<string, string> = {
   config: "Supabase environment variables are not set on the server.",
-  oauth: "Could not start Google sign-in. Please check the configuration.",
+  oauth: "Could not start the sign-in. Please try another option.",
   callback: "The verification link has expired or is invalid. Please try again.",
 };
 
 export function AuthForm({
   mode,
-  next = "/",
+  next = "/trade",
   urlError,
   configured,
 }: {
@@ -48,15 +83,21 @@ export function AuthForm({
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(actions[mode], {});
   const error = state.error ?? (urlError ? urlErrors[urlError] : undefined);
+  const social = mode === "login" || mode === "signup";
+  // 소셜 버튼이 주 동선. 이메일 폼은 접어 두되, 오류·안내가 있으면 펼칩니다.
+  const [emailOpen, setEmailOpen] = useState(!social);
+  const showEmail = emailOpen || !!state.error || !!state.message;
 
   return (
     <div className="mx-auto max-w-sm">
       <div className="mb-6 flex flex-col items-center gap-2 text-center">
         <Logo />
-        <p className="text-sm text-muted-foreground">Read the market. Share your ideas.</p>
+        <p className="text-sm text-muted-foreground">Paper trading only · not investment advice</p>
       </div>
       <div className="rounded-xl border bg-card p-5 shadow-xs">
-        <h1 className="mb-4 text-lg font-bold">{titles[mode]}</h1>
+        <h1 className="text-xl font-extrabold tracking-tight">{titles[mode]}</h1>
+        {subtitles[mode] && <p className="mt-1 text-sm text-muted-foreground">{subtitles[mode]}</p>}
+        <div className="mb-4" />
 
         {!configured && (
           <p className="mb-3 rounded-lg border border-amber-300/70 bg-amber-50 p-2.5 text-xs text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
@@ -66,6 +107,20 @@ export function AuthForm({
         {error && <p role="alert" className="mb-3 rounded-lg bg-down/10 p-2.5 text-sm text-down">{error}</p>}
         {state.message && <p role="status" className="mb-3 rounded-lg bg-up/10 p-2.5 text-sm text-up">{state.message}</p>}
 
+        {social && (
+          <>
+            <OAuthButtons next={next} configured={configured} />
+            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              {showEmail ? "or with email" : (
+                <button type="button" onClick={() => setEmailOpen(true)} className="font-medium hover:text-foreground">Use email instead</button>
+              )}
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        )}
+
+        {showEmail && (
         <form action={formAction} className="space-y-3">
           <input type="hidden" name="next" value={next} />
           {mode === "signup" && (
@@ -100,41 +155,25 @@ export function AuthForm({
             disabled={pending || !configured}
             className="w-full rounded-lg bg-brand py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
-            {pending ? "Processing…" : mode === "reset" ? "Send reset email" : titles[mode]}
+            {pending ? "Processing…" : mode === "reset" ? "Send reset email" : mode === "signup" ? "Sign up with email" : titles[mode]}
           </button>
         </form>
-
-        {(mode === "login" || mode === "signup") && (
-          <>
-            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-            </div>
-            <form action={googleAction}>
-              <input type="hidden" name="next" value={next} />
-              <button
-                type="submit"
-                disabled={!configured}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
-              >
-                <GoogleIcon /> Continue with Google
-              </button>
-            </form>
-          </>
         )}
+
 
         <div className="mt-4 flex justify-between text-xs text-muted-foreground">
           {mode === "login" ? (
             <>
-              <Link href="/signup" className="hover:text-brand">Sign up</Link>
+              <Link href={`/signup?next=${encodeURIComponent(next)}`} className="hover:text-brand">New here? Join</Link>
               <Link href="/forgot-password" className="hover:text-brand">Forgot your password?</Link>
             </>
           ) : (
-            <Link href="/login" className="hover:text-brand">Already have an account? Log in</Link>
+            <Link href={`/login?next=${encodeURIComponent(next)}`} className="hover:text-brand">Already have an account? Log in</Link>
           )}
         </div>
       </div>
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        You can read <Link href="/community" className="text-brand">public posts</Link> and <Link href="/insights" className="text-brand">insights</Link> without logging in.
+        By continuing you agree to the <Link href="/terms" className="text-brand">Terms</Link> and <Link href="/privacy" className="text-brand">Privacy Policy</Link>.
       </p>
     </div>
   );

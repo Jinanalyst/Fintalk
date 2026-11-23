@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { AFTER_LOGIN, afterSignIn } from "@/lib/after-sign-in";
 
 /**
  * 리버스 프록시(Hostinger 등) 뒤에서는 request.url 의 호스트가 내부 주소(0.0.0.0:3000)가 되므로,
@@ -22,13 +23,16 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const origin = publicOrigin(request);
   const code = searchParams.get("code");
-  const rawNext = searchParams.get("next") ?? "/";
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.includes("\\") ? rawNext : "/";
+  const rawNext = searchParams.get("next") || AFTER_LOGIN;
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.includes("\\") ? rawNext : AFTER_LOGIN;
 
   if (isSupabaseConfigured && code) {
     const sb = await createClient();
     const { error } = await sb.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    if (!error) {
+      if (next !== "/reset-password") await afterSignIn(sb);
+      return NextResponse.redirect(`${origin}${next}`);
+    }
   }
   return NextResponse.redirect(`${origin}/login?error=callback`);
 }

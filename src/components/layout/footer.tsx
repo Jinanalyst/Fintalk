@@ -11,8 +11,10 @@ const BUSINESS = {
 };
 
 const LINKS = [
-  { href: "/contests", label: "Contest" },
-  { href: "/trade/leaderboard", label: "Leaderboard" },
+  { href: "/", label: "Contest" },
+  { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/contest/rules", label: "Rules" },
+  { href: "/contest/faq", label: "FAQ" },
   { href: "/community", label: "Community" },
 ];
 
@@ -24,7 +26,7 @@ export function Footer() {
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <Logo />
-            <p className="text-sm text-muted-foreground">Share ideas. Grow together.</p>
+            <p className="text-sm font-medium text-muted-foreground">Paper trading only · not investment advice</p>
           </div>
           <a href={`mailto:${BUSINESS.email}`} className="text-sm font-medium text-muted-foreground hover:text-brand">
             Contact {BUSINESS.email}

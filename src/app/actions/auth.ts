@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { AFTER_LOGIN, afterSignIn } from "@/lib/after-sign-in";
 
 export type FormState = { error?: string; message?: string };
 
@@ -16,8 +17,8 @@ async function origin() {
 
 /** 오픈 리다이렉트 방지: 사이트 내부 경로만 허용 */
 function safeNext(v: FormDataEntryValue | null) {
-  const s = typeof v === "string" ? v : "/";
-  return s.startsWith("/") && !s.startsWith("//") && !s.includes("\\") ? s : "/";
+  const s = typeof v === "string" && v ? v : AFTER_LOGIN;
+  return s.startsWith("/") && !s.startsWith("//") && !s.includes("\\") ? s : AFTER_LOGIN;
 }
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -39,6 +40,7 @@ export async function signInAction(_: FormState, form: FormData): Promise<FormSt
   const sb = await createClient();
   const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) return { error: friendly(error.message) };
+  await afterSignIn(sb);
   redirect(safeNext(form.get("next")));
 }
 
@@ -63,20 +65,28 @@ export async function signUpAction(_: FormState, form: FormData): Promise<FormSt
   });
   if (error) return { error: friendly(error.message) };
   if (!data.session) return { message: "We sent a verification email. Click the link in it to finish signing up." };
-  redirect("/");
+  await afterSignIn(sb);
+  redirect(safeNext(form.get("next")));
 }
 
-export async function googleAction(form: FormData) {
+const OAUTH_PROVIDERS = ["google", "x"] as const;
+type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
+
+/** Google / X 원클릭 로그인·가입 (X 는 Supabase 대시보드에서 X / Twitter (OAuth 2.0) provider 를 켜야 동작) */
+export async function oauthAction(form: FormData) {
+  const raw = String(form.get("provider") ?? "google");
+  const provider: OAuthProvider = (OAUTH_PROVIDERS as readonly string[]).includes(raw) ? (raw as OAuthProvider) : "google";
   if (!isSupabaseConfigured) redirect("/login?error=config");
   const sb = await createClient();
   const next = safeNext(form.get("next"));
   const { data, error } = await sb.auth.signInWithOAuth({
-    provider: "google",
+    provider,
     options: { redirectTo: `${await origin()}/auth/callback?next=${encodeURIComponent(next)}` },
   });
-  if (error || !data.url) redirect("/login?error=oauth");
+  if (error || !data.url) redirect(`/login?error=oauth&provider=${provider}`);
   redirect(data.url);
 }
+
 
 export async function resetRequestAction(_: FormState, form: FormData): Promise<FormState> {
   if (!isSupabaseConfigured) return NOT_CONFIGURED;

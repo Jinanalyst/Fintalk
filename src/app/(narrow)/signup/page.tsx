@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Sign up", robots: { index: false } }
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
-  const next = typeof sp.next === "string" && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/";
+  const next = typeof sp.next === "string" && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/trade";
   const error = typeof sp.error === "string" ? sp.error : undefined;
   return <AuthForm mode="signup" next={next} urlError={error} configured={isSupabaseConfigured} />;
 }

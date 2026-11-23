@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Menu, PenLine, Search, UserRound } from "lucide-react";
+import { Menu, PenLine, Search, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { LogoMark } from "@/components/common/logo-mark";
@@ -73,25 +73,19 @@ export function Header() {
             </span>
           </Link>
           <ThemeToggle />
-          <Link href={user ? `/me/${encodeURIComponent(user.nickname)}` : "/me"} className="sm:hidden" aria-label="My profile">
-            <span className="grid size-9 place-items-center rounded-md hover:bg-muted">
-              <UserRound className="size-5" />
-            </span>
-          </Link>
-          {user ? (
-            <NotificationBell userId={user.id} />
-          ) : (
-            <Link href="/login" aria-label="Notifications (login required)" className="hidden sm:block">
-              <span className="grid size-9 place-items-center rounded-md hover:bg-muted"><Bell className="size-[18px]" /></span>
-            </Link>
-          )}
-          <Link href="/community/write" className="hidden sm:block">
-            <Button size="lg" className="gap-1.5 bg-brand px-3 text-primary-foreground hover:bg-brand/90">
-              <PenLine className="size-4" /> Write
-            </Button>
-          </Link>
           {user ? (
             <>
+              <Link href={`/me/${encodeURIComponent(user.nickname)}`} className="sm:hidden" aria-label="My profile">
+                <span className="grid size-9 place-items-center rounded-md hover:bg-muted">
+                  <UserRound className="size-5" />
+                </span>
+              </Link>
+              <NotificationBell userId={user.id} />
+              <Link href="/community/write" className="hidden sm:block">
+                <Button size="lg" variant="outline" className="gap-1.5 px-3">
+                  <PenLine className="size-4" /> Write
+                </Button>
+              </Link>
               {user.role === "admin" && (
                 <Link href="/admin" className="hidden md:block">
                   <Button variant="ghost" size="lg">Admin</Button>
@@ -106,9 +100,14 @@ export function Header() {
               </form>
             </>
           ) : (
-            <Link href="/login">
-              <Button variant="outline" size="lg" className="px-2.5 text-xs sm:px-3 sm:text-sm">Log in</Button>
-            </Link>
+            <>
+              <Link href="/login" className="rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                Log in
+              </Link>
+              <Link href="/signup">
+                <Button size="lg" className="bg-brand px-4 font-bold text-primary-foreground hover:bg-brand/90">Join</Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
