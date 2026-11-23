@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LiveRefresh } from "@/components/common/live-refresh";
+import { AffiliateBanner } from "@/components/affiliate/affiliate-banner";
 import { OAuthButtons } from "@/components/layout/auth-form";
 import { TradeTerminal, type TradeAccount } from "@/components/trade/terminal";
 import { ContestBar, type AccountKind } from "@/components/season/contest-bar";
@@ -57,7 +58,12 @@ export default async function TradePage({ searchParams }: PageProps<"/trade">) {
       )}
 
       {loggedIn || !isSupabaseConfigured ? (
-        <TradeTerminal key={active} data={data} account={account} />
+        <TradeTerminal
+          key={active}
+          data={data}
+          account={account}
+          belowPositions={<AffiliateBanner placement="trade" text="Like your strategy? Try it live on OKX · fee discount" />}
+        />
       ) : (
         <div className="relative">
           <div aria-hidden className="pointer-events-none select-none opacity-60 blur-[3px]" inert>

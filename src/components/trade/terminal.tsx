@@ -205,7 +205,7 @@ const ADVANCED = isOn("advancedTrade");
 /** Order book column (with the resizable desktop layout). On by default. */
 const BOOK = ADVANCED || isOn("orderBook");
 
-export function TradeTerminal({ data, account = PRACTICE }: { data: TradeData; account?: TradeAccount }) {
+export function TradeTerminal({ data, account = PRACTICE, belowPositions }: { data: TradeData; account?: TradeAccount; /** Rendered right under the positions list (e.g. a partner banner) */ belowPositions?: React.ReactNode }) {
   const [symbol, setSymbol] = useState<string>(SYMBOLS[0].symbol);
   const { prices, live } = usePriceFeed(data.prices, symbol);
   const [tab, setTab] = useState<"positions" | "orders" | "history">("positions");
@@ -475,6 +475,8 @@ export function TradeTerminal({ data, account = PRACTICE }: { data: TradeData; a
           )}
         </div>
       </Card>
+
+      {belowPositions}
 
       <p className="text-xs leading-relaxed text-muted-foreground">
         Paper trading with virtual funds; these are not real trades. Execution prices and fees ({(FEE_RATE * 100).toFixed(2)}%) use a simplified model and may differ from a real exchange. This is not investment advice.

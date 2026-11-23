@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Trophy } from "lucide-react";
+import { AffiliateBanner } from "@/components/affiliate/affiliate-banner";
 import { RecentTraders, StandingsTable } from "@/components/season/standings";
 import { TimeLeft } from "@/components/season/time-left";
 import { getCurrentUser } from "@/lib/data/community";
@@ -42,6 +43,20 @@ export default async function LeaderboardPage() {
         </p>
       </header>
 
+      {/* After the season: end-of-season block (the partner banner sits inside it, optional promotion only) */}
+      {phase === "ended" && (
+        <section className="space-y-3 rounded-2xl border bg-card p-5 shadow-xs">
+          <div>
+            <h2 className="text-lg font-extrabold tracking-tight">{season.label} is over</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Thanks for trading. These are the final standings. The winner is contacted about the prize; see the{" "}
+              <Link href="/contest/rules#prize" className="text-brand hover:underline">prize rules</Link>.
+            </p>
+          </div>
+          <AffiliateBanner placement="season_end" text={`${season.label} is over. Take your skills live on OKX · fee discount`} />
+        </section>
+      )}
+
       {phase === "registration" ? (
         <section className="space-y-3">
           <div className="rounded-2xl border border-dashed bg-card p-4 text-sm">
@@ -70,6 +85,7 @@ export default async function LeaderboardPage() {
             <StandingsTable rows={[mine]} meId={me?.id} className="border-brand/40" />
           )}
           <StandingsTable rows={top} meId={me?.id} />
+          {phase !== "ended" && <AffiliateBanner placement="leaderboard" text="Ready to trade for real? Get a fee discount on OKX" />}
           <p className="text-xs text-muted-foreground">
             {board?.asOf ? `Updated ${formatUTC(board.asOf)} · refreshes hourly.` : "Refreshes hourly."} Max DD = largest drop from a peak in account equity.
           </p>
