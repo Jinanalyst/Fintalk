@@ -89,22 +89,38 @@ export function thumbnailOf(body: string, legacy: string[] = []): string | null 
 /** 목록 카드 요약용: 미디어 줄과 마크다운 기호를 제거한 문단 목록 */
 export function plainParagraphs(body: string): string[] {
   const text = body
+    .replace(/\r\n?/g, "\n")
     .split("\n")
     .filter((l) => !mediaOf(l) && !youtubeIdOf(l))
+    // 줄째로 제거: 코드 펜스(``` ~~~), 표 구분선(|---|---|), 제목 밑줄·수평선(=== --- *** ___)
+    .filter((l) => !/^\s*(`{3,}|~{3,})/.test(l))
+    .filter((l) => !/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/.test(l))
+    .filter((l) => !/^\s*(=+|-{3,}|\*{3,}|_{3,})\s*$/.test(l))
     .map((l) =>
       l
-        // 줄 앞 기호: 제목(#~######, 공백 유무·여러 칸 무관), 인용, 목록, 번호, 구분선
-        .replace(/^\s{0,3}(#{1,6}\s+|#{2,6}|>+\s*|[-*+]\s+|\d+[.)]\s+)/, "")
-        .replace(/^\s*(-{3,}|\*{3,}|_{3,})\s*$/, "")
-        // 인라인 기호: 링크·이미지, 굵게/기울임/취소선, 코드
+        // 줄 앞 기호: 제목(#~######, 공백 유무·여러 칸 무관), 인용(중첩), 목록(들여쓰기 포함), 번호, 체크박스
+        .replace(/^\s{0,3}(#{1,6}\s+|#{2,6})/, "")
+        .replace(/^\s*(>+\s*)+/, "")
+        .replace(/^\s*([-*+]|\d+[.)])\s+/, "")
+        .replace(/^\[[ xX]\]\s+/, "")
+        // 표 행: | a | b |  →  a · b
+        .replace(/^\s*\|(.*)\|\s*$/, (_, inner: string) => inner.split("|").map((c) => c.trim()).filter(Boolean).join(" · "))
+        // 인라인 기호: HTML 태그, 링크·이미지, 굵게/기울임/취소선, 코드, 이스케이프
+        .replace(/<\/?[a-zA-Z][^>\n]*>/g, "")
         .replace(/!?\[([^\]\n]*)\]\([^)\n]*\)/g, "$1")
         .replace(/(\*\*|__)(.+?)\1/g, "$2")
         .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, "$1$2")
+        .replace(/(^|[^\w])_([^_\n]+)_(?!\w)/g, "$1$2")
         .replace(/~~([^~\n]+)~~/g, "$1")
-        .replace(/`([^`\n]+)`/g, "$1"),
+        .replace(/`([^`\n]+)`/g, "$1")
+        .replace(/\\([\\`*_{}[\]()#+\-.!|>~])/g, "$1"),
     )
     .join("\n");
-  const paras = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const paras = text
+    .split(/\n{2,}/)
+    // 줄을 넘어간 굵게·취소선의 남은 기호
+    .map((p) => p.replace(/\*\*|~~/g, "").trim())
+    .filter(Boolean);
   return paras.length ? paras : [""];
 }
 

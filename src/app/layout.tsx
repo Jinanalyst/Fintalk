@@ -6,9 +6,9 @@ import { LiveChat } from "@/components/chat/live-chat";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: "FinTalk – Share market insights and build value together", template: "%s | FinTalk" },
+  title: { default: "FinTalk — Free crypto paper trading contest", template: "%s | FinTalk" },
   description:
-    "FinTalk is a finance community where investors share analysis on stocks and crypto, practice with free paper trading, and compete in trading contests.",
+    "Free crypto paper trading contest. Start with $10,000 of virtual funds, trade crypto futures and climb the leaderboard. Paper trading only, not investment advice.",
   openGraph: { siteName: "FinTalk", locale: "en_US", type: "website" },
   // Google Search Console 소유권 확인 (확인 후에도 삭제하지 마세요)
   verification: {

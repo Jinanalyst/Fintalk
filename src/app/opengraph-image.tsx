@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "FinTalk – Share market insights and build value together";
+export const alt = "FinTalk — Free crypto paper trading contest";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const TITLE = "FinTalk";
-const TAGLINE = "Share market insights and build value together";
+const TAGLINE = "Free crypto paper trading contest · $10,000 virtual";
 
 async function loadFont(text: string): Promise<ArrayBuffer | null> {
   try {
