@@ -14,6 +14,12 @@ export type Contest = {
   freezeLast24h: boolean;
   /** Shown in the home-page banner (at most one round). */
   featured: boolean;
+  /** Sign-ups close here (defaults to startsAt). */
+  registrationEndsAt?: string;
+  /** Leverage cap for contest accounts in this round. */
+  maxLeverage?: number;
+  /** Extra starting balance (%) for inviter and invitee. */
+  referralBonusPct?: number;
   /** "db" = a row in the contests table; "mock" = built-in sample round used until the table has rows. */
   source: "db" | "mock";
 };

@@ -47,7 +47,12 @@ export async function getTradeStats(): Promise<{ balance: number; positions: Pos
   };
 }
 
-export async function getTradeData(): Promise<TradeData> {
+/**
+ * Trading data for one account: Practice (contestId null) or the contest account of a round.
+ * Rows are told apart by paper_*.contest_id (NULL = Practice). Before the 20261130 migration that
+ * column does not exist yet; Practice then falls back to the old unfiltered reads.
+ */
+export async function getTradeData(contestId: number | null = null): Promise<TradeData> {
   if (!isSupabaseConfigured) return EMPTY;
   const sb = await createClient();
   // 인증 확인과 시세 조회를 동시에 (getClaims: 서버 왕복 없는 로컬 JWT 검증, 데이터는 RLS 가 다시 보호)
@@ -57,19 +62,30 @@ export async function getTradeData(): Promise<TradeData> {
   const uid = auth?.claims?.sub;
   if (!uid) return { ...EMPTY, prices };
 
-  const [acc, pos, ord, cls, trd] = await Promise.all([
-    sb.from("paper_accounts").select("balance").eq("user_id", uid).maybeSingle(),
-    sb.from("paper_positions").select("*").order("opened_at", { ascending: false }),
-    sb.from("paper_orders").select("*").eq("status", "open").order("created_at", { ascending: false }),
-    sb.from("paper_close_orders").select("*").eq("status", "open").order("created_at", { ascending: false }),
-    sb.from("paper_trades").select("*").order("closed_at", { ascending: false }).limit(50),
-  ]);
+  type Q = ReturnType<ReturnType<typeof sb.from>["select"]>;
+  const scope = <T extends Q>(q: T, on: boolean) => (on ? (contestId === null ? q.is("contest_id", null) : q.eq("contest_id", contestId)) : q) as T;
+  const load = (filter: boolean) =>
+    Promise.all([
+      contestId === null
+        ? sb.from("paper_accounts").select("balance").eq("user_id", uid).maybeSingle()
+        : sb.from("contest_accounts").select("balance").eq("contest_id", contestId).eq("user_id", uid).maybeSingle(),
+      scope(sb.from("paper_positions").select("*"), filter).order("opened_at", { ascending: false }),
+      scope(sb.from("paper_orders").select("*"), filter).eq("status", "open").order("created_at", { ascending: false }),
+      sb.from("paper_close_orders").select("*").eq("status", "open").order("created_at", { ascending: false }),
+      scope(sb.from("paper_trades").select("*"), filter).order("closed_at", { ascending: false }).limit(50),
+    ]);
+  let [acc, pos, ord, cls, trd] = await load(true);
+  if (contestId === null && (pos.error || ord.error || trd.error)) [acc, pos, ord, cls, trd] = await load(false);
+
+  const positions = (pos.data ?? []).map(toPos);
+  const ids = new Set(positions.map((x) => x.id));
   return {
     loggedIn: true,
-    balance: acc.data ? Number(acc.data.balance) : START_BALANCE,
-    positions: (pos.data ?? []).map(toPos),
+    balance: acc.data ? Number(acc.data.balance) : contestId === null ? START_BALANCE : 0,
+    positions,
     orders: (ord.data ?? []).map(toOrder),
-    closeOrders: (cls.data ?? []).map(toCloseOrder), // 마이그레이션 전이면 error 로 비어 있음
+    // 마이그레이션 전이면 error 로 비어 있음. 이 계정 포지션의 청산 주문만.
+    closeOrders: (cls.data ?? []).map(toCloseOrder).filter((c) => ids.has(c.position_id)),
     trades: (trd.data ?? []).map(toTrade),
     prices,
   };

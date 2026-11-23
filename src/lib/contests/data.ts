@@ -14,7 +14,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
  * enforces the 24h freeze server-side.
  */
 
-type ContestRow = {
+export type ContestRow = {
   id: number;
   number: number;
   name: string;
@@ -28,9 +28,12 @@ type ContestRow = {
   mdd_limit: number;
   freeze_last_24h: boolean;
   featured?: boolean | null;
+  registration_ends_at?: string | null;
+  max_leverage?: number | null;
+  referral_bonus_pct?: number | null;
 };
 
-const fromRow = (r: ContestRow): Contest => ({
+export const fromRow = (r: ContestRow): Contest => ({
   id: String(r.id),
   number: r.number,
   name: r.name,
@@ -42,6 +45,9 @@ const fromRow = (r: ContestRow): Contest => ({
   mddLimit: Number(r.mdd_limit),
   freezeLast24h: r.freeze_last_24h,
   featured: !!r.featured,
+  registrationEndsAt: r.registration_ends_at ?? r.starts_at,
+  maxLeverage: r.max_leverage ?? undefined,
+  referralBonusPct: r.referral_bonus_pct === null || r.referral_bonus_pct === undefined ? undefined : Number(r.referral_bonus_pct),
   source: "db",
 });
 

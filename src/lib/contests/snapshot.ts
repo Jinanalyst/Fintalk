@@ -1,5 +1,7 @@
+import { createClient as createPlainClient } from "@supabase/supabase-js";
 import type { Contest, LeaderboardRow } from "./types";
 import { floorToHour } from "./time";
+import { SUPABASE_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/supabase/env";
 
 /** Raw per-participant numbers, as measured from paper trading at one point in time. */
 export type ParticipantStats = {
@@ -14,6 +16,23 @@ export type ParticipantStats = {
   /** Set by admins after review (multi-account, self-referral…). Always disqualifies. */
   manualDqReason?: string | null;
 };
+
+/**
+ * Sort order of the leaderboard. Swap the default here to rank by a risk-adjusted metric later
+ * (e.g. return / max drawdown) — nothing else needs to change.
+ * Returns < 0 when `a` ranks above `b`.
+ */
+export type RankRule = (a: Pick<LeaderboardRow, "returnPct" | "mddPct" | "trades">, b: Pick<LeaderboardRow, "returnPct" | "mddPct" | "trades">) => number;
+
+export const RANK_RULES = {
+  /** Highest return first; ties → lower drawdown, then more trades. */
+  returnPct: (a, b) => b.returnPct - a.returnPct || a.mddPct - b.mddPct || b.trades - a.trades,
+  /** Example risk-adjusted rule: return per unit of drawdown (drawdown floored at 1%). */
+  returnOverDrawdown: (a, b) => b.returnPct / Math.max(1, b.mddPct) - a.returnPct / Math.max(1, a.mddPct) || b.returnPct - a.returnPct,
+} satisfies Record<string, RankRule>;
+
+/** The rule used everywhere (snapshot job and sample data). */
+export const rankBy: RankRule = RANK_RULES.returnPct;
 
 /**
  * Pure ranking logic (shared by the mock data and the real snapshot job).
@@ -37,7 +56,7 @@ export function buildRows(contest: Pick<Contest, "minTrades" | "mddLimit">, stat
       dqReason,
     };
   });
-  const active = rows.filter((r) => !r.disqualified).sort((a, b) => b.returnPct - a.returnPct || b.trades - a.trades);
+  const active = rows.filter((r) => !r.disqualified).sort(rankBy);
   active.forEach((r, i) => (r.rank = i + 1));
   const dq = rows.filter((r) => r.disqualified).sort((a, b) => b.returnPct - a.returnPct);
   return [...active, ...dq];
@@ -57,26 +76,67 @@ export async function runSnapshot(
   contest: Contest,
   now = Date.now(),
 ): Promise<{ snapshotAt: string; rows: LeaderboardRow[] }> {
-  const snapshotAt = new Date(floorToHour(now)).toISOString();
+  // A round that just ended gets one final snapshot stamped at its end time.
+  const snapshotAt = new Date(Math.min(floorToHour(now), Date.parse(contest.endsAt))).toISOString();
   const stats = await loadStats(contest);
   return { snapshotAt, rows: buildRows(contest, stats) };
 }
 
+const n = (v: unknown) => Math.round(Number(v) * 100) / 100;
+
+/** Anonymous client: the snapshot RPCs are protected by the tick secret, not by a user session. */
+function rpcClient() {
+  return isSupabaseConfigured ? createPlainClient(SUPABASE_URL!, SUPABASE_KEY!, { auth: { persistSession: false } }) : null;
+}
+
 /**
- * TODO(paper-trading): connect real paper-trading data here.
- *
- * For each row in `participants` (status != 'disqualified' unless you want to keep tracking them) return:
- *   - returnPct : (equity_now − contest.startingBalance) / contest.startingBalance * 100
- *                 where equity comes from the paper account balance + unrealized PnL.
- *   - mddPct    : max peak-to-trough drop of the equity curve since contest.startsAt (needs an
- *                 equity history table or hourly equity rows — not in the schema yet).
- *   - trades    : count of closed rows in `paper_trades` with closed_at between startsAt and endsAt
- *                 (see supabase/migrations/20261120_paper_leaderboard.sql for the existing aggregation).
- *   - manualDqReason : participants.dq_reason
- * Important: the contest needs its own virtual account reset to 10,000 USDT at join time, otherwise the
- * existing global paper balance would leak into the contest.
+ * Per-participant numbers from the database (contest_snapshot_stats):
+ *   returnPct = (equity − start balance) / start balance, equity = balance + open margin + unrealized PnL
+ *   mddPct    = running max drawdown of equity, updated by every price tick (and frozen at the end)
+ *   trades    = closed contest trades inside the round
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function loadStats(_contest: Contest): Promise<ParticipantStats[]> {
-  return [];
+async function loadStats(contest: Contest): Promise<ParticipantStats[]> {
+  const sb = rpcClient();
+  const secret = process.env.TRADE_TICK_SECRET;
+  if (!sb || !secret || contest.source !== "db") return [];
+  const { data, error } = await sb.rpc("contest_snapshot_stats", { p_secret: secret, p_contest: Number(contest.id) });
+  if (error) {
+    console.error("[contest] snapshot stats failed:", error.message);
+    return [];
+  }
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    userId: String(r.user_id),
+    nickname: String(r.nickname),
+    returnPct: n(r.return_pct),
+    mddPct: n(r.mdd_pct),
+    trades: Number(r.trades_count),
+    manualDqReason: (r.dq_reason as string | null) ?? null,
+  }));
+}
+
+/** Store one snapshot (idempotent per contest × user × hour). */
+export async function writeSnapshot(contest: Contest, snapshotAt: string, rows: LeaderboardRow[]): Promise<number> {
+  const sb = rpcClient();
+  const secret = process.env.TRADE_TICK_SECRET;
+  if (!sb || !secret || contest.source !== "db" || rows.length === 0) return 0;
+  const { data, error } = await sb.rpc("contest_write_snapshot", {
+    p_secret: secret,
+    p_contest: Number(contest.id),
+    p_at: snapshotAt,
+    p_rows: rows.map((r) => ({
+      user_id: r.userId,
+      rank: r.rank,
+      return_pct: r.returnPct,
+      mdd_pct: r.mddPct,
+      trades_count: r.trades,
+      qualified: r.qualified,
+      disqualified: r.disqualified,
+      dq_reason: r.dqReason ?? null,
+    })),
+  });
+  if (error) {
+    console.error("[contest] snapshot write failed:", error.message);
+    return 0;
+  }
+  return Number(data ?? 0);
 }

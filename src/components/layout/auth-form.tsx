@@ -35,7 +35,7 @@ function XIcon() {
 }
 
 /** Google / X one-click buttons (sign-up and log-in are the same flow). */
-function OAuthButtons({ next, configured }: { next: string; configured: boolean }) {
+export function OAuthButtons({ next, configured }: { next: string; configured: boolean }) {
   const btn = "flex h-12 w-full items-center justify-center gap-2.5 rounded-xl text-[15px] font-bold transition-opacity hover:opacity-90 disabled:opacity-50";
   return (
     <div className="space-y-2.5">

@@ -244,7 +244,10 @@ export function PriceChart({
   loggedIn,
   onPlaceOrder,
   trades = [],
+  maxLeverage,
 }: {
+  /** Leverage cap of the active account (contest accounts are capped lower). */
+  maxLeverage?: number;
   trades?: ClosedTrade[];
   symbol: string;
   price?: number;
@@ -1088,7 +1091,7 @@ export function PriceChart({
       const mark = price ?? pt.p;
       const side: Side = pt.p < mark ? "long" : "short"; // below the mark price = long (buy limit), above = short (sell limit)
       const entry = Number(pt.p.toPrecision(7));
-      const lev = 10;
+      const lev = Math.min(10, maxLeverage ?? 10);
       const size = Math.max(10, Math.floor(balance * lev * 0.1 * 100) / 100);
       const up = side === "long" ? 1 : -1;
       setTicket({
@@ -1622,7 +1625,7 @@ export function PriceChart({
         )}
 
         {activeTicket && (
-          <TicketPanel t={activeTicket} locked={lockedLev !== null} set={setTicket} mark={price} balance={balance} loggedIn={loggedIn} busy={busy} onSubmit={submitTicket} onClose={() => setTicket(null)} />
+          <TicketPanel t={activeTicket} maxLeverage={maxLeverage} locked={lockedLev !== null} set={setTicket} mark={price} balance={balance} loggedIn={loggedIn} busy={busy} onSubmit={submitTicket} onClose={() => setTicket(null)} />
         )}
         {closeId && positions.find((x) => x.id === closeId) && (
           <div className="absolute right-16 top-2 z-20 w-64 rounded-xl border bg-card p-3 shadow-lg">
@@ -1834,7 +1837,7 @@ function IndSettings({ cfg, setCfg, onClose }: { cfg: IndCfg; setCfg: (c: IndCfg
 
 
 /** 차트 주문 설정 패널: 차트의 진입·익절·손절 선과 숫자가 서로 연동됩니다. */
-function TicketPanel({ t, locked, set, mark, balance, loggedIn, busy, onSubmit, onClose }: { t: Ticket; locked: boolean; set: (t: Ticket) => void; mark?: number; balance: number; loggedIn: boolean; busy: boolean; onSubmit: () => void; onClose: () => void }) {
+function TicketPanel({ t, maxLeverage, locked, set, mark, balance, loggedIn, busy, onSubmit, onClose }: { t: Ticket; maxLeverage?: number; locked: boolean; set: (t: Ticket) => void; mark?: number; balance: number; loggedIn: boolean; busy: boolean; onSubmit: () => void; onClose: () => void }) {
   const entry = t.type === "market" ? (mark ?? t.entry) : t.entry;
   const dir = t.side === "long" ? 1 : -1;
   const pnl = (v: number) => dir * ((v - entry) / entry) * t.size;
@@ -1922,7 +1925,7 @@ function TicketPanel({ t, locked, set, mark, balance, loggedIn, busy, onSubmit, 
         {locked ? (
           <p className="font-semibold tabular-nums" title="Leverage is locked because this symbol has an open position.">{t.lev}x <span className="font-normal text-muted-foreground">🔒 Locked by position</span></p>
         ) : (
-          <LeverageSlider value={t.lev} onChange={(l) => set({ ...t, lev: l })} />
+          <LeverageSlider value={t.lev} max={maxLeverage} onChange={(l) => set({ ...t, lev: l })} />
         )}
       </div>
       {level("tp", "Take profit")}

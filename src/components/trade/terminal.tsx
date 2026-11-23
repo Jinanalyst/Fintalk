@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { createShareAction } from "@/app/actions/share";
 import { cancelCloseOrderAction, cancelOrderAction, closePositionAction, placeCloseOrderAction, reduceOnlyAction, placeOrderAction, resetAccountAction, setTpSlAction, syncTradeAction } from "@/app/actions/trade";
 import type { TradeData } from "@/lib/data/trade";
-import { FEE_RATE, MAINT_RATE, MARGIN_MODE_LABEL, REASON_LABEL, SYMBOLS, crossLiqPrice, fmtPrice, fmtUsd, liqPrice, symbolLabel, unrealizedPnl, type CloseOrder, type MarginMode, type Position, type Side } from "@/lib/trade";
+import { isOn } from "@/lib/features";
+import { FEE_RATE, MAINT_RATE, MAX_LEVERAGE, MARGIN_MODE_LABEL, REASON_LABEL, SYMBOLS, crossLiqPrice, fmtPrice, fmtUsd, liqPrice, symbolLabel, unrealizedPnl, type CloseOrder, type MarginMode, type Position, type Side } from "@/lib/trade";
 import { cn } from "@/lib/utils";
 import { ClosePanel } from "./close-panel";
 import { LeverageSlider } from "./leverage-slider";
@@ -189,11 +190,25 @@ function SymbolSearch({ symbol, prices, onPick }: { symbol: string; prices: Reco
   );
 }
 
-export function TradeTerminal({ data }: { data: TradeData }) {
+/** Which account the terminal trades: Practice (contestId null) or a contest account. */
+export type TradeAccount = {
+  contestId: number | null;
+  maxLeverage: number;
+  /** false → order buttons are disabled and `blockedReason` is shown */
+  canTrade: boolean;
+  blockedReason?: string;
+  resettable: boolean;
+};
+
+const PRACTICE: TradeAccount = { contestId: null, maxLeverage: MAX_LEVERAGE, canTrade: true, resettable: true };
+const ADVANCED = isOn("advancedTrade");
+
+export function TradeTerminal({ data, account = PRACTICE }: { data: TradeData; account?: TradeAccount }) {
   const [symbol, setSymbol] = useState<string>(SYMBOLS[0].symbol);
   const { prices, live } = usePriceFeed(data.prices, symbol);
   const [tab, setTab] = useState<"positions" | "orders" | "history">("positions");
-  const [chartMode, setChartMode] = useState<"lite" | "tv">("lite");
+  const [chartModeInput, setChartMode] = useState<"lite" | "tv">("lite");
+  const chartMode = ADVANCED ? chartModeInput : "lite";
   const [picked, setPicked] = useState<{ price: number; n: number } | null>(null);
   const [pending, start] = useTransition();
   const toast = useToast();
@@ -304,8 +319,8 @@ export function TradeTerminal({ data }: { data: TradeData }) {
         <Stat title="Unrealized PnL" value={`${signed(unreal)} USDT`} tone={pnlCls(unreal)} />
       </div>
 
-      <div ref={gridRef} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_12px_var(--ob,260px)_12px_var(--of,320px)] xl:gap-0 xl:gap-y-0">
-        <Card className="flex min-w-0 flex-col p-0 md:col-span-2 xl:col-span-1">
+      <div ref={gridRef} className={ADVANCED ? "grid gap-3 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_12px_var(--ob,260px)_12px_var(--of,320px)] xl:gap-0 xl:gap-y-0" : "grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]"}>
+        <Card className={cn("flex min-w-0 flex-col p-0", ADVANCED && "md:col-span-2 xl:col-span-1")}>
           <div id="trade-chart" className="flex scroll-mt-20 flex-wrap items-center gap-2 border-b px-3 py-2">
             {SYMBOLS.map((s) => (
               <button
@@ -322,7 +337,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
             ))}
             <SymbolSearch symbol={symbol} prices={prices} onPick={setSymbol} />
             <span className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex rounded-md border p-0.5 text-[11px] font-medium">
+              <span className={cn("flex rounded-md border p-0.5 text-[11px] font-medium", !ADVANCED && "hidden")}>
                 {(
                   [
                     ["lite", "Custom"],
@@ -341,8 +356,8 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               </span>
             </span>
           </div>
-          <SymbolInfo symbol={symbol} mark={mark} />
-          <div className="notranslate relative h-[380px] sm:h-[420px] xl:h-[var(--ch,560px)]">
+          {ADVANCED && <SymbolInfo symbol={symbol} mark={mark} />}
+          <div className={cn("notranslate relative", ADVANCED ? "h-[380px] sm:h-[420px] xl:h-[var(--ch,560px)]" : "h-[300px] sm:h-[420px] lg:h-[520px]")}>
             {/* FinTalk watermark: sits in the empty top-right of the chart, so screenshots shared from here carry the brand */}
             <div aria-hidden className="pointer-events-none absolute right-[76px] top-14 z-10 flex select-none items-center gap-1.5 opacity-70">
               <LogoMark className="size-5" />
@@ -375,8 +390,13 @@ export function TradeTerminal({ data }: { data: TradeData }) {
                 }}
                 balance={data.balance}
                 loggedIn={data.loggedIn}
+                maxLeverage={account.maxLeverage}
                 onPlaceOrder={async (o) => {
-                  const r = await placeOrderAction({ symbol, side: o.side, sizeUsdt: o.sizeUsdt, leverage: o.leverage, marginMode, limitPrice: o.limitPrice, tp: o.tp, sl: o.sl });
+                  if (!account.canTrade) {
+                    toast.show(account.blockedReason ?? "Trading is not available for this account right now.");
+                    return false;
+                  }
+                  const r = await placeOrderAction({ symbol, side: o.side, sizeUsdt: o.sizeUsdt, leverage: o.leverage, marginMode, limitPrice: o.limitPrice, tp: o.tp, sl: o.sl, contestId: account.contestId });
                   toast.show(r.ok ? (r.status === "open" ? "Limit order placed." : "Order filled.") : r.error);
                   return r.ok;
                 }}
@@ -387,19 +407,21 @@ export function TradeTerminal({ data }: { data: TradeData }) {
           </div>
         </Card>
 
-        <Splitter v="--ob" axis="x" dir={-1} label="Resize chart and order book" />
-
-        <div className="relative order-3 min-h-[360px] md:order-none md:min-h-[420px] xl:min-h-0">
-          <div className="h-full xl:absolute xl:inset-0"><OrderBook symbol={symbol} mark={mark} onPick={(price) => setPicked({ price, n: (picked?.n ?? 0) + 1 })} /></div>
-        </div>
-
-        <Splitter v="--of" axis="x" dir={-1} label="Resize order book and order panel" />
+        {ADVANCED && (
+          <>
+            <Splitter v="--ob" axis="x" dir={-1} label="Resize chart and order book" />
+            <div className="relative order-3 min-h-[360px] md:order-none md:min-h-[420px] xl:min-h-0">
+              <div className="h-full xl:absolute xl:inset-0"><OrderBook symbol={symbol} mark={mark} onPick={(price) => setPicked({ price, n: (picked?.n ?? 0) + 1 })} /></div>
+            </div>
+            <Splitter v="--of" axis="x" dir={-1} label="Resize order book and order panel" />
+          </>
+        )}
 
         <div className="order-2 min-w-0 md:order-none">
-          <OrderForm symbol={symbol} mark={mark} positions={symPositions} allPositions={data.positions} prices={prices} marginMode={marginMode} lockedMode={lockedMode} onMarginMode={setModeInput} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
+          <OrderForm account={account} symbol={symbol} mark={mark} positions={symPositions} allPositions={data.positions} prices={prices} marginMode={marginMode} lockedMode={lockedMode} onMarginMode={setModeInput} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
         </div>
 
-        <Splitter v="--ch" axis="y" dir={1} label="Resize chart height" className="xl:col-span-5 h-3" />
+        {ADVANCED && <Splitter v="--ch" axis="y" dir={1} label="Resize chart height" className="xl:col-span-5 h-3" />}
       </div>
 
       {/* 포지션 / 주문 / 내역 */}
@@ -424,7 +446,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
               {t}
             </button>
           ))}
-          {data.loggedIn && (
+          {data.loggedIn && account.resettable && (
             <Button
               variant="ghost"
               size="xs"
@@ -440,7 +462,7 @@ export function TradeTerminal({ data }: { data: TradeData }) {
         <div className="overflow-x-auto p-3">
           {!data.loggedIn ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              <Link href="/login" className="font-semibold text-brand hover:underline">Log in</Link> to start paper trading with 10,000 USDT of virtual funds.
+              <Link href="/signup?next=/trade" className="font-semibold text-brand hover:underline">Join</Link> to start paper trading with 10,000 USDT of virtual funds.
             </p>
           ) : tab === "positions" ? (
             <PositionsTable positions={data.positions} closeOrders={data.closeOrders} prices={prices} pending={pending} run={run} current={symbol} onSelect={selectSymbol} />
@@ -470,10 +492,11 @@ function Stat({ title, value, tone }: { title: string; value: string; tone?: str
 
 type Run = (fn: () => Promise<{ ok: boolean; error?: string }>, okMsg?: string) => void;
 
-function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, lockedMode, onMarginMode, balance, loggedIn, pending, run, picked }: { symbol: string; mark?: number; positions: Position[]; allPositions: Position[]; prices: Record<string, number>; marginMode: MarginMode; lockedMode: MarginMode | null; onMarginMode: (m: MarginMode) => void; balance: number; loggedIn: boolean; pending: boolean; run: Run; picked: { price: number; n: number } | null }) {
+function OrderForm({ account, symbol, mark, positions, allPositions, prices, marginMode, lockedMode, onMarginMode, balance, loggedIn, pending, run, picked }: { account: TradeAccount; symbol: string; mark?: number; positions: Position[]; allPositions: Position[]; prices: Record<string, number>; marginMode: MarginMode; lockedMode: MarginMode | null; onMarginMode: (m: MarginMode) => void; balance: number; loggedIn: boolean; pending: boolean; run: Run; picked: { price: number; n: number } | null }) {
   const [type, setType] = useState<"market" | "limit">("market");
   const [size, setSize] = useState("");
-  const [levInput, setLev] = useState(10);
+  const [levRaw, setLev] = useState(10);
+  const levInput = Math.min(levRaw, account.maxLeverage);
   // 이 종목에 열린 포지션이 있으면 그 레버리지로 고정 (같은 종목은 레버리지를 바꿀 수 없음)
   const lockedLev = positions[0]?.leverage ?? null;
   const lev = lockedLev ?? levInput;
@@ -521,7 +544,7 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
   const submit = (side: Side) => {
     if (reduce) {
       run(
-        () => reduceOnlyAction({ symbol, side, sizeUsdt: sizeN, limitPrice: type === "limit" ? Number(limit) : null }),
+        () => reduceOnlyAction({ symbol, side, sizeUsdt: sizeN, limitPrice: type === "limit" ? Number(limit) : null, contestId: account.contestId }),
         type === "limit" ? "Reduce-only limit close order placed." : "Position reduced.",
       );
       return;
@@ -533,12 +556,12 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
       return;
     }
     run(
-      () => placeOrderAction({ symbol, side, sizeUsdt: sizeN, leverage: lev, marginMode, limitPrice: type === "limit" ? Number(limit) : null, tp: tpP, sl: slP }),
+      () => placeOrderAction({ symbol, side, sizeUsdt: sizeN, leverage: lev, marginMode, limitPrice: type === "limit" ? Number(limit) : null, tp: tpP, sl: slP, contestId: account.contestId }),
       type === "limit" ? "Limit order placed." : "Order filled.",
     );
   };
 
-  const disabled = pending || !loggedIn || sizeN < (reduce ? 0.01 : 10) || (type === "limit" && !(Number(limit) > 0));
+  const disabled = pending || !loggedIn || !account.canTrade || sizeN < (reduce ? 0.01 : 10) || (type === "limit" && !(Number(limit) > 0));
   // 리듀스 온리: 줄일 포지션이 없는 쪽 버튼은 비활성화
   const noTarget = (side: Side) => reduce && notional(side === "long" ? "short" : "long") <= 0;
   // 예상 청산가: 격리는 진입가·레버리지로, 교차는 잔고와 다른 교차 포지션까지 합쳐서 계산
@@ -595,7 +618,8 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
             {reduce ? "Reducible size" : "Tradable size"} <span className="font-semibold tabular-nums text-foreground">${fmtUsd(reduce ? reduceMax : power)}</span>
           </span>
         </div>
-        {!reduce && lockedLev === null && <LeverageSlider className="mt-2" value={lev} onChange={setLev} />}
+        {!reduce && lockedLev === null && <LeverageSlider className="mt-2" value={lev} max={account.maxLeverage} onChange={setLev} />}
+        {account.contestId !== null && <p className="mt-1 text-[11px] text-muted-foreground">Contest accounts are capped at {account.maxLeverage}x.</p>}
       </div>
 
       {type === "limit" && (
@@ -727,6 +751,7 @@ function OrderForm({ symbol, mark, positions, allPositions, prices, marginMode, 
         </Button>
       </div>
       {!loggedIn && <p className="text-center text-xs text-muted-foreground">Log in to place orders.</p>}
+      {loggedIn && !account.canTrade && account.blockedReason && <p className="text-center text-xs font-medium text-muted-foreground">{account.blockedReason}</p>}
     </Card>
   );
 }

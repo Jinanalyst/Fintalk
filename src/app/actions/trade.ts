@@ -26,6 +26,13 @@ function dbMsg(m: string, code?: string) {
   return "Could not process the request.";
 }
 
+/** Practice sends no p_contest at all, so Practice keeps working even before the 20261130 migration. */
+function contestArg(v: unknown): { p_contest?: number } | false {
+  if (v === null || v === undefined) return {};
+  const id = Number(v);
+  return Number.isSafeInteger(id) && id > 0 ? { p_contest: id } : false;
+}
+
 const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
 
 /** 최신 시세로 지정가 체결·익절/손절/강제청산을 즉시 점검합니다. (크론을 기다리지 않고 화면에서 가격이 닿았을 때 호출) */
@@ -46,6 +53,8 @@ export async function placeOrderAction(input: {
   limitPrice?: number | null;
   tp?: number | null;
   sl?: number | null;
+  /** Contest round id; omitted / null = Practice account */
+  contestId?: number | null;
 }): Promise<Result<{ status: "filled" | "open" }>> {
   const sb = await authed();
   if (!sb) return fail("Login required.");
@@ -60,8 +69,11 @@ export async function placeOrderAction(input: {
   const mode = input.marginMode ?? "isolated";
   if (mode !== "isolated" && mode !== "cross") return fail("Invalid margin mode.");
   for (const v of [limit, tp, sl]) if (v !== null && !(Number.isFinite(v) && v > 0)) return fail("Invalid price.");
+  const contest = contestArg(input.contestId);
+  if (contest === false) return fail("Invalid account.");
 
   await refreshPrices(sb);
+  // The leverage cap and the trading window of a contest account are enforced by the database.
   const { data, error } = await sb.rpc("paper_place_order", {
     p_symbol: input.symbol,
     p_side: input.side,
@@ -71,6 +83,7 @@ export async function placeOrderAction(input: {
     p_tp: tp,
     p_sl: sl,
     p_margin_mode: mode,
+    ...contest,
   });
   if (error) return fail(dbMsg(error.message, error.code));
   revalidatePath("/trade");
@@ -78,7 +91,7 @@ export async function placeOrderAction(input: {
 }
 
 /** 리듀스 온리 주문: 반대 방향 포지션을 줄이기만 합니다. (롱=숏 줄이기, 숏=롱 줄이기) */
-export async function reduceOnlyAction(input: { symbol: string; side: string; sizeUsdt: number; limitPrice?: number | null }): Promise<Result<{ status: "filled" | "open" }>> {
+export async function reduceOnlyAction(input: { symbol: string; side: string; sizeUsdt: number; limitPrice?: number | null; contestId?: number | null }): Promise<Result<{ status: "filled" | "open" }>> {
   const sb = await authed();
   if (!sb) return fail("Login required.");
   if (!isSymbol(input.symbol)) return fail("Unsupported symbol.");
@@ -87,8 +100,10 @@ export async function reduceOnlyAction(input: { symbol: string; side: string; si
   const limit = num(input.limitPrice);
   if (!(Number.isFinite(size) && size > 0)) return fail("Enter an order size.");
   if (limit !== null && !(Number.isFinite(limit) && limit > 0)) return fail("Invalid price.");
+  const contest = contestArg(input.contestId);
+  if (contest === false) return fail("Invalid account.");
   await refreshPrices(sb);
-  const { data, error } = await sb.rpc("paper_reduce_only", { p_symbol: input.symbol, p_side: input.side, p_size_usdt: size, p_limit: limit });
+  const { data, error } = await sb.rpc("paper_reduce_only", { p_symbol: input.symbol, p_side: input.side, p_size_usdt: size, p_limit: limit, ...contest });
   if (error) return fail(dbMsg(error.message, error.code));
   revalidatePath("/trade");
   return { ok: true, status: data === "open" ? "open" : "filled" };
