@@ -41,7 +41,7 @@ export const RULES: { id: string; title: string; body: string[] }[] = [
     title: "Prize and payout",
     body: [
       "1st place wins {prize}. Results are final at the end of the contest ({dates}, UTC).",
-      "The prize is paid in USDT on {payout}, to a wallet address the winner provides. [TBD: supported network(s) and deadline to send the address]",
+      "The prize is paid in USDT on the Tron network (TRC-20) on {payout}, to a TRC-20 wallet address the winner provides. Payments sent to an address on another network cannot be recovered. [TBD: deadline to send the address]",
     ],
   },
   {
@@ -54,6 +54,6 @@ export const RULES: { id: string; title: string; body: string[] }[] = [
 export const FAQ: { q: string; a: string }[] = [
   { q: "Is it free?", a: "Yes. Joining and trading are free. [TBD: final wording]" },
   { q: "Is real money involved?", a: "No. You trade with virtual funds only — no deposits, no real orders on an exchange. [TBD: final wording]" },
-  { q: "How do I get paid?", a: "The winner is contacted after the contest and paid in USDT on {payout}, to a wallet address they provide. [TBD: supported network(s)]" },
+  { q: "How do I get paid?", a: "The winner is contacted after the contest and paid in USDT (TRC-20, Tron network) on {payout}, to a TRC-20 wallet address they provide." },
   { q: "Who can join?", a: "[TBD: eligible countries / regions, age requirement, one account per person]" },
 ];
