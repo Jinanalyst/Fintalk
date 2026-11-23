@@ -202,6 +202,8 @@ export type TradeAccount = {
 
 const PRACTICE: TradeAccount = { contestId: null, maxLeverage: MAX_LEVERAGE, canTrade: true, resettable: true };
 const ADVANCED = isOn("advancedTrade");
+/** Order book column (with the resizable desktop layout). On by default. */
+const BOOK = ADVANCED || isOn("orderBook");
 
 export function TradeTerminal({ data, account = PRACTICE }: { data: TradeData; account?: TradeAccount }) {
   const [symbol, setSymbol] = useState<string>(SYMBOLS[0].symbol);
@@ -319,8 +321,8 @@ export function TradeTerminal({ data, account = PRACTICE }: { data: TradeData; a
         <Stat title="Unrealized PnL" value={`${signed(unreal)} USDT`} tone={pnlCls(unreal)} />
       </div>
 
-      <div ref={gridRef} className={ADVANCED ? "grid gap-3 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_12px_var(--ob,260px)_12px_var(--of,320px)] xl:gap-0 xl:gap-y-0" : "grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]"}>
-        <Card className={cn("flex min-w-0 flex-col p-0", ADVANCED && "md:col-span-2 xl:col-span-1")}>
+      <div ref={gridRef} className={BOOK ? "grid gap-3 md:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_12px_var(--ob,260px)_12px_var(--of,320px)] xl:gap-0 xl:gap-y-0" : "grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]"}>
+        <Card className={cn("flex min-w-0 flex-col p-0", BOOK && "md:col-span-2 xl:col-span-1")}>
           <div id="trade-chart" className="flex scroll-mt-20 flex-wrap items-center gap-2 border-b px-3 py-2">
             {SYMBOLS.map((s) => (
               <button
@@ -357,7 +359,7 @@ export function TradeTerminal({ data, account = PRACTICE }: { data: TradeData; a
             </span>
           </div>
           {ADVANCED && <SymbolInfo symbol={symbol} mark={mark} />}
-          <div className={cn("notranslate relative", ADVANCED ? "h-[380px] sm:h-[420px] xl:h-[var(--ch,560px)]" : "h-[300px] sm:h-[420px] lg:h-[520px]")}>
+          <div className={cn("notranslate relative", BOOK ? "h-[380px] sm:h-[420px] xl:h-[var(--ch,560px)]" : "h-[300px] sm:h-[420px] lg:h-[520px]")}>
             {/* FinTalk watermark: sits in the empty top-right of the chart, so screenshots shared from here carry the brand */}
             <div aria-hidden className="pointer-events-none absolute right-[76px] top-14 z-10 flex select-none items-center gap-1.5 opacity-70">
               <LogoMark className="size-5" />
@@ -407,7 +409,7 @@ export function TradeTerminal({ data, account = PRACTICE }: { data: TradeData; a
           </div>
         </Card>
 
-        {ADVANCED && (
+        {BOOK && (
           <>
             <Splitter v="--ob" axis="x" dir={-1} label="Resize chart and order book" />
             <div className="relative order-3 min-h-[360px] md:order-none md:min-h-[420px] xl:min-h-0">
@@ -421,7 +423,7 @@ export function TradeTerminal({ data, account = PRACTICE }: { data: TradeData; a
           <OrderForm account={account} symbol={symbol} mark={mark} positions={symPositions} allPositions={data.positions} prices={prices} marginMode={marginMode} lockedMode={lockedMode} onMarginMode={setModeInput} balance={data.balance} loggedIn={data.loggedIn} pending={pending} run={run} picked={picked} />
         </div>
 
-        {ADVANCED && <Splitter v="--ch" axis="y" dir={1} label="Resize chart height" className="xl:col-span-5 h-3" />}
+        {BOOK && <Splitter v="--ch" axis="y" dir={1} label="Resize chart height" className="xl:col-span-5 h-3" />}
       </div>
 
       {/* 포지션 / 주문 / 내역 */}

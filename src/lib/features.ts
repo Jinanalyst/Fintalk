@@ -20,7 +20,9 @@ const DEFAULTS = {
   communityHome: false,
   /** Old multi-round contest list (/contests) and the OKX UID entry form (/contest) */
   legacyContests: false,
-  /** Order book, symbol info strip and TradingView switch on /trade */
+  /** Order book on /trade */
+  orderBook: true,
+  /** Symbol info strip and TradingView switch on /trade (also shows the order book) */
   advancedTrade: false,
 } as const;
 
