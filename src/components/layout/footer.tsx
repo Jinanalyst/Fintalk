@@ -11,13 +11,9 @@ const BUSINESS = {
 };
 
 const LINKS = [
-  { href: "/", label: "Home" },
+  { href: "/contests", label: "Contest" },
+  { href: "/trade/leaderboard", label: "Leaderboard" },
   { href: "/community", label: "Community" },
-  { href: "/insights", label: "Insights" },
-  { href: "/creators", label: "Creators" },
-  { href: "/trade", label: "Paper Trading" },
-  { href: "/planner", label: "Planner" },
-  { href: "/rewards", label: "Rewards" },
 ];
 
 /** 사이트 공통 푸터: 서비스 소개, 사업자 정보, 투자 유의 안내 */

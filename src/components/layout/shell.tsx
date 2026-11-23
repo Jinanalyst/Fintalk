@@ -24,10 +24,10 @@ export function SideCards({ trending = true }: { trending?: boolean }) {
   );
 }
 
-function RightSidebar() {
+function RightSidebar({ variant }: { variant: "default" | "home" }) {
   return (
     <aside className="hidden space-y-4 xl:block" aria-label="Side information">
-      <SideCards />
+      {variant === "home" ? <MyContributionCard /> : <SideCards />}
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
         Posts on FinTalk are personal opinions of users and are not investment advice. You are solely responsible for your own investment decisions.
       </p>
@@ -36,7 +36,7 @@ function RightSidebar() {
 }
 
 /** 3열 레이아웃: 왼쪽 메뉴 / 가운데 콘텐츠 / 오른쪽 기여도·도움왕·인기 작성자 */
-export function MainShell({ children }: { children: React.ReactNode }) {
+export function MainShell({ children, sidebar = "default" }: { children: React.ReactNode; sidebar?: "default" | "home" }) {
   return (
     <>
       <Header />
@@ -49,7 +49,7 @@ export function MainShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
         <main className="min-w-0">{children}</main>
-        <RightSidebar />
+        <RightSidebar variant={sidebar} />
       </div>
       <Footer />
       <BottomNav />

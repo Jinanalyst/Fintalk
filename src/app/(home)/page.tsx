@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, MessageCircleQuestion, PenLine } from "lucide-react";
+import { ArrowRight, MessageCircleQuestion } from "lucide-react";
 import { Pills, SampleBadge, SectionHeader } from "@/components/common/bits";
 import { InsightCard, PostCard, questionStatus } from "@/components/feed/cards";
-import { SideCards } from "@/components/layout/shell";
-import { TrendingTickersStrip } from "@/components/layout/side-cards";
+import { ContestBanner } from "@/components/contests/contest-banner";
+import { MyContributionCard } from "@/components/layout/side-cards";
 import { getCurrentUser, listPosts, listWaitingQuestions } from "@/lib/data/community";
 import { listFollowingIds } from "@/lib/data/creators";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
@@ -20,67 +20,43 @@ const TABS: { slug: Tab; label: string }[] = [
   { slug: "following", label: "Following" },
 ];
 
-const FLOW = ["Ask a question", "Experienced investors answer", "Accept the helpful answer", "Earn contribution points"];
+type Posts = Awaited<ReturnType<typeof listPosts>>["posts"];
+/** 홈에서는 스폰서(광고·이해관계) 글을 노출하지 않습니다. */
+const noSponsored = (posts: Posts, limit: number) => posts.filter((p) => !p.sponsored).slice(0, limit);
 
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
   const tab: Tab = sp.tab === "new" || sp.tab === "following" ? sp.tab : "hot";
 
   // 팔로잉 탭: 내가 팔로우한 크리에이터의 글만
-  let following: { posts: Awaited<ReturnType<typeof listPosts>>["posts"]; needLogin: boolean; empty: boolean } | null = null;
+  let following: { posts: Posts; needLogin: boolean; empty: boolean } | null = null;
   if (tab === "following") {
     const me = isSupabaseConfigured ? await getCurrentUser().catch(() => null) : null;
     if (!me) following = { posts: [], needLogin: true, empty: false };
     else {
       const ids = await listFollowingIds(me.id);
-      following = { posts: (await listPosts({ authorIds: ids, sort: "new", limit: 20 })).posts, needLogin: false, empty: ids.length === 0 };
+      following = { posts: noSponsored((await listPosts({ authorIds: ids, sort: "new", limit: 24 })).posts, 20), needLogin: false, empty: ids.length === 0 };
     }
   }
 
   const [waiting, feed, insights] = await Promise.all([
-    listWaitingQuestions(4),
-    tab === "following" ? Promise.resolve({ posts: [], live: isSupabaseConfigured }) : listPosts({ sort: tab, limit: 8 }),
-    listPosts({ sort: "hot", limit: 3, types: INSIGHT_TYPES }),
+    listWaitingQuestions(8).then((r) => ({ ...r, posts: noSponsored(r.posts, 4) })),
+    tab === "following" ? Promise.resolve({ posts: [], live: isSupabaseConfigured }) : listPosts({ sort: tab, limit: 12 }).then((r) => ({ ...r, posts: noSponsored(r.posts, 8) })),
+    listPosts({ sort: "hot", limit: 6, types: INSIGHT_TYPES }).then((r) => ({ ...r, posts: noSponsored(r.posts, 3) })),
   ]);
   // 대기 중인 질문이 없으면 답변이 달린 인기 질문으로 대체, 그것도 없으면 섹션을 숨김
   const showingWaiting = waiting.posts.length > 0;
   const qa = showingWaiting
     ? waiting
-    : await listPosts({ sort: "hot", types: ["question"], limit: 20 }).then((r) => ({ posts: r.posts.filter((p) => p.comments > 0).slice(0, 4), live: r.live }));
+    : await listPosts({ sort: "hot", types: ["question"], limit: 20 }).then((r) => ({ posts: noSponsored(r.posts.filter((p) => p.comments > 0), 4), live: r.live }));
   const posts = following ? following.posts : feed.posts;
   const live = feed.live;
 
   return (
     <div className="space-y-7">
 
-      {/* 히어로: 돕는 커뮤니티 */}
-      <section className="overflow-hidden rounded-3xl border bg-card p-5 shadow-xs sm:p-8">
-        <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand">Stocks · US equities · Crypto</p>
-        <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
-          Share your ideas,
-          <br />
-          <span className="text-brand">grow together.</span>
-        </h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Experienced investors answer the questions you have been stuck on. Share what you know and earn accepted answers and contribution points.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-2.5">
-          <Link href="/community/write?type=question" className="inline-flex h-12 items-center rounded-xl bg-brand px-6 text-base font-bold text-primary-foreground hover:opacity-90">
-            Ask and get answers
-          </Link>
-          <Link href="/community/write?type=analysis" className="inline-flex h-12 items-center gap-1.5 rounded-xl border-2 px-6 text-base font-bold hover:bg-muted">
-            <PenLine className="size-4" /> Share my analysis
-          </Link>
-        </div>
-        <ol className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          {FLOW.map((s, i) => (
-            <li key={s} className="flex items-center gap-2">
-              <span className="grid size-5 place-items-center rounded-full bg-foreground text-[11px] font-bold text-background">{i + 1}</span>
-              {s}
-            </li>
-          ))}
-        </ol>
-      </section>
+      {/* 히어로: 트레이딩 대회 배너 */}
+      <ContestBanner />
 
       {/* 지금 답을 기다리는 질문 */}
       {qa.posts.length > 0 && (
@@ -124,11 +100,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         </section>
       )}
 
-      {/* 인기 종목 토론: 넓은 화면에서는 오른쪽 열 카드로 보이므로 좁은 화면에서만 */}
-      <div className="xl:hidden">
-        <TrendingTickersStrip />
-      </div>
-
       {/* 피드 */}
       <section>
         <SectionHeader title="Community" href="/community" right={live ? undefined : <SampleBadge label="Sample post" />} className="mb-2" />
@@ -161,8 +132,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       </section>
 
       {/* 좁은 화면에서는 오른쪽 열 대신 여기에 */}
-      <div className="space-y-4 xl:hidden">
-        <SideCards trending={false} />
+      <div className="xl:hidden">
+        <MyContributionCard />
       </div>
 
     </div>
