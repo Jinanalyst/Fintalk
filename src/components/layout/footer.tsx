@@ -59,6 +59,11 @@ export function Footer() {
           Posts on FinTalk are personal opinions of users and are not investment advice. Paper trading only. You are solely responsible for your own investment decisions.
         </p>
         <p className="mt-2 text-xs text-muted-foreground">© {new Date().getFullYear()} FinTalk · {BUSINESS.name}. All rights reserved.</p>
+        {/* Required attribution for the IP→country data used to show/hide the partner banner (src/lib/geo.ts) */}
+        <p className="mt-1 text-[11px] text-muted-foreground/80">
+          This site includes IP2Location LITE data available from{" "}
+          <a href="https://lite.ip2location.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-brand">lite.ip2location.com</a>.
+        </p>
       </div>
     </footer>
   );
