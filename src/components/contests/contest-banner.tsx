@@ -2,23 +2,14 @@ import Link from "next/link";
 import { ArrowRight, Trophy } from "lucide-react";
 import { Countdown } from "./countdown";
 import { StatusBadge } from "./status-badge";
-import { getContestSummaries } from "@/lib/contests/data";
+import { getFeaturedContest } from "@/lib/contests/data";
 import { formatRange } from "@/lib/contests/time";
-import type { ContestSummary } from "@/lib/contests/types";
-
-/** 홈에 보여줄 회차: 진행 중 → 가장 가까운 예정 → 가장 최근 종료 순 */
-function pickFeatured(list: ContestSummary[]): ContestSummary | null {
-  const live = list.find((c) => c.status === "live");
-  if (live) return live;
-  const upcoming = list.filter((c) => c.status === "upcoming").sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
-  return upcoming[0] ?? list[0] ?? null;
-}
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 
 /** 홈 히어로: 트레이딩 대회 배너 */
 export async function ContestBanner() {
-  const c = pickFeatured(await getContestSummaries());
+  const c = await getFeaturedContest();
 
   if (!c) {
     return (

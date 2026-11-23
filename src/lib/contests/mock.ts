@@ -57,10 +57,10 @@ function mockStats(contestId: string, seed: number, count: number, opts: { dq: n
 const day0 = Math.floor(Date.now() / DAY) * DAY;
 const iso = (ms: number) => new Date(ms).toISOString();
 
-const base = { prizes: [50, 30, 20] as [number, number, number], startingBalance: 10_000, minTrades: 10, mddLimit: 70 };
+const base = { prizes: [50, 30, 20] as [number, number, number], startingBalance: 10_000, minTrades: 10, mddLimit: 70, featured: false, source: "mock" as const };
 
 export const MOCK_CONTESTS: Contest[] = [
-  { ...base, id: "3", number: 3, name: "FinTalk Trading Championship #3", startsAt: iso(day0 + 14 * DAY), endsAt: iso(day0 + 44 * DAY), freezeLast24h: true },
+  { ...base, id: "3", number: 3, name: "FinTalk Trading Championship #3", startsAt: iso(day0 + 14 * DAY), endsAt: iso(day0 + 44 * DAY), freezeLast24h: true, featured: true },
   { ...base, id: "2", number: 2, name: "FinTalk Trading Championship #2", startsAt: iso(day0 - 10 * DAY), endsAt: iso(day0 + 20 * DAY), freezeLast24h: true },
   { ...base, id: "1", number: 1, name: "FinTalk Trading Championship #1", startsAt: iso(day0 - 50 * DAY), endsAt: iso(day0 - 20 * DAY), freezeLast24h: false },
 ];
@@ -73,7 +73,7 @@ const SPEC: Record<string, MockSpec> = {
 };
 
 /** Only rounds with generated leaderboard data are labelled as sample data; upcoming rounds read as real. */
-export const isSampleContest = (id: string) => (SPEC[id]?.count ?? 0) > 0;
+export const isSampleContest = (c: Pick<Contest, "id" | "source">) => c.source === "mock" && (SPEC[c.id]?.count ?? 0) > 0;
 
 /**
  * Mock leaderboard. `phase: "frozen"` returns a slightly older, different ordering to mimic the

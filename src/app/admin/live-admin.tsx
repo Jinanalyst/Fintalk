@@ -5,10 +5,18 @@ import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { AdminButton } from "./admin-button";
+import { ContestRounds, type RoundRow } from "./contest-rounds";
+import { listContests } from "@/lib/contests/data";
+import { contestStatus, DAY } from "@/lib/contests/time";
 
 type Tab = { k: string; l: string; i: LucideIcon };
 
 const hoursAgoIso = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
+/** 새 회차 기본 시작: 직전 회차 종료 시각 (없거나 이미 지났으면 내일 00:00 UTC) */
+const nextRoundStart = (prevEnd?: string) => {
+  const tomorrow = (Math.floor(Date.now() / DAY) + 1) * DAY;
+  return new Date(prevEnd ? Math.max(Date.parse(prevEnd), tomorrow) : tomorrow).toISOString();
+};
 const th = "px-3 py-2 text-left text-xs font-medium text-muted-foreground";
 const td = "px-3 py-2.5 text-sm";
 
@@ -171,8 +179,24 @@ export async function LiveAdmin({ tab, tabs }: { tab: string; tabs: Tab[] }) {
       .order("created_at", { ascending: false })
       .limit(200);
     const { data: audit } = await sb.from("contest_audit").select("id,kind,country,detail,created_at").order("created_at", { ascending: false }).limit(20);
+
+    // 회차: DB 에 아직 없으면 사이트는 샘플 회차(#1–#3)를 보여주므로, 첫 회차 기본값은 홈 배너의 샘플 회차 번호(#3)
+    const all = await listContests();
+    const dbRounds = all.filter((c) => c.source === "db");
+    const usingSample = dbRounds.length === 0;
+    const latest = dbRounds[0];
+    const defaults = {
+      number: latest ? latest.number + 1 : (all.find((c) => c.featured)?.number ?? 1),
+      startsAt: nextRoundStart(latest?.endsAt),
+      durationDays: 30,
+    };
+    const rounds: RoundRow[] = dbRounds.map((c) => ({ id: c.id, number: c.number, name: c.name, startsAt: c.startsAt, endsAt: c.endsAt, status: contestStatus(c), featured: c.featured }));
+
     body = (
       <>
+        <SectionHeader title="Rounds" />
+        <ContestRounds rounds={rounds} defaults={defaults} usingSample={usingSample} />
+        <SectionHeader title="Entries (OKX UID verification)" />
         <Table head={["User", "OKX UID", "Country", "Status", "Submitted", "Review"]} empty={!data?.length}>
           {(data ?? []).map((e) => {
             const a = e.user as unknown as { nickname: string } | { nickname: string }[] | null;

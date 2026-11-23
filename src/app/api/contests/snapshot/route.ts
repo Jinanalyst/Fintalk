@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { MOCK_CONTESTS } from "@/lib/contests/mock";
+import { listContests } from "@/lib/contests/data";
 import { runSnapshot } from "@/lib/contests/snapshot";
 import { contestStatus, isFrozen } from "@/lib/contests/time";
 
@@ -15,8 +15,7 @@ export async function GET(req: Request) {
 
   const now = Date.now();
   const results = [];
-  // TODO(supabase): load contests from the `contests` table instead of the mock list.
-  for (const c of MOCK_CONTESTS) {
+  for (const c of await listContests()) {
     const status = contestStatus(c, now);
     if (status !== "live" || isFrozen(c, now)) {
       results.push({ id: c.id, skipped: status === "live" ? "frozen" : status });

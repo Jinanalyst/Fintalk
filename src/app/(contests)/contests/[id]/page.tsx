@@ -64,7 +64,7 @@ export default async function ContestPage({ params }: PageProps<"/contests/[id]"
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-bold text-muted-foreground">#{c.number}</span>
               <StatusBadge status={status} />
-              {isSampleContest(c.id) && <SampleBadge />}
+              {isSampleContest(c) && <SampleBadge />}
             </div>
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight">{c.name}</h1>
             <p className="mt-1 text-xs text-muted-foreground">

@@ -12,6 +12,10 @@ export type Contest = {
   mddLimit: number; // % — strictly above this = disqualified
   /** When on, the leaderboard stops updating for the final 24 hours. */
   freezeLast24h: boolean;
+  /** Shown in the home-page banner (at most one round). */
+  featured: boolean;
+  /** "db" = a row in the contests table; "mock" = built-in sample round used until the table has rows. */
+  source: "db" | "mock";
 };
 
 /** One leaderboard line. Deliberately holds NO positions or trade history (anti copy-trading). */
