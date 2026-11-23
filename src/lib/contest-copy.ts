@@ -34,7 +34,12 @@ export const RULES: { id: string; title: string; body: string[] }[] = [
   {
     id: "countries",
     title: "Who can take part",
-    body: ["[TBD: eligible countries / regions and age requirement]", "[TBD: one account per person]"],
+    body: [
+      "The contest is open to people who live outside South Korea. Residents of South Korea cannot take part.",
+      "Residents of countries or regions where taking part in this contest is prohibited by law cannot take part. [TBD: list of prohibited countries]",
+      "[TBD: age requirement]",
+      "[TBD: one account per person]",
+    ],
   },
   {
     id: "prize",
@@ -55,5 +60,5 @@ export const FAQ: { q: string; a: string }[] = [
   { q: "Is it free?", a: "Yes. Joining and trading are free. [TBD: final wording]" },
   { q: "Is real money involved?", a: "No. You trade with virtual funds only — no deposits, no real orders on an exchange. [TBD: final wording]" },
   { q: "How do I get paid?", a: "The winner is contacted after the contest and paid in USDT (TRC-20, Tron network) on {payout}, to a TRC-20 wallet address they provide." },
-  { q: "Who can join?", a: "[TBD: eligible countries / regions, age requirement, one account per person]" },
+  { q: "Who can join?", a: "Anyone who lives outside South Korea, except residents of countries or regions where taking part is prohibited by law. [TBD: age requirement]" },
 ];
