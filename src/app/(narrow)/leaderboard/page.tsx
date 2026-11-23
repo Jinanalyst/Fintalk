@@ -6,7 +6,7 @@ import { TimeLeft } from "@/components/season/time-left";
 import { getCurrentUser } from "@/lib/data/community";
 import { getSeason, getSeasonLeaderboard, getSeasonParticipants, phaseOf } from "@/lib/contests/season-data";
 import { formatUTC } from "@/lib/contests/time";
-import { dateRange, money } from "@/lib/season";
+import { dateRange, money, requestTime } from "@/lib/season";
 
 export const metadata: Metadata = {
   title: "Leaderboard",
@@ -18,7 +18,8 @@ export const dynamic = "force-dynamic";
 
 export default async function LeaderboardPage() {
   const season = await getSeason();
-  const phase = phaseOf(season);
+  const now = requestTime();
+  const phase = phaseOf(season, now);
   const [board, people, me] = await Promise.all([
     phase === "registration" ? Promise.resolve(null) : getSeasonLeaderboard(season),
     getSeasonParticipants(season, 200),
@@ -37,7 +38,7 @@ export default async function LeaderboardPage() {
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">Leaderboard</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Contest accounts only, ranked by return on starting balance. {money(season.prizes[0])} for 1st place.
-          {phase === "live" && <> Ends in <TimeLeft target={season.endsAt} className="font-semibold text-foreground" />.</>}
+          {phase === "live" && <> Ends in <TimeLeft serverNow={now} target={season.endsAt} className="font-semibold text-foreground" />.</>}
         </p>
       </header>
 
@@ -45,7 +46,7 @@ export default async function LeaderboardPage() {
         <section className="space-y-3">
           <div className="rounded-2xl border border-dashed bg-card p-4 text-sm">
             <p className="font-semibold">
-              Ranking starts in <TimeLeft target={season.startsAt} className="text-brand tabular-nums" />.
+              Ranking starts in <TimeLeft serverNow={now} target={season.startsAt} className="text-brand tabular-nums" />.
             </p>
             <p className="mt-0.5 text-muted-foreground">
               Until then, here are the traders who have signed up{people.count > 0 ? ` (${people.count.toLocaleString("en-US")})` : ""}.

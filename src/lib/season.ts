@@ -10,7 +10,7 @@ export const SEASON = {
   name: "FinTalk Season 1",
   label: "Season 1",
   /** Sign-ups close at the end of Nov 30 (UTC). */
-  registrationEndsAt: "2026-12-01T00:00:00Z",
+  registrationEndsAt: "2026-11-30T23:59:59Z",
   startsAt: "2026-12-01T00:00:00Z",
   endsAt: "2027-01-01T00:00:00Z",
   /** When the prize is paid. */
@@ -25,6 +25,8 @@ export const SEASON = {
   showParticipantsAbove: 10,
   /** Community board used for "Contest talk" on the landing page. */
   talkBoard: "trading",
+  /** Optional announcement post shown first in "Contest talk" (posts.id). Set NEXT_PUBLIC_PINNED_POST_ID. */
+  pinnedPostId: process.env.NEXT_PUBLIC_PINNED_POST_ID?.trim() || null,
 } as const;
 
 /** Practice accounts are not tied to a round. */
@@ -42,8 +44,15 @@ const md = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", d
 /** "Dec 1" */
 export const shortDate = (iso: string | number) => md.format(new Date(iso));
 
-/** The last day of registration ("Nov 30"), i.e. one second before the registration end. */
+/** The last day of registration ("Nov 30"). Works for an end of "Nov 30 23:59:59" and of "Dec 1 00:00". */
 export const registrationLastDay = (iso: string) => shortDate(Date.parse(iso) - 1000);
+
+/** What the main countdown counts down to, and its label. */
+export function countdownFor(s: { label: string; registrationEndsAt: string; startsAt: string; endsAt: string }, now = Date.now()) {
+  if (now < Date.parse(s.registrationEndsAt)) return { target: s.registrationEndsAt, label: "Registration closes in", ended: false };
+  if (now < Date.parse(s.endsAt)) return { target: s.endsAt, label: "Contest ends in", ended: false };
+  return { target: s.endsAt, label: `${s.label} has ended`, ended: true };
+}
 
 /** "Dec 1 – Jan 1" (end shown as the last moment, so a round ending Jan 1 00:00 reads "Jan 1"). */
 export const dateRange = (s: { startsAt: string; endsAt: string }) => `${shortDate(s.startsAt)} – ${shortDate(s.endsAt)}`;
@@ -56,3 +65,6 @@ export const daysUntil = (iso: string, now = Date.now()) => Math.max(0, Math.cei
 const longFmt = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
 /** "Jan 11, 2027" */
 export const longDate = (iso: string | number) => longFmt.format(new Date(iso));
+
+/** Request time for server components (rendered once per request), passed to client countdowns as `serverNow`. */
+export const requestTime = () => Date.now();

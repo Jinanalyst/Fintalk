@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FAQ, fill } from "@/lib/contest-copy";
+import { publishedFaq } from "@/lib/contest-copy";
 import { copyVars, getSeason } from "@/lib/contests/season-data";
 
 export const metadata: Metadata = {
@@ -13,18 +13,18 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function FaqPage() {
-  const v = copyVars(await getSeason());
+  const faq = publishedFaq(copyVars(await getSeason()));
   return (
     <article className="space-y-5">
       <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Frequently asked questions</h1>
       <div className="divide-y rounded-2xl border bg-card shadow-xs">
-        {FAQ.map((f, i) => (
+        {faq.map((f, i) => (
           <details key={f.q} className="group px-5 py-4" open={i === 0}>
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold [&::-webkit-details-marker]:hidden">
               {f.q}
               <span className="text-lg text-muted-foreground transition-transform group-open:rotate-45" aria-hidden>+</span>
             </summary>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{fill(f.a, v)}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
           </details>
         ))}
       </div>

@@ -4,12 +4,12 @@ import { ArrowRight, BookOpen, ChartCandlestick, CircleHelp, MessagesSquare, Tro
 import { Countdown } from "@/components/contests/countdown";
 import { InviteButton } from "@/components/season/invite-button";
 import { RecentTraders, StandingsTable } from "@/components/season/standings";
-import { getCurrentUser, listPosts } from "@/lib/data/community";
-import { FAQ, RULES, fill } from "@/lib/contest-copy";
+import { getCurrentUser } from "@/lib/data/community";
+import { getContestTalk } from "@/lib/data/contest-talk";
+import { publishedFaq, publishedRules } from "@/lib/contest-copy";
 import { copyVars, getMyReferralCode, getSeason, getSeasonLeaderboard, getSeasonParticipants, phaseOf, registrationOpen } from "@/lib/contests/season-data";
 import { isOn } from "@/lib/features";
-import { isKoreanPost } from "@/lib/lang";
-import { SEASON, dateRange, money, registrationLastDay } from "@/lib/season";
+import { SEASON, countdownFor, dateRange, money, registrationLastDay, requestTime } from "@/lib/season";
 import { CommunityHome } from "./community-home";
 
 export const metadata: Metadata = {
@@ -27,16 +27,20 @@ export default async function HomePage(props: PageProps<"/">) {
 
 async function ContestLanding() {
   const season = await getSeason();
-  const phase = phaseOf(season);
-  const regOpen = registrationOpen(season);
+  const now = requestTime();
+  const phase = phaseOf(season, now);
+  const regOpen = registrationOpen(season, now);
+  const clock = countdownFor(season, now);
   const me = await getCurrentUser().catch(() => null);
   const [people, board, talk, inviteCode] = await Promise.all([
     getSeasonParticipants(season, 5),
     phase === "registration" ? Promise.resolve(null) : getSeasonLeaderboard(season),
-    listPosts({ cat: SEASON.talkBoard, sort: "new", limit: 20 }).then((r) => (r.live ? r.posts.filter((p) => !p.sponsored && !isKoreanPost(p)).slice(0, 3) : [])),
+    getContestTalk({ board: SEASON.talkBoard, maxLeverage: season.maxLeverage, pinnedPostId: SEASON.pinnedPostId }),
     me ? getMyReferralCode() : Promise.resolve(null),
   ]);
   const v = copyVars(season);
+  const rules = publishedRules(v);
+  const faq = publishedFaq(v);
 
   const badge =
     phase === "registration"
@@ -62,8 +66,10 @@ async function ContestLanding() {
           </p>
 
           <div className="mt-7 flex flex-wrap items-end gap-x-8 gap-y-5">
-            {phase !== "ended" && (
-              <Countdown dark target={phase === "registration" ? season.registrationEndsAt : season.endsAt} label={phase === "registration" ? "Registration closes in" : "Contest ends in"} />
+            {clock.ended ? (
+              <p className="text-lg font-bold text-slate-200">{clock.label}</p>
+            ) : (
+              <Countdown dark serverNow={now} target={clock.target} label={clock.label} />
             )}
             {people.count > SEASON.showParticipantsAbove && (
               <div>
@@ -144,7 +150,7 @@ async function ContestLanding() {
             <Fact k="Ranking" v="Return on balance" />
           </dl>
           <ul className="mt-4 space-y-1.5 border-t pt-3 text-sm">
-            {RULES.map((r) => (
+            {rules.map((r) => (
               <li key={r.id}>
                 <Link href={`/contest/rules#${r.id}`} className="text-muted-foreground hover:text-brand">{r.title} ›</Link>
               </li>
@@ -154,13 +160,13 @@ async function ContestLanding() {
         <div className="rounded-2xl border bg-card p-5 shadow-xs">
           <h2 className="flex items-center gap-2 text-lg font-bold"><CircleHelp className="size-5 text-brand" /> FAQ</h2>
           <div className="mt-2 divide-y">
-            {FAQ.map((f) => (
+            {faq.map((f) => (
               <details key={f.q} className="group py-2.5">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
                   {f.q}
                   <span className="text-muted-foreground transition-transform group-open:rotate-45" aria-hidden>+</span>
                 </summary>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{fill(f.a, v)}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
               </details>
             ))}
           </div>
@@ -168,7 +174,7 @@ async function ContestLanding() {
         </div>
       </section>
 
-      {/* 5. Contest talk (hidden when the Trading board has no English posts) */}
+      {/* 5. Contest talk: pinned notice + latest English posts, no trades above the leverage cap. Hidden when empty. */}
       {talk.length > 0 && (
         <section aria-labelledby="talk">
           <div className="flex items-end justify-between gap-3">
@@ -179,7 +185,10 @@ async function ContestLanding() {
             {talk.map((p) => (
               <li key={p.id}>
                 <Link href={`/community/${p.id}`} className="block px-4 py-3.5 hover:bg-muted/50">
-                  <p className="line-clamp-1 font-semibold">{p.title}</p>
+                  <p className="line-clamp-1 font-semibold">
+                    {p.pinnedNotice && <span className="mr-1.5 rounded bg-brand-soft px-1.5 py-0.5 align-middle text-[11px] font-bold text-brand">Notice</span>}
+                    {p.title}
+                  </p>
                   {p.body[0] && <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{p.body[0]}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">{p.author} · {p.createdAt} · {p.comments} comments</p>
                 </Link>

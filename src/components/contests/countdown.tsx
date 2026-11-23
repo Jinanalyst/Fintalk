@@ -3,11 +3,15 @@
 import { useEffect, useState } from "react";
 import { splitDuration } from "@/lib/contests/time";
 
-export function Countdown({ target, label, dark = false }: { target: string; label: string; dark?: boolean }) {
+/**
+ * `serverNow`: the time the server rendered the page. Passing it puts real numbers in the HTML, so the
+ * countdown never shows dashes — even before (or without) JavaScript. Without it, "--" is shown until mounted.
+ */
+export function Countdown({ target, label, dark = false, serverNow }: { target: string; label: string; dark?: boolean; serverNow?: number }) {
   const cell = dark ? "bg-white/10" : "bg-muted";
   const sub = dark ? "text-slate-300" : "text-muted-foreground";
-  // Render nothing until mounted so server and client markup match.
-  const [now, setNow] = useState<number | null>(null);
+  // First render uses the server's clock (same value on server and client → no hydration mismatch).
+  const [now, setNow] = useState<number | null>(serverNow ?? null);
   useEffect(() => {
     const tick = () => setNow(Date.now());
     tick();

@@ -62,3 +62,29 @@ export const FAQ: { q: string; a: string }[] = [
   { q: "How do I get paid?", a: "The winner is contacted after the contest and paid in USDT (TRC-20, Tron network) on {payout}, to a TRC-20 wallet address they provide." },
   { q: "Who can join?", a: "Anyone who lives outside South Korea, except residents of countries or regions where taking part is prohibited by law. [TBD: age requirement]" },
 ];
+
+// ───────── Guard: unfinished copy never reaches the live pages ─────────
+
+/** True for text that still contains a "[TBD" marker. */
+export const isTbd = (text: string) => /\[TBD/i.test(text);
+
+function warnMissing(where: string, items: string[]) {
+  if (items.length && process.env.NODE_ENV !== "production") {
+    console.warn(`[contest-copy] ${where}: ${items.length} item(s) still marked [TBD] and hidden:\n - ${items.join("\n - ")}`);
+  }
+}
+
+/** FAQ entries whose answers are finished, placeholders filled in. Entries with [TBD] are left out. */
+export function publishedFaq(v: CopyVars) {
+  warnMissing("FAQ", FAQ.filter((f) => isTbd(f.a)).map((f) => f.q));
+  return FAQ.filter((f) => !isTbd(f.a)).map((f) => ({ q: f.q, a: fill(f.a, v) }));
+}
+
+/** Rule sections with only finished lines. Sections left with no lines are dropped. */
+export function publishedRules(v: CopyVars) {
+  warnMissing(
+    "Rules",
+    RULES.flatMap((r) => r.body.filter(isTbd).map((b) => `${r.title}: ${b}`)),
+  );
+  return RULES.map((r) => ({ ...r, body: r.body.filter((b) => !isTbd(b)).map((b) => fill(b, v)) })).filter((r) => r.body.length > 0);
+}

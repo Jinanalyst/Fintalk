@@ -99,6 +99,19 @@ export async function listPosts(opts: { cat?: string; sort?: SortKey; limit?: nu
   return { posts: sorted.slice(0, limit), live: true };
 }
 
+/** Published posts by id (order not guaranteed). Empty when Supabase is not configured. */
+export async function getPostsByIds(ids: string[]): Promise<Post[]> {
+  const valid = ids.filter((id) => UUID_RE.test(id));
+  if (!isSupabaseConfigured || valid.length === 0) return [];
+  const sb = await createClient();
+  const { data, error } = await sb.from("posts").select(SELECT).in("id", valid).eq("status", "published").lte("created_at", new Date().toISOString());
+  if (error) {
+    console.error("[getPostsByIds]", error.message);
+    return [];
+  }
+  return (data as unknown as PostRow[]).map(mapPost);
+}
+
 export type CommentPreview = { id: string; author: string; body: string; createdAt: string };
 
 /** 게시글별 최신 댓글 미리보기 (게시글당 최대 `perPost` 개). Supabase 미설정 시 빈 결과. */

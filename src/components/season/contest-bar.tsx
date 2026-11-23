@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { daysUntil } from "@/lib/season";
+import { daysUntil, requestTime } from "@/lib/season";
 import type { MyContest, Season } from "@/lib/contests/season-data";
 import type { SeasonPhase } from "@/lib/season";
 import { InviteButton } from "./invite-button";
@@ -31,7 +31,8 @@ export function ContestBar({
   regOpen: boolean;
   inviteCode: string | null;
 }) {
-  const days = daysUntil(season.startsAt);
+  const now = requestTime();
+  const days = daysUntil(season.startsAt, now);
   const tab = "flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-bold transition-colors";
 
   return (
@@ -58,7 +59,7 @@ export function ContestBar({
           {phase === "registration" ? (
             <>
               <span className="font-bold">
-                Contest starts in <TimeLeft target={season.startsAt} className="tabular-nums text-brand" />
+                Contest starts in <TimeLeft serverNow={now} target={season.startsAt} className="tabular-nums text-brand" />
               </span>
               {me?.joined ? (
                 <span className="text-muted-foreground">
@@ -72,11 +73,11 @@ export function ContestBar({
             <>
               <Stat label="Rank" value={me.rank ? `#${me.rank}` : "—"} />
               <Stat label="Return" value={me.returnPct === null ? "—" : pct(me.returnPct)} tone={me.returnPct === null ? undefined : me.returnPct >= 0 ? "text-up" : "text-down"} />
-              <Stat label={phase === "live" ? "Ends in" : "Ended"} value={phase === "live" ? <TimeLeft target={season.endsAt} /> : "Final"} />
+              <Stat label={phase === "live" ? "Ends in" : "Ended"} value={phase === "live" ? <TimeLeft serverNow={now} target={season.endsAt} /> : "Final"} />
             </>
           ) : phase === "live" ? (
             <span className="text-muted-foreground">
-              {me?.joined ? "Switch to Contest to trade your contest account." : "Practice account · not on the leaderboard."} Contest ends in <TimeLeft target={season.endsAt} className="font-semibold text-foreground" />
+              {me?.joined ? "Switch to Contest to trade your contest account." : "Practice account · not on the leaderboard."} Contest ends in <TimeLeft serverNow={now} target={season.endsAt} className="font-semibold text-foreground" />
             </span>
           ) : (
             <span className="text-muted-foreground">{season.label} has ended. Practice stays open.</span>
