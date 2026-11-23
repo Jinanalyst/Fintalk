@@ -107,3 +107,9 @@ to your server's outbound IP so users can whitelist it on their exchange key. Re
    DB 가 연결되지 않았을 때 쓰는 기본값은 `src/lib/season.ts` 에 있습니다.
 5. 숨긴 메뉴(Insights, Creators, Planner, Rewards 등)는 `src/lib/features.ts` 에서, 또는 환경변수
    `NEXT_PUBLIC_FEATURES="insights,planner"` 로 다시 켤 수 있습니다. (빌드 시 반영)
+6. 추가 마이그레이션 (순서대로 실행)
+   - `20261201_season1_registration_end.sql` — Season 1 모집 마감을 2026-11-30 23:59:59 UTC 로 변경 (행 1개 UPDATE)
+   - `20261202_affiliate_clicks.sql` — OKX 파트너 배너 클릭 로그 테이블 (`affiliate_clicks`, 관리자만 조회)
+7. OKX 파트너 배너: `NEXT_PUBLIC_OKX_AFFILIATE_URL` (없으면 `NEXT_PUBLIC_OKX_REFERRAL_URL` 사용),
+   전체 끄기 `NEXT_PUBLIC_AFFILIATE_BANNER=off`, 위치별 on/off 와 추가 차단 국가는 `src/lib/affiliate.ts`.
+   Contest talk 고정 공지는 `NEXT_PUBLIC_PINNED_POST_ID` (게시글 id).
