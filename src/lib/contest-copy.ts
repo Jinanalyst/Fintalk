@@ -46,7 +46,7 @@ export const RULES: { id: string; title: string; body: string[] }[] = [
     title: "Prize and payout",
     body: [
       "1st place wins {prize}. Results are final at the end of the contest ({dates}, UTC).",
-      "The prize is paid in USDT on the Tron network (TRC-20) on {payout}, to a TRC-20 wallet address the winner provides. Payments sent to an address on another network cannot be recovered. [TBD: deadline to send the address]",
+      "The prize is paid in USDT on the Tron network (TRC-20) on {payout}, to a TRC-20 wallet address the winner provides. Payments sent to an address on another network cannot be recovered.",
     ],
   },
   {
