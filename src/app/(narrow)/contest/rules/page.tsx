@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contest/rules" },
 };
 
+/** Season dates and limits come from the database; refresh hourly. */
+export const revalidate = 3600;
+
 export default async function RulesPage() {
   const season = await getSeason();
   const v = copyVars(season);

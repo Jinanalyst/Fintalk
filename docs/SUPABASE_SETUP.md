@@ -91,3 +91,19 @@ Run it in the SQL Editor. It creates `planner_connections` (readable by the owne
 (encrypted API keys, no client access at all: only the server's service-role key can read them).
 Set `PLANNER_ENCRYPTION_KEY` (any long random string) on the host. Optionally set `NEXT_PUBLIC_PLANNER_SERVER_IPS`
 to your server's outbound IP so users can whitelist it on their exchange key. Requires `SUPABASE_SERVICE_ROLE_KEY`.
+
+## 7. Season 1 (모의투자 대회) 설정
+
+1. **마이그레이션 실행**: SQL Editor 에서 `supabase/migrations/20261130_season_accounts.sql` 실행
+   (추가만 하는 마이그레이션. 기존 모의투자 데이터는 그대로 Practice 계정이 됩니다. Season 1 회차도 만들어집니다.)
+   **코드를 배포하기 전에 먼저 실행하세요.** 순서가 바뀌면 배포와 마이그레이션 사이에 Contest 기능과 레퍼럴이 동작하지 않습니다. Practice 거래는 계속 동작합니다.
+2. **X 로그인**: Authentication → Providers → **X / Twitter (OAuth 2.0)** 켜기,
+   X Developer Portal 에서 발급한 Client ID / Secret 입력, Callback URL 은 Google 과 같은 `https://xxxx.supabase.co/auth/v1/callback`
+3. **크론**
+   - `GET /api/trade/tick` (1분마다, `Authorization: Bearer $TRADE_TICK_SECRET`) — 시세·체결·청산과 대회 MDD 갱신
+   - `GET /api/contests/snapshot` (매시 정각, `Authorization: Bearer $CRON_SECRET`) — 리더보드 스냅샷. `TRADE_TICK_SECRET` 도 필요
+4. 기간·상금·레버리지 상한(기본 20배)·레퍼럴 보너스는 `contests` 테이블의 Season 1 행에서 바꿉니다
+   (`starts_at`, `ends_at`, `registration_ends_at`, `prize_1`, `max_leverage`, `referral_bonus_pct`).
+   DB 가 연결되지 않았을 때 쓰는 기본값은 `src/lib/season.ts` 에 있습니다.
+5. 숨긴 메뉴(Insights, Creators, Planner, Rewards 등)는 `src/lib/features.ts` 에서, 또는 환경변수
+   `NEXT_PUBLIC_FEATURES="insights,planner"` 로 다시 켤 수 있습니다. (빌드 시 반영)

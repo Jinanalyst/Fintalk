@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contest/faq" },
 };
 
+/** Season dates and limits come from the database; refresh hourly. */
+export const revalidate = 3600;
+
 export default async function FaqPage() {
   const v = copyVars(await getSeason());
   return (
