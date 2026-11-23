@@ -9,6 +9,8 @@ import { getJoinableContest } from "@/lib/contests/data";
 import { formatRange } from "@/lib/contests/time";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { redirect } from "next/navigation";
+import { isOn } from "@/lib/features";
 
 export const metadata: Metadata = {
   title: "Trading Contest",
@@ -27,6 +29,8 @@ const STATUS = {
 } as const;
 
 export default async function ContestPage() {
+  // Old OKX-UID entry flow. Season sign-up is now one click with Google / X (see "/").
+  if (!isOn("legacyContests")) redirect("/");
   const joinable = await getJoinableContest();
   const regionBlocked = isBlockedCountry(countryFromHeaders(await headers()));
   let entry: Entry | null = null;

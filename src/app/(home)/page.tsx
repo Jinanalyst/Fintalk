@@ -1,141 +1,213 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, MessageCircleQuestion } from "lucide-react";
-import { Pills, SampleBadge, SectionHeader } from "@/components/common/bits";
-import { InsightCard, PostCard, questionStatus } from "@/components/feed/cards";
-import { ContestBanner } from "@/components/contests/contest-banner";
-import { MyContributionCard } from "@/components/layout/side-cards";
-import { getCurrentUser, listPosts, listWaitingQuestions } from "@/lib/data/community";
-import { listFollowingIds } from "@/lib/data/creators";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { INSIGHT_TYPES, boardLabel } from "@/lib/sample-data";
+import { ArrowRight, BookOpen, ChartCandlestick, CircleHelp, MessagesSquare, Trophy, UserPlus } from "lucide-react";
+import { Countdown } from "@/components/contests/countdown";
+import { InviteButton } from "@/components/season/invite-button";
+import { RecentTraders, StandingsTable } from "@/components/season/standings";
+import { getCurrentUser, listPosts } from "@/lib/data/community";
+import { FAQ, RULES, fill } from "@/lib/contest-copy";
+import { copyVars, getMyReferralCode, getSeason, getSeasonLeaderboard, getSeasonParticipants, phaseOf, registrationOpen } from "@/lib/contests/season-data";
+import { isOn } from "@/lib/features";
+import { isKoreanPost } from "@/lib/lang";
+import { SEASON, dateRange, money, registrationLastDay } from "@/lib/season";
+import { CommunityHome } from "./community-home";
 
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const metadata: Metadata = {
+  title: { absolute: "FinTalk — Free crypto paper trading contest" },
+  description: "Start with $10,000 of virtual funds and compete for a $100 prize. Free crypto futures paper trading contest, Dec 1 – Jan 1.",
+  alternates: { canonical: "/" },
+};
 
-type Tab = "hot" | "new" | "following";
+export const dynamic = "force-dynamic";
 
-const TABS: { slug: Tab; label: string }[] = [
-  { slug: "hot", label: "Top" },
-  { slug: "new", label: "Newest" },
-  { slug: "following", label: "Following" },
-];
+export default async function HomePage(props: PageProps<"/">) {
+  if (isOn("communityHome")) return <CommunityHome searchParams={props.searchParams} />;
+  return <ContestLanding />;
+}
 
-type Posts = Awaited<ReturnType<typeof listPosts>>["posts"];
-/** 홈에서는 스폰서(광고·이해관계) 글을 노출하지 않습니다. */
-const noSponsored = (posts: Posts, limit: number) => posts.filter((p) => !p.sponsored).slice(0, limit);
-
-export default async function HomePage({ searchParams }: PageProps<"/">) {
-  const sp = await searchParams;
-  const tab: Tab = sp.tab === "new" || sp.tab === "following" ? sp.tab : "hot";
-
-  // 팔로잉 탭: 내가 팔로우한 크리에이터의 글만
-  let following: { posts: Posts; needLogin: boolean; empty: boolean } | null = null;
-  if (tab === "following") {
-    const me = isSupabaseConfigured ? await getCurrentUser().catch(() => null) : null;
-    if (!me) following = { posts: [], needLogin: true, empty: false };
-    else {
-      const ids = await listFollowingIds(me.id);
-      following = { posts: noSponsored((await listPosts({ authorIds: ids, sort: "new", limit: 24 })).posts, 20), needLogin: false, empty: ids.length === 0 };
-    }
-  }
-
-  const [waiting, feed, insights] = await Promise.all([
-    listWaitingQuestions(8).then((r) => ({ ...r, posts: noSponsored(r.posts, 4) })),
-    tab === "following" ? Promise.resolve({ posts: [], live: isSupabaseConfigured }) : listPosts({ sort: tab, limit: 12 }).then((r) => ({ ...r, posts: noSponsored(r.posts, 8) })),
-    listPosts({ sort: "hot", limit: 6, types: INSIGHT_TYPES }).then((r) => ({ ...r, posts: noSponsored(r.posts, 3) })),
+async function ContestLanding() {
+  const season = await getSeason();
+  const phase = phaseOf(season);
+  const regOpen = registrationOpen(season);
+  const me = await getCurrentUser().catch(() => null);
+  const [people, board, talk, inviteCode] = await Promise.all([
+    getSeasonParticipants(season, 5),
+    phase === "registration" ? Promise.resolve(null) : getSeasonLeaderboard(season),
+    listPosts({ cat: SEASON.talkBoard, sort: "new", limit: 20 }).then((r) => (r.live ? r.posts.filter((p) => !p.sponsored && !isKoreanPost(p)).slice(0, 3) : [])),
+    me ? getMyReferralCode() : Promise.resolve(null),
   ]);
-  // 대기 중인 질문이 없으면 답변이 달린 인기 질문으로 대체, 그것도 없으면 섹션을 숨김
-  const showingWaiting = waiting.posts.length > 0;
-  const qa = showingWaiting
-    ? waiting
-    : await listPosts({ sort: "hot", types: ["question"], limit: 20 }).then((r) => ({ posts: noSponsored(r.posts.filter((p) => p.comments > 0), 4), live: r.live }));
-  const posts = following ? following.posts : feed.posts;
-  const live = feed.live;
+  const v = copyVars(season);
+
+  const badge =
+    phase === "registration"
+      ? `${season.label} · Registration closes ${registrationLastDay(season.registrationEndsAt)}`
+      : phase === "live"
+        ? `${season.label} · Live now${regOpen ? "" : " · registration closed"}`
+        : `${season.label} · Ended`;
+  const rows = (board?.rows ?? []).slice(0, 5);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-10 sm:space-y-14">
+      {/* 1. Hero */}
+      <section className="relative overflow-hidden rounded-3xl bg-slate-900 px-5 py-8 text-white shadow-xs sm:px-10 sm:py-12">
+        <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-80 rounded-full bg-brand/40 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-28 left-1/4 size-72 rounded-full bg-amber-400/20 blur-3xl" />
+        <div className="relative max-w-2xl">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-amber-300">
+            <Trophy className="size-3.5" /> {badge}
+          </span>
+          <h1 className="mt-4 text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-6xl">Free crypto paper trading contest</h1>
+          <p className="mt-4 text-base text-slate-300 sm:text-lg">
+            Start with {money(season.startingBalance)} virtual · {dateRange(season)} · {money(season.prizes[0])} prize
+          </p>
 
-      {/* 히어로: 트레이딩 대회 배너 */}
-      <ContestBanner />
+          <div className="mt-7 flex flex-wrap items-end gap-x-8 gap-y-5">
+            {phase !== "ended" && (
+              <Countdown dark target={phase === "registration" ? season.registrationEndsAt : season.endsAt} label={phase === "registration" ? "Registration closes in" : "Contest ends in"} />
+            )}
+            {people.count > SEASON.showParticipantsAbove && (
+              <div>
+                <p className="text-xs text-slate-300">Traders joined</p>
+                <p className="mt-1 text-3xl font-extrabold tabular-nums">{people.count.toLocaleString("en-US")}</p>
+              </div>
+            )}
+          </div>
 
-      {/* 지금 답을 기다리는 질문 */}
-      {qa.posts.length > 0 && (
-      <section>
-        <SectionHeader
-          title={<span className="inline-flex items-center gap-1.5"><MessageCircleQuestion className="size-5 text-brand" />{showingWaiting ? "Questions waiting for answers" : "Popular answered questions"}</span>}
-          href="/community?type=question"
-          hrefLabel="All questions"
-          right={qa.live ? undefined : <SampleBadge label="Sample post" />}
-          className="mb-2"
-        />
-        <ul className="divide-y rounded-2xl border bg-card shadow-xs">
-          {qa.posts.map((p) => {
-            const st = questionStatus(p);
-            return (
-              <li key={p.id} className="flex items-center gap-3 p-4">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {boardLabel(p.category)} · {p.createdAt}
-                    {st && <span className={`ml-2 rounded px-1.5 py-0.5 text-[11px] ${st.cls}`}>{st.label}</span>}
-                  </p>
-                  <Link href={`/community/${p.id}`} className="mt-0.5 block text-[15px] font-bold leading-snug hover:text-brand">{p.title}</Link>
-                </div>
-                <Link href={showingWaiting ? `/community/${p.id}#answer` : `/community/${p.id}`} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg bg-brand-soft px-3.5 text-sm font-bold text-brand hover:bg-brand hover:text-primary-foreground">
-                  {showingWaiting ? "Answer" : "View answers"} <ArrowRight className="size-3.5" />
+          <div className="mt-8">
+            {me ? (
+              <Link href="/trade" className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand px-8 text-lg font-extrabold text-primary-foreground shadow-lg hover:opacity-90 sm:w-auto">
+                Trade now <ArrowRight className="size-5" />
+              </Link>
+            ) : (
+              <Link href="/signup?next=/trade" className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand px-8 text-lg font-extrabold text-primary-foreground shadow-lg hover:opacity-90 sm:w-auto">
+                Join with Google or X <ArrowRight className="size-5" />
+              </Link>
+            )}
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-300">
+              <UserPlus className="size-4 text-amber-300" /> Invite a friend · both get +{season.referralBonusPct}% starting balance
+              {inviteCode && phase !== "ended" && <InviteButton code={inviteCode} bonusPct={season.referralBonusPct} className="border-white/20 text-white hover:bg-white/10" />}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. How it works */}
+      <section aria-labelledby="how">
+        <h2 id="how" className="text-xl font-extrabold tracking-tight sm:text-2xl">How it works</h2>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+          {[
+            { icon: UserPlus, title: "Sign up", text: `One click with Google or X. You get a contest account with ${money(season.startingBalance)} of virtual funds.` },
+            { icon: ChartCandlestick, title: "Trade", text: `Long or short crypto futures up to ${season.maxLeverage}x from ${dateRange(season)}. Warm up on a Practice account any time.` },
+            { icon: Trophy, title: "Climb ranks", text: `Ranked by return on your balance. Whoever is #1 when the contest ends wins ${money(season.prizes[0])}.` },
+          ].map((s, i) => (
+            <li key={s.title} className="rounded-2xl border bg-card p-5 shadow-xs">
+              <div className="flex items-center gap-3">
+                <span className="grid size-10 place-items-center rounded-xl bg-brand-soft text-brand"><s.icon className="size-5" /></span>
+                <span className="text-xs font-bold text-muted-foreground">STEP {i + 1}</span>
+              </div>
+              <h3 className="mt-3 text-lg font-bold">{s.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{s.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* 3. Leaderboard preview */}
+      <section aria-labelledby="lb">
+        <div className="flex items-end justify-between gap-3">
+          <h2 id="lb" className="text-xl font-extrabold tracking-tight sm:text-2xl">{phase === "registration" ? "Recently joined traders" : "Leaderboard"}</h2>
+          <Link href="/leaderboard" className="shrink-0 text-sm font-semibold text-brand hover:underline">Full leaderboard ›</Link>
+        </div>
+        {phase === "registration" ? (
+          people.recent.length > 0 ? (
+            <RecentTraders traders={people.recent} className="mt-4" />
+          ) : (
+            <EmptyBox>Be the first to join {season.label}. Ranking starts {dateRange(season).split(" – ")[0]}.</EmptyBox>
+          )
+        ) : rows.length > 0 ? (
+          <StandingsTable rows={rows} meId={me?.id} className="mt-4" />
+        ) : (
+          <EmptyBox>{phase === "live" ? "The first ranking is published within an hour of the start." : "No results for this season."}</EmptyBox>
+        )}
+      </section>
+
+      {/* 4. Rules & prize · FAQ */}
+      <section className="grid gap-3 md:grid-cols-2" aria-label="Rules and FAQ">
+        <div className="rounded-2xl border bg-card p-5 shadow-xs">
+          <h2 className="flex items-center gap-2 text-lg font-bold"><BookOpen className="size-5 text-brand" /> Rules &amp; prize</h2>
+          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+            <Fact k="Prize" v={`${money(season.prizes[0])} · 1st place`} />
+            <Fact k="Paid on" v={v.payout} />
+            <Fact k="Contest" v={`${dateRange(season)} (UTC)`} />
+            <Fact k="Start balance" v={money(season.startingBalance)} />
+            <Fact k="Max leverage" v={`${season.maxLeverage}x`} />
+            <Fact k="Ranking" v="Return on balance" />
+          </dl>
+          <ul className="mt-4 space-y-1.5 border-t pt-3 text-sm">
+            {RULES.map((r) => (
+              <li key={r.id}>
+                <Link href={`/contest/rules#${r.id}`} className="text-muted-foreground hover:text-brand">{r.title} ›</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-2xl border bg-card p-5 shadow-xs">
+          <h2 className="flex items-center gap-2 text-lg font-bold"><CircleHelp className="size-5 text-brand" /> FAQ</h2>
+          <div className="mt-2 divide-y">
+            {FAQ.map((f) => (
+              <details key={f.q} className="group py-2.5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+                  {f.q}
+                  <span className="text-muted-foreground transition-transform group-open:rotate-45" aria-hidden>+</span>
+                </summary>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{fill(f.a, v)}</p>
+              </details>
+            ))}
+          </div>
+          <Link href="/contest/faq" className="mt-2 inline-block text-sm font-semibold text-brand hover:underline">All questions ›</Link>
+        </div>
+      </section>
+
+      {/* 5. Contest talk (hidden when the Trading board has no English posts) */}
+      {talk.length > 0 && (
+        <section aria-labelledby="talk">
+          <div className="flex items-end justify-between gap-3">
+            <h2 id="talk" className="flex items-center gap-2 text-xl font-extrabold tracking-tight sm:text-2xl"><MessagesSquare className="size-5 text-brand" /> Contest talk</h2>
+            <Link href={`/community?cat=${SEASON.talkBoard}`} className="shrink-0 text-sm font-semibold text-brand hover:underline">Trading board ›</Link>
+          </div>
+          <ul className="mt-4 divide-y overflow-hidden rounded-2xl border bg-card shadow-xs">
+            {talk.map((p) => (
+              <li key={p.id}>
+                <Link href={`/community/${p.id}`} className="block px-4 py-3.5 hover:bg-muted/50">
+                  <p className="line-clamp-1 font-semibold">{p.title}</p>
+                  {p.body[0] && <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{p.body[0]}</p>}
+                  <p className="mt-1 text-xs text-muted-foreground">{p.author} · {p.createdAt} · {p.comments} comments</p>
                 </Link>
               </li>
-            );
-          })}
-        </ul>
-      </section>
-      )}
-
-      {/* 추천 인사이트 */}
-      {insights.posts.length > 0 && (
-        <section>
-          <SectionHeader title="Recommended insights" href="/insights" right={insights.live ? undefined : <SampleBadge label="Sample post" />} className="mb-2" />
-          <div className="grid gap-3 md:grid-cols-3">
-            {insights.posts.map((p) => <InsightCard key={p.id} post={p} />)}
-          </div>
+            ))}
+          </ul>
         </section>
       )}
 
-      {/* 피드 */}
-      <section>
-        <SectionHeader title="Community" href="/community" right={live ? undefined : <SampleBadge label="Sample post" />} className="mb-2" />
-        <Link href="/community/write" className="mb-3 flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-xs hover:border-brand/40">
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-soft font-bold text-brand" aria-hidden="true">Me</span>
-          <span className="flex-1 rounded-xl bg-muted px-4 py-2.5 text-sm text-muted-foreground">Ask a question or share your thoughts today</span>
-          <span className="hidden h-10 items-center rounded-xl border-2 border-brand px-4 text-sm font-bold text-brand sm:inline-flex">Write</span>
-        </Link>
-        <Pills items={TABS} active={tab} hrefFor={(t) => (t === "hot" ? "/" : `/?tab=${t}`)} className="mb-3" />
-        <div className="space-y-2.5">
-          {posts.slice(0, 3).map((p) => <PostCard key={p.id} post={p} />)}
-          {posts.slice(3).map((p) => <PostCard key={p.id} post={p} />)}
-        </div>
-        {posts.length === 0 && (
-          <div className="rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">
-            {following?.needLogin ? (
-              <>Log in to see your Following feed. <Link href="/login?next=/%3Ftab%3Dfollowing" className="text-brand underline">Log in</Link></>
-            ) : following?.empty ? (
-              <>You are not following any creators yet. <Link href="/creators" className="text-brand underline">Find creators</Link></>
-            ) : following ? (
-              "No new posts from creators you follow."
-            ) : (
-              <>No posts yet. <Link href="/community/write" className="text-brand underline">Write the first post.</Link></>
-            )}
-          </div>
-        )}
-        <div className="mt-3 text-center">
-          <Link href="/community" className="text-sm font-medium text-brand hover:underline">More posts ›</Link>
-        </div>
-      </section>
-
-      {/* 좁은 화면에서는 오른쪽 열 대신 여기에 */}
-      <div className="xl:hidden">
-        <MyContributionCard />
-      </div>
-
+      {/* 6. Small print */}
+      <p className="border-t pt-5 text-center text-xs text-muted-foreground">
+        Paper trading only · not investment advice ·{" "}
+        <Link href="/terms" className="hover:text-brand hover:underline">Terms of Service</Link> ·{" "}
+        <Link href="/privacy" className="hover:text-brand hover:underline">Privacy Policy</Link>
+      </p>
     </div>
   );
+}
+
+function Fact({ k, v }: { k: string; v: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{k}</dt>
+      <dd className="font-semibold">{v}</dd>
+    </div>
+  );
+}
+
+function EmptyBox({ children }: { children: React.ReactNode }) {
+  return <p className="mt-4 rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">{children}</p>;
 }

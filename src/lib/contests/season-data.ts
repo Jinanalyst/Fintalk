@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { SEASON, seasonPhase, type SeasonPhase } from "@/lib/season";
+import { SEASON, dateRange, longDate, money, seasonPhase, type SeasonPhase } from "@/lib/season";
+import type { CopyVars } from "@/lib/contest-copy";
 import { fromRow, getLeaderboard, type ContestRow } from "./data";
 import type { Contest, Leaderboard } from "./types";
 
@@ -159,3 +160,13 @@ export async function getMyReferralCode(): Promise<string | null> {
     return null;
   }
 }
+
+/** Values used to fill the placeholders in src/lib/contest-copy.ts. */
+export const copyVars = (s: Season): CopyVars => ({
+  maxLeverage: s.maxLeverage,
+  startingBalance: money(s.startingBalance),
+  prize: money(s.prizes[0]),
+  dates: dateRange(s),
+  payout: longDate(s.payoutDate),
+  bonus: s.referralBonusPct,
+});

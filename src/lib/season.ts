@@ -52,3 +52,7 @@ export const money = (n: number) => `$${n.toLocaleString("en-US")}`;
 
 /** Whole days left until `iso` (rounded up). */
 export const daysUntil = (iso: string, now = Date.now()) => Math.max(0, Math.ceil((Date.parse(iso) - now) / 86_400_000));
+
+const longFmt = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
+/** "Jan 11, 2027" */
+export const longDate = (iso: string | number) => longFmt.format(new Date(iso));

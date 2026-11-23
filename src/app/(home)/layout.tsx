@@ -1,6 +1,11 @@
-import { MainShell } from "@/components/layout/shell";
+import { MainShell, NarrowShell } from "@/components/layout/shell";
+import { isOn } from "@/lib/features";
 
-/** 홈 전용 레이아웃: 오른쪽 열에서 본문과 겹치는 카드(인기 종목·도움왕·인기 작성자)를 뺍니다. */
+/**
+ * "/" is the contest landing page (full width, no side columns).
+ * With the communityHome flag on it goes back to the old community home with its own right column.
+ */
 export default function HomeLayout({ children }: LayoutProps<"/">) {
-  return <MainShell sidebar="home">{children}</MainShell>;
+  if (isOn("communityHome")) return <MainShell sidebar="home">{children}</MainShell>;
+  return <NarrowShell width="max-w-5xl">{children}</NarrowShell>;
 }

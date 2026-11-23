@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -8,12 +8,12 @@ export type ViewUser = { id: string; nickname: string; role: string; avatar_url:
 
 // 헤더·상단 메뉴·하단 탭바가 함께 쓰므로 로그인 정보는 한 번만 불러와 공유합니다.
 let current: ViewUser | undefined = isSupabaseConfigured ? undefined : null;
-const listeners = new Set<(u: ViewUser | undefined) => void>();
+const listeners = new Set<() => void>();
 let started = false;
 
 function publish(u: ViewUser) {
   current = u;
-  listeners.forEach((l) => l(u));
+  listeners.forEach((l) => l());
 }
 
 function start() {
@@ -35,18 +35,17 @@ function start() {
   });
 }
 
+function subscribe(cb: () => void) {
+  listeners.add(cb);
+  start();
+  return () => {
+    listeners.delete(cb);
+  };
+}
+
+const serverSnapshot = () => (isSupabaseConfigured ? undefined : null);
+
 /** undefined = 확인 중, null = 비로그인 */
 export function useUser(): ViewUser | undefined {
-  const [user, setUser] = useState<ViewUser | undefined>(current);
-
-  useEffect(() => {
-    listeners.add(setUser);
-    setUser(current);
-    start();
-    return () => {
-      listeners.delete(setUser);
-    };
-  }, []);
-
-  return user;
+  return useSyncExternalStore(subscribe, () => current, serverSnapshot);
 }
